@@ -123,6 +123,7 @@ export function useTabContextMenu({
 		if (before !== undefined) onMove(id, before);
 	};
 	return {
+		focusedId,
 		editingId,
 		setEditingId,
 		editingGroupId,

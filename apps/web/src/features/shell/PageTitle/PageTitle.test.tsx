@@ -23,8 +23,10 @@ describe("PageTitle", () => {
 	test("keeps a title menu accessible and at least 44 pixels square on a phone or coarse pointer", () => {
 		const html = renderToStaticMarkup(<TitleMenuButton label="A long epic name" />);
 
-		expect(html).toContain("max-md:h-11 max-md:min-w-11");
-		expect(html).toContain("pointer-coarse:h-11 pointer-coarse:min-w-11");
+		expect(html).toContain("max-md:h-11");
+		expect(html).toContain("max-md:min-w-11");
+		expect(html).toContain("pointer-coarse:h-11");
+		expect(html).toContain("pointer-coarse:min-w-11");
 		expect(html).toContain(">A long epic name</span>");
 	});
 });

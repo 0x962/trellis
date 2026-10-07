@@ -13,8 +13,7 @@ import { MoreMenu, ticketLink } from "./components/MoreMenu";
 
 export type HeaderProps = {
 	ticket: Ticket;
-	// True for a ticket under an archived project. The server refuses every
-	// write to it, so the header disables its actions.
+	// An archived project permits copies and navigation but refuses ticket writes.
 	readOnly: boolean;
 };
 
@@ -41,13 +40,10 @@ export function Header({ ticket, readOnly }: HeaderProps) {
 		if (claims(event)) void copyText(ticketLink(ticket.identifier), "Copied the link");
 	});
 
-	// In a `PageSheet`, `Topbar` renders the actions into the header of the
-	// sheet. That header is outside the disabled fieldset that `TicketView`
-	// draws around a read-only ticket, so the actions carry their own.
 	return (
 		<Topbar
 			actions={
-				<fieldset disabled={readOnly} className="contents">
+				<>
 					<BriefCopy ticket={ticket} />
 
 					{!phone && (
@@ -68,8 +64,8 @@ export function Header({ ticket, readOnly }: HeaderProps) {
 							</Tooltip>
 						</>
 					)}
-					<MoreMenu ticket={ticket} />
-				</fieldset>
+					<MoreMenu ticket={ticket} readOnly={readOnly} />
+				</>
 			}
 		>
 			<PageTitle parent={<ProjectBreadcrumb project={project} />} title={ticket.identifier} />

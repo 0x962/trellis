@@ -9,6 +9,7 @@ import { AttachmentActions } from "../AttachmentActions";
 
 export type AttachmentRowProps = {
 	attachment: Attachment;
+	readOnly?: boolean;
 	onDelete?: () => Promise<void>;
 	onRename?: (name: string) => Promise<void>;
 };
@@ -22,7 +23,7 @@ const fileIcon = (attachment: Attachment): { name: string; icon: ReactElement } 
 
 // One file that is not an image: the type icon, the name, the size, the
 // actor, the time, a download link, and the row menu.
-export function AttachmentRow({ attachment, onDelete, onRename }: AttachmentRowProps) {
+export function AttachmentRow({ attachment, onDelete, onRename, readOnly = false }: AttachmentRowProps) {
 	const type = fileIcon(attachment);
 	const [renaming, setRenaming] = useState(false);
 	return (
@@ -37,7 +38,7 @@ export function AttachmentRow({ attachment, onDelete, onRename }: AttachmentRowP
 			>
 				{type.icon}
 			</span>
-			{onRename === undefined ? (
+			{onRename === undefined || readOnly ? (
 				<span className="min-w-0 flex-1 truncate text-sm font-medium text-fg">{attachment.filename}</span>
 			) : (
 				<InlineEdit
@@ -67,7 +68,12 @@ export function AttachmentRow({ attachment, onDelete, onRename }: AttachmentRowP
 				<DownloadSimple aria-hidden="true" className="size-3.5" />
 			</a>
 			{onDelete !== undefined && onRename !== undefined && (
-				<AttachmentActions attachment={attachment} onDelete={onDelete} onRename={() => setRenaming(true)} />
+				<AttachmentActions
+					readOnly={readOnly}
+					attachment={attachment}
+					onDelete={onDelete}
+					onRename={() => setRenaming(true)}
+				/>
 			)}
 		</div>
 	);

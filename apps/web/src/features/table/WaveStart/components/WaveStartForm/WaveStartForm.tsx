@@ -14,17 +14,24 @@ type Sent = {
 	harness: Harness;
 };
 
+export type WaveStartAssignment =
+	| { status: "loading" }
+	| { status: "error"; detail: string; retry: () => void }
+	| { status: "ready"; ticketIds: ReadonlySet<string> };
+
+const noAssigned = new Set<string>();
+
 export function WaveStartForm({
 	wave,
 	tickets,
-	assigned,
+	assignment,
 	starting,
 	onStartingChange,
 	onClose,
 }: {
 	wave: string;
 	tickets: readonly TicketSummary[];
-	assigned: ReadonlySet<string>;
+	assignment: WaveStartAssignment;
 	starting: boolean;
 	onStartingChange: (starting: boolean) => void;
 	onClose: () => void;
@@ -32,19 +39,29 @@ export function WaveStartForm({
 	const { client, orpc, queryClient } = useApp();
 	const [harness, setHarness] = useState<Harness>(() => HarnessSchema.parse({ preset: "claude" }));
 	const [batch] = useState(() => crypto.randomUUID());
+	const assignmentReady = assignment.status === "ready";
+	const assigned = assignmentReady ? assignment.ticketIds : noAssigned;
 	const [selected, setSelected] = useState(() => new Set(wavePlan(tickets, assigned).start.map((ticket) => ticket.id)));
 	const [sent, setSent] = useState<Sent | null>(null);
 	const [results, setResults] = useState<Record<string, string | null>>({});
 	const submitting = useRef(false);
 	const displayed = sent?.tickets ?? tickets;
 	const held = sent?.assigned ?? assigned;
-	const eligible = displayed.filter((ticket) => ticket.status.category === "todo" && !held.has(ticket.id));
+	const eligible = assignmentReady
+		? displayed.filter((ticket) => ticket.status.category === "todo" && !held.has(ticket.id))
+		: [];
 	const ready = eligible.filter((ticket) => ticket.ready);
+	const waiting = eligible.filter((ticket) => !ticket.ready);
 	const targets = sent
 		? sent.targets.filter((ticket) => results[ticket.id] !== null)
 		: eligible.filter((ticket) => selected.has(ticket.id));
 	const chosen = new Set((sent?.targets ?? targets).map((ticket) => ticket.id));
 	const readySelected = ready.filter((ticket) => chosen.has(ticket.id)).length;
+	const assignedCount = sent?.targets.filter((ticket) => results[ticket.id] === null).length ?? 0;
+	const failures = (sent?.targets ?? []).flatMap((ticket) => {
+		const detail = results[ticket.id];
+		return typeof detail === "string" ? [{ identifier: ticket.identifier, detail }] : [];
+	});
 
 	const toggle = (id: string, checked: boolean) =>
 		setSelected((current) => {
@@ -63,14 +80,14 @@ export function WaveStartForm({
 			return next;
 		});
 	const start = async () => {
-		if (submitting.current || targets.length === 0) return;
+		if (submitting.current || !assignmentReady || targets.length === 0) return;
 		submitting.current = true;
 		const request = sent ?? { tickets, assigned, targets, harness };
 		setSent(request);
 		onStartingChange(true);
 		const requestedIds = new Set(targets.map((ticket) => ticket.id));
 		setResults((current) => Object.fromEntries(Object.entries(current).filter(([id]) => !requestedIds.has(id))));
-		const accepted = await startWave(targets, {
+		await startWave(targets, {
 			start: (ticket) =>
 				client.agentRuns.start({
 					ticket: ticket.identifier,
@@ -86,25 +103,33 @@ export function WaveStartForm({
 		submitting.current = false;
 		onStartingChange(false);
 		void queryClient.invalidateQueries({ queryKey: orpc.agentRuns.list.key() });
-		if (accepted) onClose();
 	};
 
 	const row = ({ ticket, children }: WaveBranch): WaveStartTicket => {
 		const waitsOn = unfinishedDependencies(ticket).map((dependency) => dependency.identifier);
 		const checked = chosen.has(ticket.id);
-		let note: string | null = held.has(ticket.id)
-			? "Already assigned"
-			: ticket.status.category !== "todo"
-				? ticket.status.name
-				: null;
+		const prerequisite = waitsOn.length > 0 ? `Waits for ${waitsOn.join(", ")}.` : "";
+		let note: string | null =
+			assignment.status === "loading"
+				? `Trellis is checking current assignments.${prerequisite ? ` ${prerequisite}` : ""}`
+				: assignment.status === "error"
+					? `Current assignments did not load.${prerequisite ? ` ${prerequisite}` : ""}`
+					: held.has(ticket.id)
+						? `An agent is already assigned.${prerequisite ? ` ${prerequisite}` : ""}`
+						: ticket.status.category !== "todo"
+							? `Status: ${ticket.status.name}. Only Todo tickets can start.${prerequisite ? ` ${prerequisite}` : ""}`
+							: ticket.ready
+								? "Ready to start."
+								: `${prerequisite} ${checked ? "Selected to start now." : "Select to start now."}`;
 		let tone: WaveStartTicket["tone"] = "muted";
-		if (note === null && waitsOn.length > 0) {
-			note = `${checked ? "Starts anyway · " : ""}Waits for ${waitsOn.join(", ")}`;
-			if (checked) tone = "warning";
-		}
+		if (!ticket.ready && ticket.status.category === "todo" && !held.has(ticket.id)) tone = "warning";
 		if (sent && checked) {
 			note =
-				ticket.id in results ? (results[ticket.id] === null ? "Agent assigned" : results[ticket.id]!) : "Starting…";
+				ticket.id in results
+					? results[ticket.id] === null
+						? `Agent assigned.${prerequisite ? ` ${prerequisite}` : ""}`
+						: `Agent did not start. ${results[ticket.id]}${prerequisite ? ` ${prerequisite}` : ""}`
+					: `Starting agent.${prerequisite ? ` ${prerequisite}` : ""}`;
 			tone = ticket.id in results ? (results[ticket.id] === null ? "success" : "danger") : "muted";
 		}
 		return {
@@ -118,7 +143,7 @@ export function WaveStartForm({
 				reviewShape: ticket.status.slug === "deploy-queue" ? "queue" : "human",
 			},
 			checked,
-			disabled: sent !== null || ticket.status.category !== "todo" || held.has(ticket.id),
+			disabled: !assignmentReady || sent !== null || ticket.status.category !== "todo" || held.has(ticket.id),
 			waitsOn,
 			note,
 			tone,
@@ -134,15 +159,19 @@ export function WaveStartForm({
 			total={displayed.length}
 			selectedCount={targets.length}
 			readyCount={ready.length}
+			waitingCount={waiting.length}
+			unavailableCount={displayed.length - eligible.length}
 			readySelected={readySelected}
+			assignedCount={assignedCount}
+			failures={failures}
 			starting={starting}
 			submitted={sent !== null}
-			canSelect={eligible.length > 0}
-			hasWaiting={eligible.some((ticket) => unfinishedDependencies(ticket).length > 0)}
-			agent={<WaveLaunchFields harness={harness} onChange={setHarness} disabled={sent !== null} />}
-			startLabel={
-				sent ? `Retry ${targets.length} ${targets.length === 1 ? "ticket" : "tickets"}` : startLabel(targets.length)
-			}
+			canSelect={assignmentReady ? eligible.length > 0 : displayed.length > 0}
+			assignmentStatus={assignment.status}
+			assignmentError={assignment.status === "error" ? assignment.detail : undefined}
+			onRetryAssignments={assignment.status === "error" ? assignment.retry : undefined}
+			agent={<WaveLaunchFields harness={harness} onChange={setHarness} disabled={sent !== null || !assignmentReady} />}
+			startLabel={assignmentReady ? startLabel(targets.length) : "Start wave"}
 			onClose={onClose}
 			onStart={() => void start()}
 			onToggle={toggle}

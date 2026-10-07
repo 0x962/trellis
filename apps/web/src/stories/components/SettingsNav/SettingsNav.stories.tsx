@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { SettingsNav } from "@trellis/ui";
+import { expect, userEvent, within } from "storybook/test";
 import { useStoryState } from "../useStoryState";
 
 const meta = {
@@ -24,6 +25,21 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {};
+export const NarrowTargets: Story = {
+	globals: { viewport: { value: "narrow", isRotated: false } },
+	play: async ({ canvasElement }) => {
+		const canvas = within(canvasElement);
+		const nav = canvas.getByRole("navigation", { name: "Settings" });
+		for (const button of within(nav).getAllByRole("button")) {
+			await expect(button.getBoundingClientRect().height).toBeGreaterThanOrEqual(44);
+		}
+		const notifications = within(nav).getByRole("button", { name: "Notifications" });
+		notifications.focus();
+		await userEvent.keyboard("{Enter}");
+		await expect(notifications).toHaveAttribute("aria-current", "page");
+		await expect(notifications).toHaveFocus();
+	},
+};
 export const SecondSelected: Story = { args: { selected: "notifications" } };
 export const LongLabels: Story = {
 	args: {

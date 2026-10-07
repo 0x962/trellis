@@ -76,7 +76,7 @@ export function ComposerAgentPicker({
 					.map((option) => ({
 						id: option.id,
 						label: option.name,
-						keywords: [option.preset, option.group],
+						keywords: [option.preset, option.group, option.model ?? HARNESS_DEFAULT_MODELS[option.preset]],
 						icon: option.provider ? <ProviderIcon provider={option.provider} decorative /> : undefined,
 						current: preset === option.preset && model === option.model,
 						checked: preset === option.preset && model === option.model,

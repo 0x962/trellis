@@ -1,11 +1,12 @@
-import { ArrowClockwise } from "@phosphor-icons/react";
 import { useEffect, useRef, useState } from "react";
+import { FailureState } from "../../domain/FailureState";
+import { useTheme } from "../../hooks/useTheme";
+import { Button } from "../../primitives/Button";
 import { EmptyState } from "../../primitives/EmptyState";
-import { IconButton } from "../../primitives/IconButton";
-import { Tooltip } from "../../primitives/Tooltip";
 import type { LinkPress } from "../../utils/linkPress";
 import "@xterm/xterm/css/xterm.css";
 import "../terminal.css";
+import { terminalAppearance } from "./terminalAppearance";
 import { acquireTerminal, disposeTerminalIdentity } from "./terminalRegistry";
 import {
 	initialTerminalSnapshot,
@@ -47,23 +48,35 @@ export function TerminalSurface({
 	onOpenLink,
 }: TerminalSurfaceProps) {
 	const container = useRef<HTMLDivElement>(null);
+	const { resolved: theme } = useTheme();
 	const runtime = useRef<TerminalRuntime | null>(null);
+	const [loadAttempt, setLoadAttempt] = useState(0);
 	const view = useRef({ label, readOnly, getPathForFile, screenReaderMode, onLeave, onOpenLink });
 	view.current = { label, readOnly, getPathForFile, screenReaderMode, onLeave, onOpenLink };
 	const focusRequest = useRef({ autoFocus, autoFocusDelay });
 	focusRequest.current = { autoFocus, autoFocusDelay };
-	const [state, setState] = useState<{ identity: string; snapshot: TerminalSnapshot }>({
+	const [state, setState] = useState<{ identity: string; loadAttempt: number; snapshot: TerminalSnapshot }>({
 		identity,
+		loadAttempt,
 		snapshot: initialTerminalSnapshot,
 	});
-	const snapshot = state.identity === identity ? state.snapshot : initialTerminalSnapshot;
+	const snapshot =
+		state.identity === identity && state.loadAttempt === loadAttempt ? state.snapshot : initialTerminalSnapshot;
+	const reconnect = () => {
+		if (runtime.current) runtime.current.reconnect();
+		else setLoadAttempt((attempt) => attempt + 1);
+	};
 	const ended = snapshot.stopped;
 	useEffect(() => {
 		onConnectionChange?.(snapshot);
 	}, [onConnectionChange, snapshot]);
+	// biome-ignore lint/correctness/useExhaustiveDependencies: The theme changes the CSS values read by terminalAppearance.
 	useEffect(() => {
-		runtime.current?.update({ label, readOnly, getPathForFile, screenReaderMode, onLeave, onOpenLink });
-	}, [label, readOnly, getPathForFile, screenReaderMode, onLeave, onOpenLink]);
+		runtime.current?.update(
+			{ label, readOnly, getPathForFile, screenReaderMode, onLeave, onOpenLink },
+			terminalAppearance(container.current!),
+		);
+	}, [label, readOnly, getPathForFile, screenReaderMode, onLeave, onOpenLink, theme]);
 	useEffect(() => {
 		if (stopped) {
 			disposeTerminalIdentity(identity);
@@ -71,13 +84,7 @@ export function TerminalSurface({
 		}
 		if (ended) return;
 		const host = container.current!;
-		const styles = getComputedStyle(host.parentElement!);
-		const appearance = {
-			fontFamily: styles.fontFamily,
-			fontSize: Number.parseFloat(styles.fontSize),
-			background: styles.backgroundColor,
-			foreground: styles.color,
-		};
+		const appearance = terminalAppearance(host);
 		const lease = acquireTerminal(identity, appearance, createTransport);
 		let active = true;
 		let unsubscribe = () => {};
@@ -86,9 +93,9 @@ export function TerminalSurface({
 			.then((current) => {
 				if (!active) return;
 				runtime.current = current;
-				const update = () => setState({ identity, snapshot: current.getSnapshot() });
+				const update = () => setState({ identity, loadAttempt, snapshot: current.getSnapshot() });
 				unsubscribe = current.subscribe(update);
-				current.attach(host, view.current, appearance);
+				current.attach(host, view.current, terminalAppearance(host));
 				const request = focusRequest.current;
 				if (request.autoFocus && !view.current.readOnly) {
 					if (request.autoFocusDelay > 0) {
@@ -105,6 +112,7 @@ export function TerminalSurface({
 				if (active)
 					setState({
 						identity,
+						loadAttempt,
 						snapshot: { ...initialTerminalSnapshot, connection: "closed", error: failure.message },
 					});
 			});
@@ -115,7 +123,7 @@ export function TerminalSurface({
 			runtime.current = null;
 			lease.release();
 		};
-	}, [identity, createTransport, stopped, ended]);
+	}, [identity, createTransport, stopped, ended, loadAttempt]);
 	// The buffer of a terminal ends with its process, so this block names
 	// the state and leaves the control that starts a new process to the
 	// screen around it.
@@ -130,35 +138,40 @@ export function TerminalSurface({
 		);
 	return (
 		<div className="terminal-surface" data-layout={layout}>
+			<div className="terminal-canvas">
+				<div ref={container} className="terminal-host" />
+			</div>
 			{snapshot.error && (
-				<div className="terminal-reconnect">
-					<Tooltip content="Reconnect terminal">
-						<IconButton
-							label="Reconnect terminal"
-							icon={<ArrowClockwise />}
-							onClick={() => runtime.current?.reconnect()}
-						/>
-					</Tooltip>
-				</div>
+				<FailureState
+					title={runtime.current ? "The terminal disconnected" : "The terminal did not load"}
+					description="Reconnect to continue in this session."
+					detail={snapshot.error}
+					className="terminal-feedback"
+					action={
+						<Button size="md" onClick={reconnect}>
+							Reconnect terminal
+						</Button>
+					}
+				/>
 			)}
 			{snapshot.gap && (
 				<p role="status" className="terminal-notice">
 					Earlier output is outside the retained buffer.
 				</p>
 			)}
-			{snapshot.error && (
-				<p role="alert" className="terminal-error">
-					{snapshot.error}
-				</p>
-			)}
 			{snapshot.unavailableReason && !snapshot.error && (
-				<p role="alert" className="terminal-error">
-					{snapshot.unavailableReason}
+				<FailureState
+					title="Terminal input is unavailable"
+					description="The process cannot accept input."
+					detail={snapshot.unavailableReason}
+					className="terminal-feedback"
+				/>
+			)}
+			{snapshot.connection === "connecting" && !snapshot.error && (
+				<p role="status" className="terminal-notice">
+					Connect terminal…
 				</p>
 			)}
-			<div className="terminal-canvas">
-				<div ref={container} className="terminal-host" />
-			</div>
 		</div>
 	);
 }

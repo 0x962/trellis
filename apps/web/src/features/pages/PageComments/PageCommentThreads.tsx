@@ -1,4 +1,4 @@
-import { Checks } from "@phosphor-icons/react";
+import { ArrowClockwise, Checks } from "@phosphor-icons/react";
 import type { PageComment, PageCommentThread } from "@trellis/api";
 import { Badge, EmptyState, FailureState, IconButton, SectionHeader, Skeleton, Tooltip } from "@trellis/ui";
 import { ReviewThreadCard } from "@trellis/ui/review";
@@ -52,6 +52,7 @@ export function PageCommentThreads({
 	actions,
 	onSelect,
 	onShowResolved,
+	onRetry,
 }: {
 	threads: { number: number; thread: PageCommentThread }[];
 	selected: string | null;
@@ -62,6 +63,7 @@ export function PageCommentThreads({
 	actions: PageCommentActions;
 	onSelect: (id: string) => void;
 	onShowResolved: (show: boolean) => void;
+	onRetry: () => void;
 }) {
 	const actor = useActor();
 	const resolvedCount = useMemo(() => threads.filter(({ thread }) => thread.resolved !== null).length, [threads]);
@@ -116,7 +118,16 @@ export function PageCommentThreads({
 				}
 			/>
 			{loadError !== null && (
-				<FailureState title="The comments did not load" detail={errorMessage(loadError)} variant="section" />
+				<FailureState
+					title="The comments did not load"
+					detail={errorMessage(loadError)}
+					variant="section"
+					action={
+						<Tooltip content="Retry">
+							<IconButton label="Retry" icon={<ArrowClockwise />} onClick={onRetry} />
+						</Tooltip>
+					}
+				/>
 			)}
 			{loading && (
 				<div role="status" aria-label="Load comments">

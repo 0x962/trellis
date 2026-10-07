@@ -1,5 +1,5 @@
-import { Button, Input, type ProjectColor, ProjectColorField, TicketId } from "@trellis/ui";
-import { type FormEvent, useState } from "react";
+import { Button, FormStatus, Input, type ProjectColor, ProjectColorField, TicketId } from "@trellis/ui";
+import { type FormEvent, useRef, useState } from "react";
 import { suggestKey } from "../../../lib/projectKey";
 
 export type ProjectStepProps = {
@@ -13,8 +13,7 @@ export type ProjectStepProps = {
 	onCreate: (input: { key: string; name: string; color: ProjectColor | null }) => Promise<void>;
 };
 
-// A key is 2 to 5 characters: a letter, then letters or digits.
-const keyPattern = /^[A-Z][A-Z0-9]{1,4}$/;
+const keyPattern = /^[A-Z][A-Z0-9]{1,9}$/;
 
 // Step 2 of the first run, and the form behind "New project" later. The key
 // follows the name until the person edits it. Every edit is validated live,
@@ -24,6 +23,7 @@ export function ProjectStep({ taken, takenNames, takenColors, onCreate }: Projec
 	const [color, setColor] = useState<ProjectColor | null>(null);
 	const [editedKey, setEditedKey] = useState<string | null>(null);
 	const [pending, setPending] = useState(false);
+	const submitting = useRef(false);
 	const trimmed = name.trim();
 	const nameError = takenNames.some((taken) => taken.toLowerCase() === trimmed.toLowerCase())
 		? `A project named ${trimmed} exists.`
@@ -33,14 +33,16 @@ export function ProjectStep({ taken, takenNames, takenColors, onCreate }: Projec
 		key === ""
 			? null
 			: !keyPattern.test(key)
-				? "A key is 2 to 5 characters: a letter, then letters or digits."
+				? "A key is 2 to 10 characters: a letter, then letters or digits."
 				: taken.includes(key)
 					? `Another project uses the key ${key}.`
 					: null;
-	const ready = trimmed !== "" && nameError === null && key !== "" && keyError === null && !pending;
+	const ready = trimmed !== "" && nameError === null && key !== "" && keyError === null;
 
 	const submit = async (event: FormEvent) => {
 		event.preventDefault();
+		if (!ready || submitting.current) return;
+		submitting.current = true;
 		setPending(true);
 		await onCreate({ key, name: trimmed, color });
 	};
@@ -86,7 +88,16 @@ export function ProjectStep({ taken, takenNames, takenColors, onCreate }: Projec
 				)}
 			</div>
 			<ProjectColorField value={color} taken={takenColors} onValueChange={setColor} />
-			<Button type="submit" variant="primary" size="md" kbd="↵" disabled={!ready} className="w-full">
+			<FormStatus status={pending ? "saving" : "idle"} />
+			<Button
+				type="submit"
+				variant="primary"
+				size="md"
+				kbd="↵"
+				disabled={!ready}
+				processing={pending}
+				className="w-full"
+			>
 				Create
 			</Button>
 		</form>
