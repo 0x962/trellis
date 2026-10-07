@@ -246,33 +246,51 @@ export const NodeDeleteConfirmation: Story = {
 	play: async (context) => {
 		await clickButton("Delete step")(context);
 		const body = within(context.canvasElement.ownerDocument.body);
-		await expect(await body.findByRole("group", { name: "Confirm deletion" })).toBeVisible();
-		await expect(body.getByRole("button", { name: "Confirm delete" })).toBeVisible();
-		await expect(body.getByRole("button", { name: "Keep step" })).toBeVisible();
+		const dialog = await body.findByRole("dialog", { name: /Delete/ });
+		await waitFor(() => expect(dialog).toBeVisible());
+		await waitFor(() => expect(within(dialog).getByRole("button", { name: "Cancel" })).toHaveFocus());
+	},
+};
+export const NodeDeleteCancelFocus: Story = {
+	...NodeAgent,
+	play: async (context) => {
+		const body = within(context.canvasElement.ownerDocument.body);
+		const opener = await body.findByRole("button", { name: "Delete step" });
+		await userEvent.click(opener);
+		const dialog = await body.findByRole("dialog", { name: /Delete/ });
+		await userEvent.click(within(dialog).getByRole("button", { name: "Cancel" }));
+		await waitFor(() => expect(opener).toHaveFocus());
 	},
 };
 export const NodeDeleteSuccess: Story = {
 	render: function Render() {
 		const [deleted, setDeleted] = useState(false);
-		return deleted ? (
-			<p role="status">Step deleted.</p>
-		) : (
-			<NodeInspector
-				fields={fields}
-				issue={undefined}
-				validate={() => ({ canSave: true, issue: undefined })}
-				onDelete={() => setDeleted(true)}
-				onClose={noop}
-				onSave={noop}
-				saving={false}
-				canSave
-			/>
+		return (
+			<>
+				<section aria-label="Flow canvas" tabIndex={-1}>
+					{deleted && <p role="status">Step deleted.</p>}
+				</section>
+				{!deleted && (
+					<NodeInspector
+						fields={fields}
+						issue={undefined}
+						validate={() => ({ canSave: true, issue: undefined })}
+						onDelete={() => setDeleted(true)}
+						onClose={noop}
+						onSave={noop}
+						saving={false}
+						canSave
+					/>
+				)}
+			</>
 		);
 	},
 	play: async (context) => {
-		await clickButton("Delete step")(context);
-		await clickButton("Confirm delete")(context);
 		const body = within(context.canvasElement.ownerDocument.body);
+		await userEvent.click(await body.findByRole("button", { name: "Delete step" }));
+		const dialog = await body.findByRole("dialog", { name: /Delete/ });
+		await userEvent.click(within(dialog).getByRole("button", { name: "Delete step" }));
 		await expect(await body.findByText("Step deleted.", { exact: true })).toBeVisible();
+		await waitFor(() => expect(body.getByRole("region", { name: "Flow canvas" })).toHaveFocus());
 	},
 };

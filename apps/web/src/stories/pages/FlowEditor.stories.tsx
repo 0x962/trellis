@@ -1,7 +1,7 @@
 import { ORPCError } from "@orpc/client";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { type FlowDoc, pendingDocumentV1Example } from "@trellis/api";
-import { expect, waitFor, within } from "storybook/test";
+import { expect, userEvent, waitFor, within } from "storybook/test";
 import { FlowEditorRoute } from "../../features/flows/LangflowEditor/components/FlowEditorRoute";
 import { flowDoc, flowResponses } from "./fixtures/flow";
 import { failure, id, pending } from "./fixtures/project";
@@ -67,6 +67,22 @@ export const LegacyCanvas: Story = {
 };
 export const EmptyCanvas: Story = {
 	parameters: { trellis: { responses: { "flows.get": { ...flowDoc, nodes: [], edges: [] } } } },
+};
+export const KeyboardDeleteRequiresConfirmation: Story = {
+	play: async ({ canvasElement }) => {
+		const canvas = within(canvasElement);
+		const node = await canvas.findByText(flowDoc.nodes[0]!.title, { exact: true });
+		const nodeElement = node.closest<HTMLElement>(".react-flow__node")!;
+		await waitFor(() => expect(nodeElement).toBeVisible());
+		await userEvent.click(nodeElement);
+		const deleteButton = await within(canvasElement.ownerDocument.body).findByRole("button", { name: "Delete step" });
+		await expect(deleteButton).toBeVisible();
+		const before = canvasElement.querySelectorAll(".react-flow__node").length;
+		nodeElement.focus();
+		await userEvent.keyboard("{Delete}{Backspace}");
+		await expect(canvasElement.querySelectorAll(".react-flow__node")).toHaveLength(before);
+		await expect(deleteButton).toBeVisible();
+	},
 };
 export const Loading: Story = { parameters: { trellis: { responses: { "flowDocumentsV1.get": pending } } } };
 export const RequestError: Story = { parameters: { trellis: { responses: { "flowDocumentsV1.get": failure } } } };

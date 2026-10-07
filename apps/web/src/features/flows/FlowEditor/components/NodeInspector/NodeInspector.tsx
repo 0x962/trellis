@@ -1,6 +1,17 @@
 import { type FlowNodeKind, flowAgentKinds } from "@trellis/api";
-import { Button, Input, Select, Sheet, SheetBody, SheetFooter, SheetSection, Switch, Textarea } from "@trellis/ui";
-import { useState } from "react";
+import {
+	Button,
+	ConfirmDialog,
+	Input,
+	Select,
+	Sheet,
+	SheetBody,
+	SheetFooter,
+	SheetSection,
+	Switch,
+	Textarea,
+} from "@trellis/ui";
+import { useRef, useState } from "react";
 import { LaunchFields } from "../../../../agents/LaunchFields";
 import { flowHarnessOf, harnessOfFlow } from "../../../flowHarness";
 import { flowKinds } from "../../../kinds";
@@ -38,177 +49,181 @@ export function NodeInspector({
 }: NodeInspectorProps) {
 	const [fields, setFields] = useState(initialFields);
 	const [confirmDelete, setConfirmDelete] = useState(false);
+	const deleteConfirmed = useRef(false);
 	const onChange = (patch: Partial<StepFields>) => setFields((current) => ({ ...current, ...patch }));
 	const validation = validate(fields);
 	const shownIssue = issue ?? validation.issue;
 	const meta = flowKinds[fields.kind];
 	const promptLabel = promptLabels[fields.kind];
 	return (
-		<Sheet
-			open
-			modal={false}
-			title={`Edit ${meta.label.toLowerCase()}`}
-			titleClassName="text-md font-medium"
-			onOpenChange={(open) => !open && !saving && onClose()}
-		>
-			<form
-				className="flex min-h-full flex-col"
-				onSubmit={(event) => {
-					event.preventDefault();
-					if (canSave && validation.canSave && !saving) onSave(fields);
-				}}
+		<>
+			<Sheet
+				open
+				modal={false}
+				title={`Edit ${meta.label.toLowerCase()}`}
+				titleClassName="text-md font-medium"
+				onOpenChange={(open) => !open && !saving && onClose()}
 			>
-				<SheetBody>
-					<fieldset disabled={saving} className="contents">
-						<p className="text-sm text-fg-muted">{meta.description}</p>
-						<SheetSection title="Details">
-							<Input
-								label="Title"
-								className="pointer-coarse:h-11"
-								required
-								error={fields.title.trim() === "" ? "Enter a title." : undefined}
-								value={fields.title}
-								onChange={(event) => onChange({ title: event.target.value })}
-							/>
-						</SheetSection>
-						{fields.kind === "gate" && (
-							<SheetSection title="Decision" divided>
-								<Select<"agent" | "frontend" | "backend">
-									label="Decision source"
-									hideLabel={false}
-									value={fields.reviewArea ?? "agent"}
-									items={[
-										{ value: "agent", label: "Agent question" },
-										{ value: "frontend", label: "Jev: frontend relevance" },
-										{ value: "backend", label: "Jev: backend relevance" },
-									]}
-									onValueChange={(value) => onChange({ reviewArea: value === "agent" ? null : value, harness: null })}
-									hint="Jev reads every changed file path. A mixed change selects both review branches."
-								/>
-							</SheetSection>
-						)}
-						{promptLabel !== null && fields.reviewArea == null && (
-							<SheetSection title="Instructions" divided>
-								<Textarea
-									label={promptLabel}
-									rows={14}
-									value={fields.instruction}
-									onChange={(event) => onChange({ instruction: event.target.value })}
-									placeholder="Write what this step does."
-								/>
-							</SheetSection>
-						)}
-						{flowAgentKinds.has(fields.kind) && fields.reviewArea == null && (
-							<SheetSection title="Agent" divided>
-								<LaunchFields
-									allowDefault="Flow default"
-									harness={harnessOfFlow(fields.harness)}
-									onChange={(harness) => onChange({ harness: flowHarnessOf(harness) })}
-								/>
-							</SheetSection>
-						)}
-						{fields.kind === "group" && (
-							<SheetSection title="Execution" divided>
-								<div className="flex flex-col gap-2">
-									<Switch
-										label="Parallel"
-										className="flex-row-reverse justify-between text-sm"
-										checked={fields.parallel === true}
-										onCheckedChange={(parallel) => onChange({ parallel })}
-									/>
-									<p className="text-xs text-fg-muted">
-										{fields.parallel
-											? "All children start together. Connect only the group."
-											: "Connect one starting step to the other children."}
-									</p>
-								</div>
-								<div className="flex flex-col gap-3 border-t border-border pt-4">
-									<Switch
-										label="Time limit"
-										className="flex-row-reverse justify-between text-sm"
-										checked={fields.minutes !== null}
-										onCheckedChange={(enabled) => onChange({ minutes: enabled ? 10 : null })}
-									/>
-									{fields.minutes !== null && (
-										<Input
-											label="Minutes"
-											className="tabular-nums pointer-coarse:h-11"
-											type="number"
-											min={1}
-											value={Number.isFinite(fields.minutes) ? String(fields.minutes) : ""}
-											onChange={(event) =>
-												onChange({ minutes: event.target.value === "" ? 0 : event.target.valueAsNumber })
-											}
-										/>
-									)}
-								</div>
-							</SheetSection>
-						)}
-						{fields.kind === "loop" && (
-							<SheetSection title="Execution" divided>
-								<Input
-									label="Rounds at most"
-									className="tabular-nums pointer-coarse:h-11"
-									type="number"
-									min={1}
-									value={String(fields.maxRounds)}
-									onChange={(event) => onChange({ maxRounds: event.target.valueAsNumber })}
-								/>
-							</SheetSection>
-						)}
-						{shownIssue !== undefined && (
-							<p role="alert" className="text-sm text-danger">
-								{shownIssue}
-							</p>
-						)}
-					</fieldset>
-				</SheetBody>
-				<SheetFooter
-					confirmation={
-						confirmDelete && (
-							<fieldset
-								className="flex flex-wrap items-center gap-2 border border-danger p-3"
-								aria-label="Confirm deletion"
-							>
-								<p className="w-full break-words text-sm text-fg">
-									Delete {fields.title.trim() === "" ? "this step" : `"${fields.title}"`}?
-								</p>
-								<p className="w-full text-sm text-fg-muted">
-									This deletes the step and every connection attached to it.
-								</p>
-								<Button type="button" variant="danger" disabled={saving} onClick={onDelete}>
-									Confirm delete
-								</Button>
-								<Button type="button" variant="quiet" disabled={saving} onClick={() => setConfirmDelete(false)}>
-									Keep step
-								</Button>
-							</fieldset>
-						)
-					}
-					leading={
-						<Button
-							type="button"
-							variant="quiet"
-							onClick={() => setConfirmDelete(true)}
-							disabled={saving || confirmDelete}
-						>
-							Delete step
-						</Button>
-					}
+				<form
+					className="flex min-h-full flex-col"
+					onSubmit={(event) => {
+						event.preventDefault();
+						if (canSave && validation.canSave && !saving) onSave(fields);
+					}}
 				>
-					<Button type="button" variant="quiet" onClick={onClose} disabled={saving}>
-						Cancel
-					</Button>
-					<Button
-						type="submit"
-						variant="primary"
-						processing={saving}
-						disabled={!canSave || !validation.canSave || confirmDelete}
+					<SheetBody>
+						<fieldset disabled={saving} className="contents">
+							<p className="text-sm text-fg-muted">{meta.description}</p>
+							<SheetSection title="Details">
+								<Input
+									label="Title"
+									className="pointer-coarse:h-11"
+									required
+									error={fields.title.trim() === "" ? "Enter a title." : undefined}
+									value={fields.title}
+									onChange={(event) => onChange({ title: event.target.value })}
+								/>
+							</SheetSection>
+							{fields.kind === "gate" && (
+								<SheetSection title="Decision" divided>
+									<Select<"agent" | "frontend" | "backend">
+										label="Decision source"
+										hideLabel={false}
+										value={fields.reviewArea ?? "agent"}
+										items={[
+											{ value: "agent", label: "Agent question" },
+											{ value: "frontend", label: "Jev: frontend relevance" },
+											{ value: "backend", label: "Jev: backend relevance" },
+										]}
+										onValueChange={(value) => onChange({ reviewArea: value === "agent" ? null : value, harness: null })}
+										hint="Jev reads every changed file path. A mixed change selects both review branches."
+									/>
+								</SheetSection>
+							)}
+							{promptLabel !== null && fields.reviewArea == null && (
+								<SheetSection title="Instructions" divided>
+									<Textarea
+										label={promptLabel}
+										rows={14}
+										value={fields.instruction}
+										onChange={(event) => onChange({ instruction: event.target.value })}
+										placeholder="Write what this step does."
+									/>
+								</SheetSection>
+							)}
+							{flowAgentKinds.has(fields.kind) && fields.reviewArea == null && (
+								<SheetSection title="Agent" divided>
+									<LaunchFields
+										allowDefault="Flow default"
+										harness={harnessOfFlow(fields.harness)}
+										onChange={(harness) => onChange({ harness: flowHarnessOf(harness) })}
+									/>
+								</SheetSection>
+							)}
+							{fields.kind === "group" && (
+								<SheetSection title="Execution" divided>
+									<div className="flex flex-col gap-2">
+										<Switch
+											label="Parallel"
+											className="flex-row-reverse justify-between text-sm"
+											checked={fields.parallel === true}
+											onCheckedChange={(parallel) => onChange({ parallel })}
+										/>
+										<p className="text-xs text-fg-muted">
+											{fields.parallel
+												? "All children start together. Connect only the group."
+												: "Connect one starting step to the other children."}
+										</p>
+									</div>
+									<div className="flex flex-col gap-3 border-t border-border pt-4">
+										<Switch
+											label="Time limit"
+											className="flex-row-reverse justify-between text-sm"
+											checked={fields.minutes !== null}
+											onCheckedChange={(enabled) => onChange({ minutes: enabled ? 10 : null })}
+										/>
+										{fields.minutes !== null && (
+											<Input
+												label="Minutes"
+												className="tabular-nums pointer-coarse:h-11"
+												type="number"
+												min={1}
+												value={Number.isFinite(fields.minutes) ? String(fields.minutes) : ""}
+												onChange={(event) =>
+													onChange({ minutes: event.target.value === "" ? 0 : event.target.valueAsNumber })
+												}
+											/>
+										)}
+									</div>
+								</SheetSection>
+							)}
+							{fields.kind === "loop" && (
+								<SheetSection title="Execution" divided>
+									<Input
+										label="Rounds at most"
+										className="tabular-nums pointer-coarse:h-11"
+										type="number"
+										min={1}
+										value={String(fields.maxRounds)}
+										onChange={(event) => onChange({ maxRounds: event.target.valueAsNumber })}
+									/>
+								</SheetSection>
+							)}
+							{shownIssue !== undefined && (
+								<p role="alert" className="text-sm text-danger">
+									{shownIssue}
+								</p>
+							)}
+						</fieldset>
+					</SheetBody>
+					<SheetFooter
+						leading={
+							<Button
+								type="button"
+								variant="quiet"
+								onClick={() => {
+									deleteConfirmed.current = false;
+									setConfirmDelete(true);
+								}}
+								disabled={saving || confirmDelete}
+							>
+								Delete step
+							</Button>
+						}
 					>
-						Save changes
-					</Button>
-				</SheetFooter>
-			</form>
-		</Sheet>
+						<Button type="button" variant="quiet" onClick={onClose} disabled={saving}>
+							Cancel
+						</Button>
+						<Button
+							type="submit"
+							variant="primary"
+							processing={saving}
+							disabled={!canSave || !validation.canSave || confirmDelete}
+						>
+							Save changes
+						</Button>
+					</SheetFooter>
+				</form>
+			</Sheet>
+			<ConfirmDialog
+				open={confirmDelete}
+				title={`Delete ${fields.title.trim() === "" ? "this step" : `"${fields.title}"`}?`}
+				description="This deletes the step and every connection attached to it."
+				confirmLabel="Delete step"
+				danger
+				processing={saving}
+				finalFocus={() =>
+					deleteConfirmed.current ? (document.querySelector<HTMLElement>('[aria-label="Flow canvas"]') ?? true) : true
+				}
+				onCancel={() => {
+					deleteConfirmed.current = false;
+					setConfirmDelete(false);
+				}}
+				onConfirm={() => {
+					deleteConfirmed.current = true;
+					onDelete();
+				}}
+			/>
+		</>
 	);
 }

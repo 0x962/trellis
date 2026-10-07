@@ -54,10 +54,10 @@ type FlowCanvasProps = {
 };
 
 // A left drag on the empty canvas pans, and a drag with Shift held draws a
-// selection box. A two-finger scroll also pans, and a pinch zooms. Backspace and Delete remove
-// the selection, and a box takes the nodes inside it with it. The loose
-// connection mode lets a wire end on any handle, so any side connects to any
-// side.
+// selection box. A two-finger scroll also pans, and a pinch zooms. A step
+// deletion starts from the inspector, which asks for confirmation before it
+// removes the step and its connections. The loose connection mode lets a wire
+// end on any handle, so any side connects to any side.
 export function FlowCanvas(props: FlowCanvasProps) {
 	const { nodes, edges, graph, onNodesChange, onEdgesChange, setNodes, setEdges, onSelect } = props;
 	const rf = useReactFlow<CanvasNode, CanvasEdge>();
@@ -118,8 +118,9 @@ export function FlowCanvas(props: FlowCanvasProps) {
 					action: {
 						label: "Undo",
 						onClick: () => {
-							setNodes(undo.nodes);
-							setEdges(undo.edges);
+							const restoredNodes = undo.nodes(rf.getNodes());
+							setNodes(restoredNodes);
+							setEdges((current) => undo.edges(current, restoredNodes));
 						},
 					},
 				},
@@ -174,6 +175,7 @@ export function FlowCanvas(props: FlowCanvasProps) {
 		<section
 			ref={wrapRef}
 			aria-label="Flow canvas"
+			tabIndex={-1}
 			className="relative min-h-0 min-w-0 flex-1"
 			onDragOver={onDragOver}
 			onDrop={onDrop}
@@ -200,7 +202,7 @@ export function FlowCanvas(props: FlowCanvasProps) {
 				minZoom={0.2}
 				maxZoom={2}
 				panOnScroll
-				deleteKeyCode={["Backspace", "Delete"]}
+				deleteKeyCode={null}
 			>
 				<Background variant={BackgroundVariant.Dots} gap={24} />
 				<Panel position="top-left">
