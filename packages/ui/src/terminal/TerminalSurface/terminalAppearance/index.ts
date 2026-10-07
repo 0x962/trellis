@@ -1,0 +1,1 @@
+export { terminalAppearance } from "./terminalAppearance";

@@ -5,7 +5,9 @@ import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { Button } from "../src/components/Button";
 import { Field } from "../src/components/Field";
 import { KeyValueRow } from "../src/components/KeyValueRow";
+import { Spinner } from "../src/components/Spinner";
 import { QrScanner } from "../src/features/setup/QrScanner";
+import { setupFeedback } from "../src/features/setup/setupFeedback";
 import { queryClient } from "../src/lib/queryClient";
 import { actorHeader, type ProbeResult, probeHealth, validateActorName, validateServerUrl } from "../src/lib/server";
 import { keys } from "../src/lib/store";
@@ -20,17 +22,11 @@ type Probe = { url: string; result: ProbeResult };
 // The name the probe sends while the Name field is empty.
 const anonymous = "setup";
 
-const notPairLink = "This QR code is not a trellis pair link.";
-
-const failureMessage = (result: Exclude<ProbeResult, { ok: true }>) => {
-	if (result.kind === "timeout") return "Timed out after 3 s";
-	if (result.kind === "unreachable") return `Unreachable: ${result.detail}`;
-	return "Not a trellis server";
-};
-
 const styles = StyleSheet.create({
-	page: { gap: tokens.space[4], padding: tokens.space[4] },
-	message: { fontSize: tokens.text.base, lineHeight: tokens.leading.base },
+	page: { gap: tokens.space[4], padding: tokens.space[4], paddingBottom: tokens.space[8] },
+	intro: { fontSize: tokens.text.md, lineHeight: tokens.leading.md },
+	feedback: { flexDirection: "row", alignItems: "center", gap: tokens.space[2] },
+	message: { flex: 1, fontSize: tokens.text.base, lineHeight: tokens.leading.base },
 	card: { borderRadius: tokens.radius.lg, overflow: "hidden" },
 });
 
@@ -46,7 +42,8 @@ export default function SetupScreen() {
 	const { url: linkedUrl } = useLocalSearchParams<{ url?: string }>();
 	const [url, setUrl] = useState(storedUrl ?? "http://");
 	const [name, setName] = useState(storedName ?? "");
-	const [error, setError] = useState<string>();
+	const [urlError, setUrlError] = useState<string>();
+	const [invalidPairLink, setInvalidPairLink] = useState(false);
 	const [probe, setProbe] = useState<Probe>();
 	const [busy, setBusy] = useState(false);
 	const [scanning, setScanning] = useState(false);
@@ -66,7 +63,8 @@ export default function SetupScreen() {
 	const changeUrl = (next: string) => {
 		setUrl(next);
 		setProbe(undefined);
-		setError(undefined);
+		setUrlError(undefined);
+		setInvalidPairLink(false);
 	};
 
 	const current = validateServerUrl(url);
@@ -74,21 +72,20 @@ export default function SetupScreen() {
 	// The answer for the URL in the field. Another URL's answer shows nothing
 	// and approves nothing.
 	const answer = current.ok && probe?.url === current.url ? probe.result : undefined;
-	// The Name field holds a name the server refuses. An empty field is the
-	// start of the screen and carries no message.
-	const nameNote = name.trim() !== "" && !validName.ok ? validName.error : undefined;
+	const nameError = !validName.ok && (name.trim() !== "" || answer?.ok === true) ? validName.error : undefined;
 
 	const testConnection = async (target: string) => {
 		const valid = validateServerUrl(target);
 		if (!valid.ok) {
-			setError(valid.error);
+			setUrlError(valid.error);
 			return;
 		}
 		// The Name field carries the message for a name outside the grammar,
 		// so the press stops here and shows nothing new.
 		const actor = validateActorName(name.trim() === "" ? anonymous : name);
 		if (!actor.ok) return;
-		setError(undefined);
+		setUrlError(undefined);
+		setInvalidPairLink(false);
 		setBusy(true);
 		const result = await probeHealth(valid.url, actorHeader(actor.name));
 		setProbe({ url: valid.url, result });
@@ -108,14 +105,14 @@ export default function SetupScreen() {
 	}, [linkedUrl]);
 
 	const openScanner = () => {
-		setError(undefined);
+		setInvalidPairLink(false);
 		setScanning(true);
 	};
 
 	const scanned = (data: string) => {
 		setScanning(false);
 		const server = parsePairLink(data);
-		if (server === null) setError(notPairLink);
+		if (server === null) setInvalidPairLink(true);
 		else fill(server);
 	};
 
@@ -131,10 +128,18 @@ export default function SetupScreen() {
 		setSaves((count) => count + 1);
 	};
 
-	const canSave = answer?.ok === true && validName.ok;
+	const feedback = scanning ? undefined : setupFeedback({ busy, invalidPairLink, answer });
+	const connected = feedback?.tone === "success" && answer?.ok === true;
+	const replacingServer = connected && current.ok && storedUrl !== undefined && current.url !== storedUrl;
+	const canSave = connected && validName.ok && !busy;
+	const feedbackColor =
+		feedback?.tone === "danger" ? palette.danger : feedback?.tone === "success" ? palette.success : palette.fgMuted;
 
 	return (
 		<ScrollView contentContainerStyle={styles.page} keyboardShouldPersistTaps="handled">
+			<Text style={[styles.intro, { color: palette.fgMuted }]}>
+				Connect this phone to the Trellis server on your computer. Test the server before you save it.
+			</Text>
 			<Field
 				label="Server URL"
 				value={url}
@@ -143,35 +148,69 @@ export default function SetupScreen() {
 				keyboardType="url"
 				autoCapitalize="none"
 				autoCorrect={false}
-				note="Scan a QR code that contains the server address, or type the address that the server prints at start."
+				returnKeyType="go"
+				onSubmitEditing={() => void testConnection(url)}
+				error={urlError}
+				note="Scan the pair code from Trellis settings, or enter the address that Trellis prints at start."
 			/>
 			{scanning ? (
 				<QrScanner onScan={scanned} onCancel={() => setScanning(false)} />
 			) : (
-				<Button label="Scan QR code" onPress={openScanner} />
+				<Button
+					label="Scan pair code"
+					accessibilityHint="Uses the camera to read a Trellis pair code."
+					onPress={openScanner}
+				/>
 			)}
-			<Button label={busy ? "Testing…" : "Test connection"} onPress={() => void testConnection(url)} disabled={busy} />
-			{error !== undefined && <Text style={[styles.message, { color: palette.danger }]}>{error}</Text>}
-			{answer !== undefined && !answer.ok && (
-				<Text style={[styles.message, { color: palette.danger }]}>{failureMessage(answer)}</Text>
-			)}
-			{answer?.ok && (
-				<View style={[styles.card, { backgroundColor: palette.surface }]}>
-					<KeyValueRow label="Version" value={answer.version} />
-					<KeyValueRow label="Tickets" value={`${answer.ticketCount} tickets`} />
-					<KeyValueRow label="Server says you are" value={answer.actorName} />
-				</View>
-			)}
+			<Button
+				label={busy ? "Testing connection…" : "Test connection"}
+				accessibilityHint="Checks that this address responds as a Trellis server."
+				onPress={() => void testConnection(url)}
+				disabled={busy}
+			/>
 			<Field
-				label="Name"
+				label="Your name"
 				value={name}
 				onChangeText={setName}
 				placeholder="dana"
 				autoCapitalize="none"
 				autoCorrect={false}
-				note={nameNote}
+				returnKeyType="done"
+				onSubmitEditing={canSave ? save : undefined}
+				error={nameError}
+				note="Trellis uses this name on tickets and messages."
 			/>
-			<Button label="Save" onPress={save} disabled={!canSave} variant="primary" />
+			<Button
+				label="Save server"
+				accessibilityHint="Saves the verified server and your name on this phone."
+				onPress={save}
+				disabled={!canSave}
+				variant="primary"
+			/>
+			{feedback !== undefined && (
+				<View style={styles.feedback}>
+					{busy && <Spinner />}
+					<Text
+						accessibilityLiveRegion={feedback.tone === "danger" ? "assertive" : "polite"}
+						accessibilityRole={feedback.tone === "danger" ? "alert" : undefined}
+						style={[styles.message, { color: feedbackColor }]}
+					>
+						{feedback.message}
+					</Text>
+				</View>
+			)}
+			{connected && (
+				<View style={[styles.card, { backgroundColor: palette.surface }]}>
+					<KeyValueRow label="Version" value={answer.version} />
+					<KeyValueRow label="Tickets" value={`${answer.ticketCount} tickets`} />
+					<KeyValueRow label="Server default actor" value={answer.actorName} />
+				</View>
+			)}
+			{replacingServer && (
+				<Text accessibilityLiveRegion="polite" style={[styles.message, { color: palette.warning }]}>
+					Saving replaces the current server and clears its cached tickets from this phone.
+				</Text>
+			)}
 		</ScrollView>
 	);
 }
