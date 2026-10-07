@@ -3,6 +3,7 @@ import type { EpicSummary } from "@trellis/api";
 import { Command, type CommandItem, Popover } from "@trellis/ui";
 import { createElement, type ReactElement, type RefObject, useRef, useState } from "react";
 import { useApp } from "../../../lib/appContext";
+import { PickerFailure } from "../components/PickerFailure";
 import { RowMarks } from "../components/RowMarks";
 
 const noneId = "none";
@@ -68,7 +69,7 @@ export function EpicPicker({
 	const [own, setOwn] = useState(false);
 	const input = useRef<HTMLInputElement>(null);
 	const isOpen = open ?? own;
-	const list = useQuery({ ...orpc.epics.list.queryOptions({ input: { project } }), enabled: isOpen });
+	const list = useQuery({ ...orpc.epics.list.queryOptions({ input: { project } }), enabled: isOpen, retry: false });
 	const epics = list.data ?? [];
 
 	const setOpen = (next: boolean) => {
@@ -99,18 +100,26 @@ export function EpicPicker({
 			initialFocus={input}
 			finalFocus={finalFocus}
 			side={side}
-			className="w-72 p-0"
+			className="w-72 max-w-(--available-width) max-h-(--available-height) overflow-y-auto p-0"
 		>
 			<Command
 				inputRef={input}
 				label="Search epics"
 				placeholder="Set epic"
 				items={items}
-				empty={list.data === undefined ? "Load epics…" : "No epics."}
+				listClassName={list.isError && items.length === 0 ? "hidden" : undefined}
+				empty={list.isError ? "" : list.isPending ? "Load epics…" : "No epics."}
 				onSelect={(id) => {
 					setOpen(false);
 					onPick(id === noneId ? null : epics.find((epic) => epic.ref === id)!);
 				}}
+			/>
+			<PickerFailure
+				title="Epics could not load."
+				error={list.error}
+				pending={list.isFetching}
+				onRetry={list.refetch}
+				input={input}
 			/>
 		</Popover>
 	);
