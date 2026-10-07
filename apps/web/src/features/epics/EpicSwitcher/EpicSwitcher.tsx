@@ -9,7 +9,7 @@ import { allEpicsId, epicSwitcherItems, epicSwitchSearch } from "./epicSwitcherI
 
 export const epicSwitcherPopoverClassName = "w-80 max-w-(--available-width) p-0";
 export const epicSwitcherCommandClassName =
-	"max-sm:[&_[cmdk-input]]:min-w-0 max-sm:[&_[cmdk-item]]:h-auto max-sm:[&_[cmdk-item]]:min-h-8 max-sm:[&_[cmdk-item]]:py-1.5 max-sm:[&_[cmdk-item]>span[aria-hidden=true]]:hidden";
+	"[&_[cmdk-item]]:h-7 max-sm:[&_[cmdk-input]]:min-w-0 max-sm:[&_[cmdk-item]]:h-auto max-sm:[&_[cmdk-item]]:min-h-7 max-sm:[&_[cmdk-item]]:py-1 max-sm:[&_[cmdk-item]>span[aria-hidden=true]]:hidden pointer-coarse:[&_[cmdk-item]]:h-auto pointer-coarse:[&_[cmdk-item]]:min-h-11 max-sm:pointer-coarse:[&_[cmdk-item]]:min-h-11";
 
 export type EpicSwitcherProps = {
 	// The path of the project the epic page is under.
