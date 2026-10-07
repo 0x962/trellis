@@ -16,6 +16,11 @@ const withoutSent = (draft: Partial<Settings> | undefined, sent: Settings): Part
 		Object.entries(draft ?? emptyDraft).filter(([key, value]) => sent[key as keyof Settings] !== value),
 	);
 
+type SaveOptions = {
+	onStored?: (stored: Settings) => void;
+	retry?: () => void;
+};
+
 export const useSettingsDraft = () => {
 	const { client, orpc, queryClient } = useApp();
 	const savedKey = orpc.settings.get.queryKey({});
@@ -34,7 +39,7 @@ export const useSettingsDraft = () => {
 	// Writes the saved record with the draft and `patch` on top. Returns the
 	// stored settings, or undefined when the server refused the write. The
 	// field that saved shows its own Saved mark, so a save raises no toast.
-	const save = async (patch: Partial<Settings>) => {
+	const save = async (patch: Partial<Settings>, options: SaveOptions = {}) => {
 		const sent: Settings = { ...saved!, ...queryClient.getQueryData<Partial<Settings>>(draftKey), ...patch };
 		const settle = () =>
 			queryClient.setQueryData(draftKey, (current: Partial<Settings> | undefined) => withoutSent(current, sent));
@@ -42,12 +47,13 @@ export const useSettingsDraft = () => {
 			const stored = await client.settings.set(sent);
 			queryClient.setQueryData(savedKey, stored);
 			settle();
+			options.onStored?.(stored);
 			return stored;
 		} catch (error) {
 			settle();
 			toast.error("The settings did not save.", {
 				description: (error as Error).message,
-				action: { label: "Retry", onClick: () => void save(patch) },
+				action: { label: "Retry", onClick: options.retry ?? (() => void save(patch, options)) },
 			});
 			return undefined;
 		}
