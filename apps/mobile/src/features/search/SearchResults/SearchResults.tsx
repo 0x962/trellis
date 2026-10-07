@@ -1,28 +1,43 @@
 import { FlashList } from "@shopify/flash-list";
-import type { PageSummary, TicketSummary } from "@trellis/api";
+import { ProjectRow } from "../../../components/ProjectRow";
 import { TicketRow } from "../../../components/TicketRow";
 import { PageRow } from "./components/PageRow";
-import { searchRows } from "./searchRows";
+import { ResultHeader } from "./components/ResultHeader";
+import { ResultNote } from "./components/ResultNote";
+import type { SearchData } from "../searchView";
+import { type SearchRow, searchRowKey, searchRows } from "./searchRows";
 
 export type SearchResultsProps = {
-	tickets: readonly TicketSummary[];
-	pages: readonly PageSummary[];
-	onSelect: (identifier: string) => void;
+	data: SearchData;
+	// Takes the identifier of the pressed ticket, such as CDE-42.
+	onSelectTicket: (identifier: string) => void;
+	// Takes the key of the pressed project, such as CDE.
+	onSelectProject: (key: string) => void;
 };
 
-export function SearchResults({ tickets, pages, onSelect }: SearchResultsProps) {
+// The results in groups: tickets, projects, then Pages. The keyboard stays
+// up while the list scrolls under a finger, and the first tap on a result
+// opens it instead of only closing the keyboard.
+export function SearchResults({ data, onSelectTicket, onSelectProject }: SearchResultsProps) {
+	const renderRow = (row: SearchRow) => {
+		if (row.kind === "header") return <ResultHeader label={row.label} count={row.count} note={row.note} />;
+		if (row.kind === "ticket") {
+			return (
+				<TicketRow testID={`ticket-row-${row.ticket.identifier}`} ticket={row.ticket} onPress={onSelectTicket} />
+			);
+		}
+		if (row.kind === "project") return <ProjectRow project={row.project} onPress={onSelectProject} />;
+		if (row.kind === "page") return <PageRow page={row.page} />;
+		return <ResultNote text={row.text} />;
+	};
 	return (
 		<FlashList
 			testID="search-results"
-			data={searchRows(tickets, pages)}
-			keyExtractor={(item) => (item.kind === "ticket" ? `ticket:${item.ticket.id}` : `page:${item.page.id}`)}
-			renderItem={({ item }) =>
-				item.kind === "ticket" ? (
-					<TicketRow testID={`ticket-row-${item.ticket.identifier}`} ticket={item.ticket} onPress={onSelect} />
-				) : (
-					<PageRow page={item.page} />
-				)
-			}
+			data={searchRows(data)}
+			keyExtractor={searchRowKey}
+			keyboardShouldPersistTaps="handled"
+			keyboardDismissMode="on-drag"
+			renderItem={({ item }) => renderRow(item)}
 		/>
 	);
 }

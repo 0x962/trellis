@@ -1,0 +1,1 @@
+export { ResultNote } from "./ResultNote";

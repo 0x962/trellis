@@ -27,3 +27,7 @@ export const replaceRecent = (store: RecentStore, replaced: string | undefined, 
 // Puts one query at the front. A query already in the list moves to the
 // front and stays there once.
 export const pushRecent = (store: RecentStore, query: string): void => replaceRecent(store, undefined, query);
+
+// Drops every stored query. The screen reads the list again, because the
+// store tells each reader of this key that the value changed.
+export const clearRecents = (store: RecentStore): void => store.set(recentSearchesKey, JSON.stringify([]));

@@ -1,6 +1,6 @@
 import { FlashList } from "@shopify/flash-list";
 import type { ProjectSummary } from "@trellis/api";
-import { ProjectRow } from "./components/ProjectRow";
+import { ProjectRow } from "../../../components/ProjectRow";
 
 // Two projects draw in position order. Two positions that are equal draw in
 // id order, so one list always gives one order.

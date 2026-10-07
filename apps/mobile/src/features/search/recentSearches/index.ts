@@ -1,4 +1,5 @@
 export {
+	clearRecents,
 	maxRecentSearches,
 	pushRecent,
 	type RecentStore,

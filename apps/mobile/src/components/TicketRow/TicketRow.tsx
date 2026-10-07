@@ -1,4 +1,5 @@
 import type { TicketSummary } from "@trellis/api";
+import { useWindowDimensions } from "react-native";
 import { layout } from "../../theme/layout";
 import { ActorChip } from "../ActorChip";
 import { CheckRibbon } from "../CheckRibbon";
@@ -21,12 +22,18 @@ const progressOf = (ticket: TicketSummary) =>
 
 // One ticket in a list: the priority mark, the identifier, the title, the
 // status mark, the check ribbon, and the last actor.
+//
+// At the system text size every row paints the same height, which lets
+// FlashList recycle a row without measuring it. A larger system text size
+// needs taller words than that height holds, so the row measures itself and
+// grows instead of painting its title over the row under it.
 export function TicketRow({ ticket, onPress, testID = "ticket-row" }: TicketRowProps) {
 	const { status, pr, lastActor } = ticket;
+	const { fontScale } = useWindowDimensions();
 	return (
 		<Row
 			testID={testID}
-			height={layout.ticketRow}
+			height={fontScale > 1 ? undefined : layout.ticketRow}
 			id={ticket.identifier}
 			title={ticket.title}
 			leading={

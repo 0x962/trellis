@@ -1,8 +1,8 @@
 import type { ProjectSummary } from "@trellis/api";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { layout } from "../../../../../theme/layout";
-import { tokens } from "../../../../../theme/tokens";
-import { usePalette } from "../../../../../theme/usePalette";
+import { layout } from "../../theme/layout";
+import { tokens } from "../../theme/tokens";
+import { usePalette } from "../../theme/usePalette";
 
 export type ProjectRowProps = {
 	project: ProjectSummary;
