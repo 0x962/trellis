@@ -35,7 +35,7 @@ import { CanvasControls } from "../CanvasControls";
 import { FlowEdge } from "../FlowEdge";
 import { NodePalette } from "../NodePalette";
 import { StepNode } from "../StepNode";
-import { nodeMoveUndo } from "./nodeMoveUndo";
+import { nodeMoveUndo } from "./components/nodeMoveUndo";
 
 // React Flow draws every node and edge again when one of these objects
 // changes, so they live outside the component.

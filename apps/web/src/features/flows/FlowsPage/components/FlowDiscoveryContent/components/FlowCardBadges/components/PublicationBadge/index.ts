@@ -1,0 +1,1 @@
+export { PublicationBadge } from "./PublicationBadge";

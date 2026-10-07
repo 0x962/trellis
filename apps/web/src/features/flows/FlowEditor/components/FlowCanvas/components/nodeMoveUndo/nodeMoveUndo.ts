@@ -1,4 +1,4 @@
-import type { CanvasEdge, CanvasNode } from "../../flowDraft";
+import type { CanvasEdge, CanvasNode } from "../../../../flowDraft";
 
 type NodeMoveSnapshot = {
 	node: Pick<CanvasNode, "id" | "position" | "parentId" | "extent">;

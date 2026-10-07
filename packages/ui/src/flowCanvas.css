@@ -44,12 +44,17 @@
 .flow-canvas .react-flow__handle::before {
 	content: "";
 	position: absolute;
-	inset: -9px;
+	left: 50%;
+	top: 50%;
+	width: calc(var(--spacing) * 7);
+	height: calc(var(--spacing) * 7);
+	transform: translate(-50%, -50%);
 }
 
 @media (pointer: coarse) {
 	.flow-canvas .react-flow__handle::before {
-		inset: -17px;
+		width: calc(var(--spacing) * 11);
+		height: calc(var(--spacing) * 11);
 	}
 }
 
