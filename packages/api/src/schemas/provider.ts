@@ -77,6 +77,23 @@ export const ProviderCreateInputSchema = z
 export type ProviderCreateInput = z.input<typeof ProviderCreateInputSchema>;
 export type ParsedProviderCreateInput = z.infer<typeof ProviderCreateInputSchema>;
 
+export const ProviderCheckDraftInputSchema = z
+	.strictObject({
+		kind: ProviderKindSchema,
+		apiKey: ProviderApiKeySchema,
+		baseUrl: ProviderBaseUrlSchema.optional(),
+	})
+	.superRefine((input, ctx) => {
+		if (input.kind === "openai-compatible" && input.baseUrl === undefined)
+			ctx.addIssue({ code: "custom", path: ["baseUrl"], message: BASE_URL_MESSAGE });
+	})
+	.transform((input) => ({
+		...input,
+		baseUrl: input.baseUrl ?? "https://ai-gateway.vercel.sh",
+	}));
+export type ProviderCheckDraftInput = z.input<typeof ProviderCheckDraftInputSchema>;
+export type ParsedProviderCheckDraftInput = z.infer<typeof ProviderCheckDraftInputSchema>;
+
 export const ProviderUpdateInputSchema = z.strictObject({
 	id: UlidSchema,
 	name: ProviderNameSchema.optional(),

@@ -68,10 +68,7 @@ const ribbonHeight = 12;
 // A wave header is a grid row even when its wave is empty. Other group
 // headers keep the ticket row count supplied by the table query.
 export const gridRowCount = (ticketCount: number, items: readonly TableItem[], hasWaveSections: boolean): number =>
-	hasWaveSections
-		? items.reduce((count, item) => count + (item.kind === "header" ? 1 : 0), ticketCount)
-		: ticketCount;
-
+	hasWaveSections ? items.reduce((count, item) => count + (item.kind === "header" ? 1 : 0), ticketCount) : ticketCount;
 
 export function TableBody({
 	items: allItems,

@@ -39,6 +39,7 @@ import { pageServices } from "./pages/registry";
 import * as prFiles from "./prFiles/prFiles.ts";
 import * as projects from "./projects.ts";
 import { prepareCheck } from "./providers/check.ts";
+import { prepareDraftCheck } from "./providers/draftCheck/index.ts";
 import { prepareModels } from "./providers/models.ts";
 import * as providers from "./providers/providers.ts";
 import { preparePublicModels } from "./providers/publicModels.ts";
@@ -130,6 +131,7 @@ export const services = {
 	"providers.models": prepared("read", prepareModels, agentTerminal.result),
 	"providers.publicModels": prepared("read", preparePublicModels, agentTerminal.result),
 	"providers.check": prepared("read", prepareCheck, agentTerminal.result),
+	"providers.checkDraft": prepared("read", prepareDraftCheck, agentTerminal.result),
 	"providers.list": io("read", providers.list),
 	"providers.get": io("read", providers.get),
 	"providers.create": io("mutation", providers.create),

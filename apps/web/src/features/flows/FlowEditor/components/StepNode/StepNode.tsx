@@ -1,3 +1,4 @@
+import { WarningCircle } from "@phosphor-icons/react";
 import { cx } from "@trellis/ui";
 import { Handle, type NodeProps, Position } from "@xyflow/react";
 import { flowKinds } from "../../../kinds";
@@ -23,22 +24,32 @@ export function StepNode({ id, data, selected }: NodeProps<CanvasNode>) {
 				: fields.instruction.trim() === ""
 					? "No instruction"
 					: "Instruction ready";
+	const issueId = `flow-node-${id}-issue`;
 	return (
 		<div
-			title={issue}
+			aria-invalid={issue !== undefined}
+			aria-describedby={issue === undefined ? undefined : issueId}
 			className={cx(
-				"flex w-56 items-center gap-2 rounded-md border bg-elevated px-3 py-2 shadow-sm transition-colors duration-hover",
+				"flex w-56 flex-col gap-2 rounded-md border bg-elevated px-3 py-2 shadow-sm transition-colors duration-hover",
 				fields.kind === "gate" && "flow-node-hover-handles",
 				selected ? "border-accent" : issue !== undefined ? "border-danger" : "border-border",
 			)}
 		>
-			<span aria-hidden="true" className="inline-flex size-4 shrink-0 text-fg-muted *:size-full">
-				<meta.icon />
-			</span>
-			<div className="min-w-0 flex-1">
-				<p className="truncate text-sm font-medium text-fg">{fields.title}</p>
-				<p className="truncate text-xs text-fg-faint">{detail}</p>
+			<div className="flex items-center gap-2">
+				<span aria-hidden="true" className="inline-flex size-4 shrink-0 text-fg-muted *:size-full">
+					<meta.icon />
+				</span>
+				<div className="min-w-0 flex-1">
+					<p className="truncate text-sm font-medium text-fg">{fields.title}</p>
+					<p className="truncate text-xs text-fg-faint">{detail}</p>
+				</div>
 			</div>
+			{issue !== undefined && (
+				<p id={issueId} role="alert" className="flex items-start gap-1 text-xs text-danger">
+					<WarningCircle aria-hidden="true" className="mt-px size-3.5 shrink-0" />
+					<span>{issue}</span>
+				</p>
+			)}
 			{!unconnected.has(id) &&
 				(fields.kind === "gate" ? (
 					<>

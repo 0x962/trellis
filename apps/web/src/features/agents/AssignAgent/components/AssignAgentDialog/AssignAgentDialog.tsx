@@ -1,5 +1,5 @@
 import { effortForHarness, HARNESS_DEFAULT_MODELS, type HarnessEffort } from "@trellis/api";
-import { Button, ChoiceBoxes, Dialog, Field, ProviderIcon, Select } from "@trellis/ui";
+import { Button, ChoiceBoxes, Dialog, FailureState, Field, ProviderIcon, Select } from "@trellis/ui";
 import { type RefObject, useState } from "react";
 import { harnessPresets, type NativePreset } from "../../../harnessPresets";
 import { ModelPicker } from "../../../ModelPicker";
@@ -16,13 +16,12 @@ const boxes = harnessPresets.map(({ value, label }) => ({
 	icon: <ProviderIcon provider={modelProviderOf(HARNESS_DEFAULT_MODELS[value])!} decorative className="size-4" />,
 }));
 
-// The dialog behind "Set something else": the harness, then the model, the
-// effort and the account that follow it. It holds a draft and changes
-// nothing until the person presses Assign. It is mounted only while it
-// shows, so each opening starts from the choice its caller hands it.
+// Each open dialog starts from its caller's choice. Assign submits the draft.
 export function AssignAgentDialog({
 	initial,
 	accounts,
+	accountError,
+	onReloadAccounts,
 	disabled,
 	finalFocus,
 	onAssign,
@@ -32,6 +31,8 @@ export function AssignAgentDialog({
 	// of the menu row that asked for the dialog.
 	initial: AssignChoice;
 	accounts: AssignAccounts;
+	accountError?: string;
+	onReloadAccounts?: () => void;
 	// True where the ticket takes no agent, because it completed. The ticket
 	// can complete while this dialog stands open.
 	disabled: boolean;
@@ -52,13 +53,15 @@ export function AssignAgentDialog({
 			}}
 			finalFocus={finalFocus}
 			title="Assign an agent"
-			description="Pick the harness. The model and the effort follow it."
+			description="Choose the harness, model, and account for this ticket."
 		>
-			<div className="flex min-w-0 flex-col gap-2">
+			<div className="flex min-w-0 flex-col gap-3">
 				<ChoiceBoxes
 					label="Harness"
 					options={boxes}
 					value={draft.preset}
+					disabled={disabled}
+					className="max-sm:grid max-sm:grid-cols-3"
 					// The harness decides which models, effort levels and accounts are
 					// available, so a new harness clears all three.
 					onValueChange={(preset: NativePreset) => setDraft({ preset, model: null, effort: null, accountId: null })}
@@ -67,6 +70,7 @@ export function AssignAgentDialog({
 					<ModelPicker
 						harness={draft.preset}
 						value={draft.model ?? undefined}
+						disabled={disabled}
 						onValueChange={(model) => setDraft(withoutLostValues({ ...draft, model: model ?? null }, accounts))}
 					/>
 				</Field>
@@ -78,6 +82,7 @@ export function AssignAgentDialog({
 							<Select
 								label={effort.label}
 								className="w-full"
+								disabled={disabled}
 								value={draft.effort ?? DEFAULT_EFFORT}
 								items={[{ value: DEFAULT_EFFORT, label: "Harness default" }, ...effort.options]}
 								onValueChange={(value) =>
@@ -87,11 +92,11 @@ export function AssignAgentDialog({
 						</Field>
 					)}
 				</div>
-				<Field label="Account">
+				<Field label="Account" hint={accounts === undefined && !accountError ? "Load accounts…" : undefined}>
 					<Select
 						label="Account"
 						className="w-full"
-						disabled={harnessAccounts.length === 0}
+						disabled={disabled || harnessAccounts.length === 0}
 						value={draft.accountId ?? DEFAULT_ACCOUNT}
 						items={[
 							{ value: DEFAULT_ACCOUNT, label: "Default account" },
@@ -102,6 +107,18 @@ export function AssignAgentDialog({
 						}
 					/>
 				</Field>
+				{accountError && (
+					<FailureState
+						title="The accounts did not load"
+						detail={accountError}
+						variant="section"
+						action={
+							<Button size="md" onClick={onReloadAccounts}>
+								Retry
+							</Button>
+						}
+					/>
+				)}
 			</div>
 			<div className="flex justify-end gap-2">
 				<Button variant="quiet" onClick={onClose}>

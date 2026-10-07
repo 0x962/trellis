@@ -8,7 +8,12 @@ import {
 } from "../../../../../../packages/ui/src/terminal/TerminalSurface/terminalRegistry";
 import { type TerminalSessionState, terminalOutput } from "./sessionStates";
 
-function sessionTransport(state: TerminalSessionState): TerminalTransport {
+type SessionTerminalProof = {
+	history?: () => string;
+	onAcknowledged?: (text: string, userInput: boolean) => void;
+};
+
+function sessionTransport(state: TerminalSessionState, proof: SessionTerminalProof): TerminalTransport {
 	let output: (frame: TerminalFrame) => Promise<void>;
 	let offset = 0;
 	let signal: AbortSignal;
@@ -28,37 +33,42 @@ function sessionTransport(state: TerminalSessionState): TerminalTransport {
 				stopped: false,
 				unavailableReason: state === "unavailable" ? "The process status is unavailable." : null,
 			});
-			await write(`Storybook session\r\n\r\n> Review the ticket layout.\r\n${terminalOutput[state]}\r\n> `);
+			await write(
+				`Storybook session\r\n\r\n> Review the ticket layout.\r\n${proof.history?.() ?? terminalOutput[state]}\r\n> `,
+			);
 			if (signal.aborted) return;
 			await new Promise<void>((resolve) => signal.addEventListener("abort", () => resolve(), { once: true }));
 		},
-		send: async (text) => {
+		send: async (text, userInput) => {
 			if (signal.aborted) return;
 			await write(text === "\r" ? "\r\n> " : text);
+			proof.onAcknowledged?.(text, userInput);
 		},
 		resize: async () => {},
 	};
 }
 
-export const prepareSessionTerminal = (run: AgentRun, state: TerminalSessionState) => async () => {
-	const identity = JSON.stringify([run.id, run.terminalId, run.sessionId]);
-	disposeTerminalIdentity(identity);
-	const host = document.createElement("div");
-	host.className = "terminal-canvas";
-	document.body.append(host);
-	const styles = getComputedStyle(host);
-	const appearance = {
-		fontFamily: styles.fontFamily,
-		fontSize: Number.parseFloat(styles.fontSize),
-		background: styles.backgroundColor,
-		foreground: styles.color,
+export const prepareSessionTerminal =
+	(run: AgentRun, state: TerminalSessionState, proof: SessionTerminalProof = {}) =>
+	async () => {
+		const identity = JSON.stringify([run.id, run.terminalId, run.sessionId]);
+		disposeTerminalIdentity(identity);
+		const host = document.createElement("div");
+		host.className = "terminal-canvas";
+		document.body.append(host);
+		const styles = getComputedStyle(host);
+		const appearance = {
+			fontFamily: styles.fontFamily,
+			fontSize: Number.parseFloat(styles.fontSize),
+			background: styles.backgroundColor,
+			foreground: styles.color,
+		};
+		host.remove();
+		const lease = acquireTerminal(identity, appearance, () => sessionTransport(state, proof));
+		await lease.ready;
+		lease.release();
+		return () => disposeTerminalIdentity(identity);
 	};
-	host.remove();
-	const lease = acquireTerminal(identity, appearance, () => sessionTransport(state));
-	await lease.ready;
-	lease.release();
-	return () => disposeTerminalIdentity(identity);
-};
 
 export const assertSessionTerminal =
 	(state: TerminalSessionState) =>
