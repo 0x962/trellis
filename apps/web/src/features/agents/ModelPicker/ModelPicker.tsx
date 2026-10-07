@@ -59,6 +59,7 @@ export function ModelPicker({
 			className="w-80 max-w-(--available-width) p-0"
 		>
 			<Command
+				className="pointer-coarse:[&_[cmdk-item]]:min-h-11"
 				inputRef={input}
 				label="Search models"
 				placeholder="Search models"

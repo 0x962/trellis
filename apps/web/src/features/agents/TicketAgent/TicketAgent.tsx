@@ -32,9 +32,11 @@ export function TicketAgent({ ticket, disabled = false }: { ticket: string; disa
 				<p role="status" className="text-sm text-fg-muted">
 					Load agents…
 				</p>
-			) : query.isError ? (
+			) : null}
+			{query.isError && (
 				<FailureState
-					title="The agents did not load"
+					title={query.data === undefined ? "The agents did not load" : "The agents did not refresh"}
+					description={query.data === undefined ? undefined : "The last loaded assignments stay available."}
 					detail={query.error.message}
 					recovery="retrying"
 					variant="section"
@@ -44,7 +46,8 @@ export function TicketAgent({ ticket, disabled = false }: { ticket: string; disa
 						</Button>
 					}
 				/>
-			) : (
+			)}
+			{query.data !== undefined && (
 				<>
 					{assigned === null ? (
 						<AssignAgent ticket={ticket} disabled={disabled} />

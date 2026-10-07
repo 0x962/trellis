@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import type { AgentRun } from "@trellis/api";
+import { type AgentRun, HarnessSchema } from "@trellis/api";
 import { renderToStaticMarkup } from "react-dom/server";
 import { type AppContext, AppProvider } from "../../../lib/appContext";
 import { TicketAgent } from "./TicketAgent";
@@ -55,6 +55,10 @@ const appOf = (queryClient: QueryClient) =>
 const render = (runs: AgentRun[]) => {
 	const queryClient = new QueryClient();
 	queryClient.setQueryData(ticketRunsKey, runs);
+	return renderClient(queryClient);
+};
+
+const renderClient = (queryClient: QueryClient) => {
 	return renderToStaticMarkup(
 		<QueryClientProvider client={queryClient}>
 			<AppProvider value={appOf(queryClient)}>
@@ -65,6 +69,53 @@ const render = (runs: AgentRun[]) => {
 };
 
 describe("TicketAgent", () => {
+	test("shows distinct run names with secondary harness and model details", () => {
+		const harness = HarnessSchema.parse({ preset: "codex", model: "openai/gpt-6-astra" });
+		const html = render([
+			run("current", { assigned: true, name: "Scout alpha", harness }),
+			run("prior", { name: "Scout beta", harness }),
+		]);
+
+		expect(html).toMatch(/<p[^>]*>Scout alpha<\/p>/);
+		expect(html).toMatch(/<p[^>]*>Scout beta<\/p>/);
+		expect(html).toContain("Codex · GPT-6 Astra");
+	});
+
+	test.each(["stopped", "exited"] as const)("labels an assigned %s process as paused", (state) => {
+		const html = render([run("current", { assigned: true, state })]);
+
+		expect(html).toContain(">Paused<");
+		expect(html).not.toContain(">Idle<");
+		expect(html).not.toContain(" · idle");
+	});
+
+	test("does not label a live assigned process as paused", () => {
+		const html = render([run("current", { assigned: true, state: "running", processStatus: "running" })]);
+
+		expect(html).not.toContain(">Paused<");
+	});
+
+	test("retains the assignment and history after a background read fails", async () => {
+		const queryClient = new QueryClient();
+		queryClient.setQueryData(ticketRunsKey, [run("current", { assigned: true }), run("prior")]);
+		await expect(
+			queryClient.fetchQuery({
+				queryKey: ticketRunsKey,
+				queryFn: async () => {
+					throw new Error("The background read failed.");
+				},
+				retry: false,
+			}),
+		).rejects.toThrow("The background read failed.");
+
+		const html = renderClient(queryClient);
+		expect(html).toContain("The agents did not refresh");
+		expect(html).toContain('data-agent-session="current"');
+		expect(html).toContain('data-agent-session="prior"');
+		expect(html).toContain('aria-label="Unassign agent"');
+		expect(html).toContain(">Retry<");
+	});
+
 	test("keeps a visible failure state for an unassigned historical run", () => {
 		const html = render([
 			run("current", { assigned: true }),
