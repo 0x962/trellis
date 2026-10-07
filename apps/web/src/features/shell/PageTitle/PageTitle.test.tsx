@@ -12,8 +12,8 @@ describe("PageTitle", () => {
 			/>,
 		);
 
-		expect(html).toContain("min-w-0 truncate text-lg text-fg-muted");
-		expect(html).toContain("min-w-0 text-lg font-semibold text-fg truncate");
+		expect(html).toContain("max-w-1/2 min-w-0 truncate text-lg text-fg-muted");
+		expect(html).toContain("min-w-0 flex-1 text-lg font-semibold text-fg truncate");
 		expect(html).toContain("A project name that needs part of the available width");
 		expect(html).toContain("A page heading that needs the rest");
 	});
