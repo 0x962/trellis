@@ -8,6 +8,7 @@ export type SettingsListRowProps = {
 	disabled?: boolean;
 	onEdit: () => void;
 	children?: ReactNode;
+	message?: ReactNode;
 };
 
 export function SettingsListRow({
@@ -18,6 +19,7 @@ export function SettingsListRow({
 	disabled,
 	onEdit,
 	children,
+	message,
 }: SettingsListRowProps) {
 	const editorId = useId();
 	return (
@@ -43,6 +45,7 @@ export function SettingsListRow({
 				{actions}
 			</div>
 			{children && <div id={editorId}>{children}</div>}
+			{message && <div className="status-row-message">{message}</div>}
 		</li>
 	);
 }

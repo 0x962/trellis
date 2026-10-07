@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import type { Provider, ProviderModels } from "@trellis/api";
 import { createRef } from "react";
+import { expect, within } from "storybook/test";
 import { UsageProviderForm } from "../../features/usage/UsagePage/components/UsageProviders/components/UsageProviderForm";
 import { OverlayTrigger } from "./components/OverlayTrigger";
 import { at, failure, id, noop, pending } from "./fixtures";
@@ -76,6 +77,12 @@ export const ModelsError: Story = {
 export const Pending: Story = { parameters: { trellis: { responses: { "providers.create": pending } } }, play: submit };
 export const RequestError: Story = {
 	parameters: { trellis: { responses: { "providers.create": failure } } },
-	play: submit,
+	play: async (context) => {
+		await submit(context);
+		const dialog = within(await within(context.canvasElement.ownerDocument.body).findByRole("dialog"));
+		await expect(await dialog.findByRole("alert")).toHaveTextContent("The local fixture refuses this request.");
+		await expect(dialog.getByRole("textbox", { name: "Name" })).toHaveValue("Catalog provider");
+		await expect(dialog.getByLabelText("API key")).toHaveValue("storybook-placeholder-key");
+	},
 };
 export const Success: Story = { play: submit };
