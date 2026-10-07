@@ -16,6 +16,8 @@ export type FieldProps = Pick<
 	| "testID"
 	| "returnKeyType"
 	| "onSubmitEditing"
+	| "onFocus"
+	| "onBlur"
 > & {
 	// The visible label; also the accessibility label of the input.
 	label: string;
@@ -40,7 +42,7 @@ const styles = StyleSheet.create({
 });
 
 // A labeled text input.
-export function Field({ label, note, error, ...input }: FieldProps) {
+export function Field({ label, note, error, onFocus, onBlur, ...input }: FieldProps) {
 	const palette = usePalette();
 	const [focused, setFocused] = useState(false);
 	const message = error ?? note;
@@ -48,11 +50,18 @@ export function Field({ label, note, error, ...input }: FieldProps) {
 		<View style={styles.field}>
 			<Text style={[styles.label, { color: palette.fgMuted }]}>{label}</Text>
 			<TextInput
+				{...input}
 				accessibilityHint={message}
 				accessibilityLabel={label}
 				aria-invalid={error !== undefined}
-				onBlur={() => setFocused(false)}
-				onFocus={() => setFocused(true)}
+				onBlur={(event) => {
+					setFocused(false);
+					onBlur?.(event);
+				}}
+				onFocus={(event) => {
+					setFocused(true);
+					onFocus?.(event);
+				}}
 				placeholderTextColor={palette.fgFaint}
 				style={[
 					styles.input,
@@ -63,7 +72,6 @@ export function Field({ label, note, error, ...input }: FieldProps) {
 					},
 					focused && { borderColor: palette.accent },
 				]}
-				{...input}
 			/>
 			{message !== undefined && (
 				<Text
