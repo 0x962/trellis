@@ -22,7 +22,7 @@ export function PageTitle({ parent, title }: PageTitleProps) {
 		<div className="flex min-w-0 items-center gap-2">
 			{parent !== undefined && (
 				<>
-					<span className="shrink-0 text-lg text-fg-muted *:transition-colors *:duration-hover *:hover:text-fg">
+					<span className="min-w-0 truncate text-lg text-fg-muted *:transition-colors *:duration-hover *:hover:text-fg">
 						{parent}
 					</span>
 					<span aria-hidden="true" className="text-fg-faint">
@@ -30,7 +30,7 @@ export function PageTitle({ parent, title }: PageTitleProps) {
 					</span>
 				</>
 			)}
-			<h1 className={cx("text-lg font-semibold text-fg", typeof title === "string" ? "truncate" : "flex min-w-0")}>
+			<h1 className={cx("min-w-0 text-lg font-semibold text-fg", typeof title === "string" ? "truncate" : "flex")}>
 				{title}
 			</h1>
 		</div>
