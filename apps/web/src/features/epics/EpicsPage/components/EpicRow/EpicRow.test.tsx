@@ -61,7 +61,7 @@ test("the phone row wraps the full name and keeps a 56 pixel minimum height", as
 	const nameOpenTag = html.match(/<a [^>]*data-epic-name=""[^>]*>/)?.[0] ?? "";
 
 	expect(rowOpenTag).toContain("--phone-row-min-height:56px");
-	expect(rowOpenTag).toContain("max-md:grid-cols-[minmax(0,1fr)_44px]");
+	expect(rowOpenTag).toContain("max-md:grid-cols-[minmax(0,1fr)_calc(var(--spacing)*11)]");
 	expect(nameOpenTag).toContain("max-md:flex-col");
 	expect(html).toContain("max-md:whitespace-normal");
 	expect(html).toContain(epic.name);

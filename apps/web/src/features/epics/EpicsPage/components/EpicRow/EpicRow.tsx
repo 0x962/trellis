@@ -32,7 +32,7 @@ export function EpicRow({ epic, readOnly, onEdit, onDelete }: EpicRowProps) {
 			data-epic={epic.slug}
 			style={style}
 			className={cx(
-				"group/row relative grid w-full grid-cols-[minmax(0,1fr)_140px_48px_48px_28px] items-center gap-3 border-b border-border px-5 text-base transition-colors duration-hover max-md:!min-h-[var(--phone-row-min-height)] max-md:grid-cols-[minmax(0,1fr)_44px] max-md:grid-rows-[minmax(0,1fr)_auto] max-md:gap-x-2 max-md:gap-y-0 max-md:px-4",
+				"group/row relative grid w-full grid-cols-[minmax(0,1fr)_140px_48px_48px_28px] items-center gap-3 border-b border-border px-5 text-base transition-colors duration-hover max-md:!min-h-[var(--phone-row-min-height)] max-md:grid-cols-[minmax(0,1fr)_calc(var(--spacing)*11)] max-md:grid-rows-[minmax(0,1fr)_auto] max-md:gap-x-2 max-md:gap-y-0 max-md:px-4",
 				insetRowHover,
 			)}
 		>
