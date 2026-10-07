@@ -1,1 +1,1 @@
-export { epicProgress, epicProgressLabel, epicSegments } from "./epicBar";
+export { epicProgress, epicProgressLabel, epicProgressText, epicSegments } from "./epicBar";

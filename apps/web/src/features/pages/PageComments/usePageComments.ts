@@ -12,6 +12,7 @@ export function usePageComments(page: string) {
 		threads: query.data ?? [],
 		pending: query.isPending,
 		error: query.error,
+		retry: () => void query.refetch(),
 		status,
 		create: async (version: number, anchor: PageCommentAnchor, body: string) => {
 			setStatus("");

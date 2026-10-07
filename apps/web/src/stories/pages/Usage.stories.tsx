@@ -12,6 +12,7 @@ import {
 	systemUsageWithMemory,
 	usageResponses,
 } from "./fixtures/usage";
+import { attributionRanking, attributionReport } from "./fixtures/usageAttribution";
 import { pageFrame } from "./pageFrame";
 
 const meta = {
@@ -52,6 +53,53 @@ export const Agent: Story = {
 export const TokensByModel: Story = { parameters: { trellis: { path: "/usage?metric=tokens&group=model" } } };
 export const SelectedDayAndModel: Story = {
 	parameters: { trellis: { path: "/usage?group=model&row=anthropic%2Fclaude-sonnet-5.5&day=2026-09-30" } },
+};
+export const CostAttribution: Story = {
+	parameters: { trellis: { responses: { "usage.report": attributionReport, "usage.ranking": attributionRanking } } },
+	play: async ({ canvasElement }) => {
+		const canvas = within(canvasElement);
+		await expect(await canvas.findByRole("heading", { name: /Matching sessions/ })).toBeVisible();
+		const sessions = within(canvas.getByRole("region", { name: "Matching sessions" }));
+		await userEvent.click(sessions.getByRole("button", { name: "Next sessions page" }));
+		await expect(await sessions.findByText("11–20 of 23")).toBeVisible();
+		await userEvent.click(sessions.getByRole("button", { name: "Next sessions page" }));
+		await expect(await sessions.findByText("21–23 of 23")).toBeVisible();
+		await userEvent.click(sessions.getByRole("button", { name: /Review session 1 Claude/ }));
+		const dialog = within(await within(document.body).findByRole("dialog", { name: "Session usage" }));
+		await expect(dialog.getByText("$0", { exact: true })).toBeVisible();
+		await expect(dialog.getByText("DEMO-40", { exact: true })).toBeVisible();
+		await userEvent.keyboard("{Escape}");
+		await expect(sessions.getByRole("button", { name: /Review session 1 Claude/ })).toHaveFocus();
+		await userEvent.click(canvas.getByRole("button", { name: "Cost details" }));
+		await expect(canvas.getByText("Cache savings", { exact: true })).toBeVisible();
+		for (const [option, title] of [
+			["Ticket", "ticket"],
+			["Agent", "agent"],
+			["Project", "project"],
+			["Run kind", "run kind"],
+			["Account", "account"],
+			["Harness", "harness"],
+			["Model", "model"],
+		]) {
+			await userEvent.click(canvas.getByRole("combobox", { name: "Break down usage by" }));
+			await userEvent.click(await within(document.body).findByRole("option", { name: option }));
+			await expect(await canvas.findByRole("heading", { name: `Breakdown by ${title}` })).toBeVisible();
+		}
+	},
+};
+export const NoMatchingSessions: Story = {
+	parameters: {
+		trellis: {
+			path: "/usage?day=2026-09-01",
+			responses: { "usage.report": attributionReport, "usage.ranking": attributionRanking },
+		},
+	},
+	play: async ({ canvasElement }) => {
+		const canvas = within(canvasElement);
+		await expect(await canvas.findByRole("heading", { name: "No matching sessions" })).toBeVisible();
+		await userEvent.click(canvas.getByRole("button", { name: "Clear usage date" }));
+		await expect(await canvas.findByRole("list", { name: "Session usage" })).toBeVisible();
+	},
 };
 export const Empty: Story = {
 	parameters: {
