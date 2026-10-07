@@ -1,14 +1,15 @@
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { useApp } from "../../../lib/appContext";
+import { assignedAgentRunsOptions } from "../assignedAgentRuns";
 import { workingTargets } from "../workingTargets";
 
 const empty = { ticketIds: [] as string[], runIds: [] as string[] };
 
 export function useWorkingAgents() {
-	const { orpc } = useApp();
+	const { orpc, client } = useApp();
 	const query = useQuery({
-		...orpc.agentRuns.list.queryOptions({ input: { assigned: true } }),
+		...assignedAgentRunsOptions(orpc, client),
 		select: (page) => workingTargets(page.items),
 	});
 	const [held, setHeld] = useState(empty);

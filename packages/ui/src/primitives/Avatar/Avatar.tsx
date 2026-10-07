@@ -55,7 +55,7 @@ export function Avatar({
 			aria-label={label}
 			tabIndex={tooltip && focusable ? 0 : undefined}
 			className={cx(
-				"group/avatar relative inline-grid size-4.5 shrink-0 place-items-center rounded-round select-none hover:z-30",
+				"group/avatar relative inline-grid size-4.5 shrink-0 place-items-center rounded-round select-none hover:z-30 focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2",
 				kind === "human" && "profile-metal text-initials font-semibold",
 				// A starting run has nothing to report yet, so the whole mark
 				// dims and brightens in place. A person who asks for less

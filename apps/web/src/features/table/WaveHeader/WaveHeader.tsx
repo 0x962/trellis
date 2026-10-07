@@ -1,6 +1,6 @@
 import type { TicketSummary } from "@trellis/api";
-import type { GroupHeaderProps } from "@trellis/ui";
-import type { KeyboardEvent } from "react";
+import { Badge, type GroupHeaderProps } from "@trellis/ui";
+import type { KeyboardEvent, ReactNode } from "react";
 import type { WaveEditing } from "../hooks/useWaveEditing";
 import type { TableGroup } from "../utils/flattenGroups";
 import { WaveActions } from "./components/WaveActions";
@@ -14,7 +14,9 @@ export type WaveHeaderOptions = {
 	onNewTicket: (group: TableGroup) => void;
 };
 
-export type WaveHeaderParts = Pick<GroupHeaderProps, "labelField" | "actions" | "onKeyDown">;
+export type WaveHeaderParts = Pick<GroupHeaderProps, "labelField" | "actions" | "onKeyDown"> & {
+	mark?: ReactNode;
+};
 
 // The parts that a wave header of the epic table adds to `GroupHeader`: the
 // name field while the person renames the wave, the wave actions, and the
@@ -24,6 +26,7 @@ export const waveHeaderParts = (group: TableGroup, options: WaveHeaderOptions): 
 	const { editing } = options;
 	const wave = editing.waves.find((entry) => entry.id === group.wave?.id);
 	if (wave === undefined) return undefined;
+	const current = editing.waves.find((entry) => entry.state === "open")?.id === wave.id;
 	const onKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
 		if (event.key === "F2") {
 			event.preventDefault();
@@ -35,6 +38,11 @@ export const waveHeaderParts = (group: TableGroup, options: WaveHeaderOptions): 
 		}
 	};
 	return {
+		mark: current ? (
+			<Badge tone="accent" size="sm">
+				Current
+			</Badge>
+		) : undefined,
 		labelField: editing.renamingId === wave.id ? <WaveName wave={wave} editing={editing} /> : undefined,
 		actions: (
 			<WaveActions

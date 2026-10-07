@@ -141,11 +141,27 @@
 		"stories": [
 			"Pages/Flows/Populated",
 			"Pages/Flows/Empty",
+			"Pages/Flows/EmptyCreateAction",
 			"Pages/Flows/Loading",
 			"Pages/Flows/RequestError",
-			"Pages/Flows/Narrow"
+			"Pages/Flows/Narrow",
+			"Pages/Flows/LongContent",
+			"Pages/Flows/DenseCards",
+			"Pages/Flows/CardHover",
+			"Pages/Flows/CardFocus"
 		],
-		"states": ["populated", "empty", "loading", "error", "narrow"],
+		"states": [
+			"populated",
+			"empty",
+			"empty action",
+			"loading",
+			"error",
+			"narrow",
+			"long content",
+			"dense cards",
+			"hover",
+			"focus"
+		],
 		"notes": ""
 	}
 ]

@@ -5,11 +5,27 @@
 		"stories": [
 			"Pages/Flows/Populated",
 			"Pages/Flows/Empty",
+			"Pages/Flows/EmptyCreateAction",
 			"Pages/Flows/Loading",
 			"Pages/Flows/RequestError",
-			"Pages/Flows/Narrow"
+			"Pages/Flows/Narrow",
+			"Pages/Flows/LongContent",
+			"Pages/Flows/DenseCards",
+			"Pages/Flows/CardHover",
+			"Pages/Flows/CardFocus"
 		],
-		"states": ["populated", "empty", "loading", "error", "narrow"],
+		"states": [
+			"populated",
+			"empty",
+			"empty action",
+			"loading",
+			"error",
+			"narrow",
+			"long content",
+			"dense cards",
+			"hover",
+			"focus"
+		],
 		"notes": ""
 	},
 	{
@@ -21,9 +37,24 @@
 			"Pages/Flow editor/Loading",
 			"Pages/Flow editor/RequestError",
 			"Pages/Flow editor/Narrow",
-			"Pages/Flow editor/Missing"
+			"Pages/Flow editor/Missing",
+			"Pages/Flow editor/InvalidNodes",
+			"Pages/Flow editor/DenseLongGraph",
+			"Pages/Flow editor/ConnectionLossUndo",
+			"Pages/Flow editor/KeyboardDeleteRequiresConfirmation"
 		],
-		"states": ["canvas", "empty canvas", "loading", "error", "narrow", "missing flow"],
+		"states": [
+			"canvas",
+			"empty canvas",
+			"loading",
+			"error",
+			"narrow",
+			"missing flow",
+			"invalid nodes",
+			"dense long graph",
+			"connection loss undo",
+			"keyboard delete confirmation"
+		],
 		"notes": "The canvas and request states use flows.get responses."
 	},
 	{

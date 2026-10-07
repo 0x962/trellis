@@ -1,8 +1,11 @@
+import { useQuery } from "@tanstack/react-query";
 import type { WaveSummary } from "@trellis/api";
 import { Command, type CommandGroup, type CommandItem, Popover } from "@trellis/ui";
 import { createElement, type ReactElement, type RefObject, useRef, useState } from "react";
+import { useApp } from "../../../lib/appContext";
+import { PickerFailure } from "../components/PickerFailure";
 import { RowMarks } from "../components/RowMarks";
-import { type EpicWaves, useEpicWaves } from "../hooks/useEpicWaves";
+import type { EpicWaves } from "../hooks/useEpicWaves";
 import { nextWaveName } from "../utils/nextWaveName";
 
 const noneId = "none";
@@ -83,11 +86,13 @@ export function WavePicker({
 	finalFocus,
 	side,
 }: WavePickerProps) {
+	const { orpc } = useApp();
 	const [own, setOwn] = useState(false);
 	const [search, setSearch] = useState("");
 	const input = useRef<HTMLInputElement>(null);
 	const isOpen = open ?? own;
-	const loaded = useEpicWaves([epic], isOpen)[0];
+	const list = useQuery({ ...orpc.epics.get.queryOptions({ input: { epic } }), enabled: isOpen, retry: false });
+	const loaded = list.data;
 	const waves = loaded?.waves ?? [];
 
 	const setOpen = (next: boolean) => {
@@ -111,7 +116,7 @@ export function WavePicker({
 						: []),
 				];
 	const newName = search.trim() === "" ? nextWaveName(waves) : search.trim();
-	if (onCreate !== undefined && loaded !== undefined) {
+	if (onCreate !== undefined && loaded !== undefined && !list.isError) {
 		items.push({ id: newId, label: "New wave", hint: newName, pinned: true });
 	}
 
@@ -124,20 +129,28 @@ export function WavePicker({
 			initialFocus={input}
 			finalFocus={finalFocus}
 			side={side}
-			className="w-72 p-0"
+			className="w-72 max-w-(--available-width) max-h-(--available-height) overflow-y-auto p-0"
 		>
 			<Command
 				inputRef={input}
 				label="Search waves"
 				placeholder="Set wave"
 				items={items}
+				listClassName={list.isError && items.length === 0 ? "hidden" : undefined}
 				onSearchChange={setSearch}
-				empty={loaded === undefined ? "Load waves…" : "No waves."}
+				empty={list.isError ? "" : list.isPending ? "Load waves…" : "No waves."}
 				onSelect={(id) => {
 					setOpen(false);
 					if (id === newId) onCreate!(newName);
 					else onPick(id === noneId ? null : waves.find((wave) => wave.ref === id)!);
 				}}
+			/>
+			<PickerFailure
+				title="Waves could not load."
+				error={list.error}
+				pending={list.isFetching}
+				onRetry={list.refetch}
+				input={input}
 			/>
 		</Popover>
 	);

@@ -1,8 +1,8 @@
-import { Plus } from "@phosphor-icons/react";
+import { ArrowClockwise, Plus } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { flowProjectLabel } from "@trellis/api";
-import { Badge, Button, EmptyState, EntityCard, Skeleton, Tooltip } from "@trellis/ui";
+import { Badge, Button, EmptyState, EntityCard, FailureState, IconButton, Skeleton, Tooltip } from "@trellis/ui";
 import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { PageTitle } from "../../shell/PageTitle";
@@ -32,7 +32,12 @@ export function FlowsPage() {
 					variant="page"
 					className="page-card"
 					title="No flows yet"
-					description="A flow draws how agents work together: the steps, their order, and their limits. Create a flow, then draw its steps on the canvas."
+					description="Create a flow to define a repeatable process."
+					action={
+						<Button size="md" onClick={() => setCreating(true)}>
+							New flow
+						</Button>
+					}
 				/>
 			) : (
 				<div className="page-card flex-1 overflow-y-auto px-8 py-6 max-md:px-4">
@@ -47,12 +52,20 @@ export function FlowsPage() {
 								<Skeleton className="h-24 w-full" />
 							</div>
 						) : flows.isError ? (
-							<div role="alert" className="flex items-center justify-between gap-3 rounded-lg border border-border p-4">
-								<p className="text-sm text-danger">Could not load flows.</p>
-								<Button disabled={flows.isFetching} onClick={() => void flows.refetch()}>
-									Retry
-								</Button>
-							</div>
+							<FailureState
+								title="Could not load flows"
+								detail={flows.error.message}
+								action={
+									<Tooltip content="Retry">
+										<IconButton
+											label="Retry"
+											icon={<ArrowClockwise />}
+											disabled={flows.isFetching}
+											onClick={() => void flows.refetch()}
+										/>
+									</Tooltip>
+								}
+							/>
 						) : (
 							<div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
 								{flows.data.map((flow) => (

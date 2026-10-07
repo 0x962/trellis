@@ -11,7 +11,11 @@ const none: { labels: Label[]; groups: LabelGroup[] } = { labels: [], groups: []
 export const useLabels = (projectKey: string | undefined) => {
 	const { orpc } = useApp();
 	const query = useQuery(
-		orpc.labels.list.queryOptions({ input: { project: projectKey ?? "" }, enabled: projectKey !== undefined }),
+		orpc.labels.list.queryOptions({
+			input: { project: projectKey ?? "" },
+			enabled: projectKey !== undefined,
+			retry: false,
+		}),
 	);
-	return query.data ?? none;
+	return { ...(query.data ?? none), query };
 };
