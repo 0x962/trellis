@@ -88,7 +88,7 @@ export function SystemUsage() {
 						value={data.loadAverage[0].toFixed(2)}
 						detail={`Over 1 minute · ${data.loadAverage[1].toFixed(2)} over 5 · ${data.loadAverage[2].toFixed(2)} over 15`}
 					/>
-					<StatTile framed label="Uptime" value={formatUptime(data.uptimeSeconds)} />
+					<StatTile framed label="Uptime" value={formatUptime(data.uptimeSeconds)} detail="Since the host started" />
 				</div>
 				<p className="break-words text-xs text-fg-muted">
 					{data.hostname} · {data.platform} · {data.cpuModel}

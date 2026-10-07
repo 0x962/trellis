@@ -107,6 +107,7 @@ test("empty history leaves current metrics available and omits empty charts", as
 	const h = await mount({ ...systemUsage, history: [] });
 	expect(h.text()).toContain("No recent samples");
 	expect(h.text()).toContain("38.0%");
+	expect(h.text()).toContain("Since the host started");
 	expect(h.text()).not.toContain("Recent CPU usage");
 	expect(h.text()).not.toContain("Select a sample");
 	await h.stop();
