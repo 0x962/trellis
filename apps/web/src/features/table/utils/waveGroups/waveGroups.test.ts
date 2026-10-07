@@ -14,7 +14,7 @@ const fix = wave("fix", "done", 1, 1);
 const waves = [foundation, surfaces, integrate, fix];
 
 describe("waveMarks", () => {
-	test("carries only the counts and the done state of each wave", () => {
+	test("keeps the current wave count plain and marks each later open wave as Later", () => {
 		const marks = waveMarks(waves);
 
 		expect(marks.get(foundation.id)).toEqual({ countLabel: "4/4", completedCount: 5, totalCount: 5, done: true });
@@ -25,12 +25,21 @@ describe("waveMarks", () => {
 			done: false,
 		});
 		expect(marks.get(integrate.id)).toEqual({
-			countLabel: "0/2",
+			countLabel: "Later \u00b7 0/2",
 			completedCount: 0,
 			totalCount: 2,
 			done: false,
 		});
 		expect(marks.get(fix.id)).toEqual({ countLabel: "1/1", completedCount: 1, totalCount: 1, done: true });
+	});
+
+	test("marks every open wave after the current wave as Later in a dense list", () => {
+		const dense = Array.from({ length: 12 }, (_, index) => wave(`wave-${index + 1}`, "open", index, 12));
+
+		expect([...waveMarks(dense).values()].map((mark) => mark.countLabel)).toEqual([
+			"0/12",
+			...Array.from({ length: 11 }, (_, index) => `Later \u00b7 ${index + 1}/12`),
+		]);
 	});
 
 	test("prints the counts alone", () => {

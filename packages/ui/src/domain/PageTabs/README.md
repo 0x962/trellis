@@ -1,5 +1,9 @@
 Page tabs open their actions from a right click or a touch long press. A focused tab also accepts the context-menu key and Shift+F10. The menu uses the tab that opens it. Opening the menu keeps the selected page unchanged.
 
+The semantic tablist owns the mounted tab buttons through `aria-owns`. The shared `TabsList` supplies Base UI context to those buttons. The visual wrappers, group controls, and Close buttons stay outside the tablist's accessibility tree. Each render updates the owned IDs after virtual scroll or rename.
+
+Left, Right, Home, and End select and focus visible tabs across both regions. These keys skip the tabs of a collapsed group. Tab reaches one tab button, the active Close action, and the strip controls. Each scroll region is a named keyboard stop when its tabs contain no selected tab. The scroll regions and tab buttons draw an inset focus outline.
+
 Each tab width follows its title and controls, up to 60 spacing steps (240 pixels with the default theme). Longer names use an ellipsis and retain their full tooltip. The first tab starts at the strip edge. Tabs use the shared surface color and corner radius.
 
 The layout measures titles with the strip font. The active tab and each menu or drag target stay mounted outside the viewport. The same tab positions select drag targets and the visible range. A selection uses the measured positions. The layout measures titles again after a rename, a viewport resize, or a font load.

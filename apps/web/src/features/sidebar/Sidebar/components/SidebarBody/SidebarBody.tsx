@@ -147,7 +147,7 @@ export function SidebarBody({ collapsed = false, onCollapse }: SidebarBodyProps)
 				</div>
 			</div>
 			<div className="mt-auto shrink-0">
-				<ConnectionPanel status={status} />
+				<ConnectionPanel status={status} collapsed={collapsed} />
 				<ActorFooter collapsed={collapsed} />
 			</div>
 		</>
