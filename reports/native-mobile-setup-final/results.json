@@ -1,13 +1,13 @@
 {
-  "kind": "final browser evidence",
-  "source": "ca122e2daa847a02748925e9708abec6cb96378a",
-  "capturedAt": "2026-10-07T03:43:47.523Z",
-  "scope": "Final setup and pairing routes",
+  "kind": "final native setup browser evidence",
+  "source": "5ac852d194a9521797859c5103b7ea14eaccb409",
+  "capturedAt": "2026-10-07T14:25:12.784Z",
+  "scope": "Setup and pairing browser route behavior",
   "method": {
     "renderer": "Expo Web with React Native Web",
     "storage": "Temporary localStorage-backed SQLiteStorage fixture",
     "camera": "Temporary deterministic camera fixture for permission and QR route states",
-    "browser": "Playwright Chromium 153.0.8010.12",
+    "browser": "Playwright Chromium",
     "viewports": [
       "320 by 720",
       "160 by 720 reflow proxy",
@@ -43,7 +43,8 @@
     "Native deep links",
     "Native touch and gesture behavior",
     "SQLite retention after an app restart",
-    "Native reduced-motion settings"
+    "Native reduced-motion settings",
+    "Initial browser page focus before a user action"
   ],
   "results": [
     {
@@ -63,28 +64,6 @@
         "Save server"
       ],
       "saveDisabled": true,
-      "focusOrder": [
-        {
-          "tag": "INPUT",
-          "name": "Server URL",
-          "borderColor": "rgb(110, 110, 115)"
-        },
-        {
-          "tag": "BUTTON",
-          "name": "Scan pair code",
-          "borderColor": "rgb(110, 110, 115)"
-        },
-        {
-          "tag": "BUTTON",
-          "name": "Test connection",
-          "borderColor": "rgb(110, 110, 115)"
-        },
-        {
-          "tag": "INPUT",
-          "name": "Your name",
-          "borderColor": "rgb(110, 110, 115)"
-        }
-      ],
       "visibleText": "Server\nConnect this phone to the Trellis server on your computer. Test the server before you save it.\nServer URL\nScan the pair code from Trellis settings, or enter the address that Trellis prints at start.\nScan pair code\nTest connection\nYour name\nTrellis uses this name on tickets and messages.\nSave server",
       "controls": [
         {
@@ -129,10 +108,12 @@
         "reducedMotion": true,
         "colorScheme": "light",
         "innerWidth": 320,
+        "innerHeight": 720,
         "scrollWidth": 320,
         "horizontalOverflow": 0,
-        "cumulativeLayoutShift": 0
-      }
+        "cumulativeLayoutShift": 0.011111111111111112
+      },
+      "httpStatus": 200
     },
     {
       "kind": "final browser evidence",
@@ -190,25 +171,28 @@
         "reducedMotion": true,
         "colorScheme": "light",
         "innerWidth": 320,
+        "innerHeight": 720,
         "scrollWidth": 320,
         "horizontalOverflow": 0,
-        "cumulativeLayoutShift": 0
-      }
+        "cumulativeLayoutShift": 0.011111111111111112
+      },
+      "httpStatus": 200
     },
     {
       "kind": "final browser evidence",
       "id": "invalid-name",
-      "title": "Invalid name",
+      "title": "Required empty name",
       "theme": "light",
       "width": 320,
       "height": 720,
       "route": "/setup",
       "screenshot": "assets/light/invalid-name-320px.png",
       "expectedText": [
-        "Use letters, numbers, spaces, or punctuation.",
-        "Do not use a colon."
+        "Enter your name. Use letters, numbers, spaces, or punctuation. Do not use a colon."
       ],
-      "visibleText": "Server\nConnect this phone to the Trellis server on your computer. Test the server before you save it.\nServer URL\nScan the pair code from Trellis settings, or enter the address that Trellis prints at start.\nScan pair code\nTest connection\nYour name\nUse letters, numbers, spaces, or punctuation. Do not use a colon.\nSave server",
+      "emptyNameError": "Enter your name. Use letters, numbers, spaces, or punctuation. Do not use a colon.",
+      "saveDisabled": true,
+      "visibleText": "Server\nConnect this phone to the Trellis server on your computer. Test the server before you save it.\nServer URL\nScan the pair code from Trellis settings, or enter the address that Trellis prints at start.\nScan pair code\nTest connection\nYour name\nEnter your name. Use letters, numbers, spaces, or punctuation. Do not use a colon.\nSave server\nConnected to this Trellis server.\nVersion\n1.2.3-final\nTickets\n42 tickets\nServer default actor\nFixture Person",
       "controls": [
         {
           "tag": "INPUT",
@@ -252,10 +236,12 @@
         "reducedMotion": true,
         "colorScheme": "light",
         "innerWidth": 320,
+        "innerHeight": 720,
         "scrollWidth": 320,
         "horizontalOverflow": 0,
-        "cumulativeLayoutShift": 0
-      }
+        "cumulativeLayoutShift": 0.01477500745985243
+      },
+      "httpStatus": 200
     },
     {
       "kind": "final browser evidence",
@@ -313,10 +299,12 @@
         "reducedMotion": true,
         "colorScheme": "light",
         "innerWidth": 320,
+        "innerHeight": 720,
         "scrollWidth": 320,
         "horizontalOverflow": 0,
-        "cumulativeLayoutShift": 0
-      }
+        "cumulativeLayoutShift": 0.011456307493610146
+      },
+      "httpStatus": 200
     },
     {
       "kind": "final browser evidence",
@@ -367,7 +355,7 @@
       "consoleErrors": [],
       "pageErrors": [],
       "failedRequests": [
-        "POST http://127.0.0.1:4175/rpc/system/health net::ERR_ABORTED"
+        "http://fixture.local:4522/rpc/system/health: net::ERR_ABORTED"
       ],
       "expectedNetworkFailure": true,
       "unexpectedConsoleErrors": [],
@@ -376,10 +364,12 @@
         "reducedMotion": true,
         "colorScheme": "light",
         "innerWidth": 320,
+        "innerHeight": 720,
         "scrollWidth": 320,
         "horizontalOverflow": 0,
-        "cumulativeLayoutShift": 0.00034519638249903546
-      }
+        "cumulativeLayoutShift": 0.011801503876109181
+      },
+      "httpStatus": 200
     },
     {
       "kind": "final browser evidence",
@@ -432,7 +422,7 @@
       ],
       "pageErrors": [],
       "failedRequests": [
-        "POST http://127.0.0.1:4175/rpc/system/health net::ERR_CONNECTION_REFUSED"
+        "http://fixture.local:4522/rpc/system/health: net::ERR_CONNECTION_REFUSED"
       ],
       "expectedNetworkFailure": true,
       "unexpectedConsoleErrors": [],
@@ -441,10 +431,12 @@
         "reducedMotion": true,
         "colorScheme": "light",
         "innerWidth": 320,
+        "innerHeight": 720,
         "scrollWidth": 320,
         "horizontalOverflow": 0,
-        "cumulativeLayoutShift": 0
-      }
+        "cumulativeLayoutShift": 0.011801503876109181
+      },
+      "httpStatus": 200
     },
     {
       "kind": "final browser evidence",
@@ -502,10 +494,12 @@
         "reducedMotion": true,
         "colorScheme": "light",
         "innerWidth": 320,
+        "innerHeight": 720,
         "scrollWidth": 320,
         "horizontalOverflow": 0,
-        "cumulativeLayoutShift": 0
-      }
+        "cumulativeLayoutShift": 0.011801503876109181
+      },
+      "httpStatus": 200
     },
     {
       "kind": "final browser evidence",
@@ -517,78 +511,74 @@
       "route": "/setup",
       "screenshot": "assets/light/successful-probe-320px.png",
       "expectedText": [
-        "1.2.3-final",
-        "42 tickets",
-        "Server default actor",
-        "Fixture Person"
+        "Connected to this Trellis server.",
+        "Server default actor"
       ],
-      "layout": {
-        "before": {
-          "Server URL": {
-            "x": 16,
-            "y": 164,
-            "width": 288,
-            "height": 44
-          },
-          "Scan pair code": {
-            "x": 16,
-            "y": 262,
-            "width": 288,
-            "height": 44
-          },
-          "Test connection": {
-            "x": 16,
-            "y": 322,
-            "width": 288,
-            "height": 44
-          },
-          "Your name": {
-            "x": 16,
-            "y": 404,
-            "width": 288,
-            "height": 44
-          },
-          "Save server": {
-            "x": 16,
-            "y": 486,
-            "width": 288,
-            "height": 44
-          }
+      "controlBoundsBefore": {
+        "Server URL": {
+          "x": 16,
+          "y": 164,
+          "width": 288,
+          "height": 44
         },
-        "after": {
-          "Server URL": {
-            "x": 16,
-            "y": 164,
-            "width": 288,
-            "height": 44
-          },
-          "Scan pair code": {
-            "x": 16,
-            "y": 262,
-            "width": 288,
-            "height": 44
-          },
-          "Test connection": {
-            "x": 16,
-            "y": 322,
-            "width": 288,
-            "height": 44
-          },
-          "Your name": {
-            "x": 16,
-            "y": 404,
-            "width": 288,
-            "height": 44
-          },
-          "Save server": {
-            "x": 16,
-            "y": 486,
-            "width": 288,
-            "height": 44
-          }
+        "Scan pair code": {
+          "x": 16,
+          "y": 262,
+          "width": 288,
+          "height": 44
         },
-        "maxDelta": 0
+        "Test connection": {
+          "x": 16,
+          "y": 322,
+          "width": 288,
+          "height": 44
+        },
+        "Your name": {
+          "x": 16,
+          "y": 404,
+          "width": 288,
+          "height": 44
+        },
+        "Save server": {
+          "x": 16,
+          "y": 486,
+          "width": 288,
+          "height": 44
+        }
       },
+      "controlBoundsAfter": {
+        "Server URL": {
+          "x": 16,
+          "y": 164,
+          "width": 288,
+          "height": 44
+        },
+        "Scan pair code": {
+          "x": 16,
+          "y": 262,
+          "width": 288,
+          "height": 44
+        },
+        "Test connection": {
+          "x": 16,
+          "y": 322,
+          "width": 288,
+          "height": 44
+        },
+        "Your name": {
+          "x": 16,
+          "y": 404,
+          "width": 288,
+          "height": 44
+        },
+        "Save server": {
+          "x": 16,
+          "y": 486,
+          "width": 288,
+          "height": 44
+        }
+      },
+      "largestControlShift": 0,
       "visibleText": "Server\nConnect this phone to the Trellis server on your computer. Test the server before you save it.\nServer URL\nScan the pair code from Trellis settings, or enter the address that Trellis prints at start.\nScan pair code\nTest connection\nYour name\nTrellis uses this name on tickets and messages.\nSave server\nConnected to this Trellis server.\nVersion\n1.2.3-final\nTickets\n42 tickets\nServer default actor\nFixture Person",
       "controls": [
         {
@@ -633,25 +623,43 @@
         "reducedMotion": true,
         "colorScheme": "light",
         "innerWidth": 320,
+        "innerHeight": 720,
         "scrollWidth": 320,
         "horizontalOverflow": 0,
-        "cumulativeLayoutShift": 0
-      }
+        "cumulativeLayoutShift": 0.011801503876109181
+      },
+      "httpStatus": 200
     },
     {
       "kind": "final browser evidence",
       "id": "existing-server-replacement",
-      "title": "Existing server replacement",
+      "title": "Existing server replacement warning before Save",
       "theme": "light",
       "width": 320,
       "height": 720,
       "route": "/setup",
       "screenshot": "assets/light/existing-server-replacement-320px.png",
       "expectedText": [
-        "Saving replaces the current server",
+        "A new server clears this phone's cached tickets.",
         "Server default actor"
       ],
-      "visibleText": "Server\nConnect this phone to the Trellis server on your computer. Test the server before you save it.\nServer URL\nScan the pair code from Trellis settings, or enter the address that Trellis prints at start.\nScan pair code\nTest connection\nYour name\nTrellis uses this name on tickets and messages.\nSave server\nConnected to this Trellis server.\nVersion\n1.2.3-final\nTickets\n42 tickets\nServer default actor\nFixture Person\nSaving replaces the current server and clears its cached tickets from this phone.",
+      "warningOrder": {
+        "warningBox": {
+          "x": 16,
+          "y": 454,
+          "width": 288,
+          "height": 32
+        },
+        "saveBox": {
+          "x": 16,
+          "y": 502,
+          "width": 288,
+          "height": 44
+        },
+        "beforeSave": true,
+        "gapPx": 16
+      },
+      "visibleText": "Server\nConnect this phone to the Trellis server on your computer. Test the server before you save it.\nServer URL\nScan the pair code from Trellis settings, or enter the address that Trellis prints at start.\nScan pair code\nTest connection\nYour name\nA new server clears this phone's cached tickets.\nSave server\nConnected to this Trellis server.\nVersion\n1.2.3-final\nTickets\n42 tickets\nServer default actor\nFixture Person",
       "controls": [
         {
           "tag": "INPUT",
@@ -695,10 +703,12 @@
         "reducedMotion": true,
         "colorScheme": "light",
         "innerWidth": 320,
+        "innerHeight": 720,
         "scrollWidth": 320,
         "horizontalOverflow": 0,
-        "cumulativeLayoutShift": 0
-      }
+        "cumulativeLayoutShift": 0.013468170542775848
+      },
+      "httpStatus": 200
     },
     {
       "kind": "final browser evidence",
@@ -713,15 +723,9 @@
         "Server URL",
         "Your name"
       ],
-      "reloadRetention": {
-        "storageAfterSave": {
-          "url": "http://127.0.0.1:4175",
-          "name": "reload-person"
-        },
-        "valuesAfterReload": {
-          "url": "http://127.0.0.1:4175",
-          "name": "reload-person"
-        }
+      "retained": {
+        "url": "http://fixture.local:4522",
+        "name": "Dana Mobile"
       },
       "visibleText": "Server\nConnect this phone to the Trellis server on your computer. Test the server before you save it.\nServer URL\nScan the pair code from Trellis settings, or enter the address that Trellis prints at start.\nScan pair code\nTest connection\nYour name\nTrellis uses this name on tickets and messages.\nSave server",
       "controls": [
@@ -767,10 +771,12 @@
         "reducedMotion": true,
         "colorScheme": "light",
         "innerWidth": 320,
+        "innerHeight": 720,
         "scrollWidth": 320,
         "horizontalOverflow": 0,
-        "cumulativeLayoutShift": 0
-      }
+        "cumulativeLayoutShift": 0.011111111111111112
+      },
+      "httpStatus": 200
     },
     {
       "kind": "final browser evidence",
@@ -779,7 +785,7 @@
       "theme": "light",
       "width": 320,
       "height": 720,
-      "route": "/pair?url=not-a-server-url",
+      "route": "/pair?url=ftp%3A%2F%2Finvalid.example",
       "screenshot": "assets/light/invalid-pair-link-320px.png",
       "expectedText": [
         "Start the URL with http:// or https://"
@@ -834,10 +840,12 @@
         "reducedMotion": true,
         "colorScheme": "light",
         "innerWidth": 320,
+        "innerHeight": 720,
         "scrollWidth": 320,
         "horizontalOverflow": 0,
-        "cumulativeLayoutShift": 0
-      }
+        "cumulativeLayoutShift": 0.011111111111111112
+      },
+      "httpStatus": 200
     },
     {
       "kind": "final browser evidence",
@@ -846,13 +854,12 @@
       "theme": "light",
       "width": 320,
       "height": 720,
-      "route": "/pair?url=http%3A%2F%2F127.0.0.1%3A4175",
+      "route": "/pair?url=http%3A%2F%2Ffixture.local%3A4522",
       "screenshot": "assets/light/valid-pair-link-320px.png",
       "expectedText": [
-        "Connected to this Trellis server.",
-        "Server default actor"
+        "Connected to this Trellis server."
       ],
-      "visibleText": "‹\nServer\nConnect this phone to the Trellis server on your computer. Test the server before you save it.\nServer URL\nScan the pair code from Trellis settings, or enter the address that Trellis prints at start.\nScan pair code\nTest connection\nYour name\nUse letters, numbers, spaces, or punctuation. Do not use a colon.\nSave server\nConnected to this Trellis server.\nVersion\n1.2.3-final\nTickets\n42 tickets\nServer default actor\nFixture Person",
+      "visibleText": "‹\nServer\nConnect this phone to the Trellis server on your computer. Test the server before you save it.\nServer URL\nScan the pair code from Trellis settings, or enter the address that Trellis prints at start.\nScan pair code\nTest connection\nYour name\nEnter your name. Use letters, numbers, spaces, or punctuation. Do not use a colon.\nSave server\nConnected to this Trellis server.\nVersion\n1.2.3-final\nTickets\n42 tickets\nServer default actor\nFixture Person",
       "controls": [
         {
           "tag": "BUTTON",
@@ -902,10 +909,12 @@
         "reducedMotion": true,
         "colorScheme": "light",
         "innerWidth": 320,
+        "innerHeight": 720,
         "scrollWidth": 320,
         "horizontalOverflow": 0,
-        "cumulativeLayoutShift": 0.0033186999662422837
-      }
+        "cumulativeLayoutShift": 0.015405409071180556
+      },
+      "httpStatus": 200
     },
     {
       "kind": "final browser evidence",
@@ -917,7 +926,7 @@
       "route": "/setup",
       "screenshot": "assets/light/camera-permission-request-320px.png",
       "expectedText": [
-        "Allow camera access to scan the Trellis pair code.",
+        "Allow camera access",
         "Allow camera",
         "Cancel scan"
       ],
@@ -971,10 +980,12 @@
         "reducedMotion": true,
         "colorScheme": "light",
         "innerWidth": 320,
+        "innerHeight": 720,
         "scrollWidth": 320,
         "horizontalOverflow": 0,
-        "cumulativeLayoutShift": 0
-      }
+        "cumulativeLayoutShift": 0.09116666666666667
+      },
+      "httpStatus": 200
     },
     {
       "kind": "final browser evidence",
@@ -990,10 +1001,6 @@
         "Open Settings",
         "Cancel scan"
       ],
-      "cameraDenied": {
-        "alert": "Camera access is off. Open Settings and allow camera access for Trellis.",
-        "openSettingsName": "Open Settings"
-      },
       "visibleText": "Server\nConnect this phone to the Trellis server on your computer. Test the server before you save it.\nServer URL\nScan the pair code from Trellis settings, or enter the address that Trellis prints at start.\nScan a pairing code\nCamera access is off. Open Settings and allow camera access for Trellis.\nOpen Settings\nCancel scan\nTest connection\nYour name\nTrellis uses this name on tickets and messages.\nSave server",
       "controls": [
         {
@@ -1044,10 +1051,12 @@
         "reducedMotion": true,
         "colorScheme": "light",
         "innerWidth": 320,
+        "innerHeight": 720,
         "scrollWidth": 320,
         "horizontalOverflow": 0,
-        "cumulativeLayoutShift": 0
-      }
+        "cumulativeLayoutShift": 0.09116666666666667
+      },
+      "httpStatus": 200
     },
     {
       "kind": "final browser evidence",
@@ -1106,10 +1115,12 @@
         "reducedMotion": true,
         "colorScheme": "light",
         "innerWidth": 320,
+        "innerHeight": 720,
         "scrollWidth": 320,
         "horizontalOverflow": 0,
-        "cumulativeLayoutShift": 0
-      }
+        "cumulativeLayoutShift": 0.14279320987654318
+      },
+      "httpStatus": 200
     },
     {
       "kind": "final browser evidence",
@@ -1123,9 +1134,6 @@
       "expectedText": [
         "This code does not contain a Trellis pair link."
       ],
-      "invalidQr": {
-        "alert": "This code does not contain a Trellis pair link. Scan the code from Trellis settings, or enter the address."
-      },
       "visibleText": "Server\nConnect this phone to the Trellis server on your computer. Test the server before you save it.\nServer URL\nScan the pair code from Trellis settings, or enter the address that Trellis prints at start.\nScan pair code\nTest connection\nYour name\nTrellis uses this name on tickets and messages.\nSave server\nThis code does not contain a Trellis pair link. Scan the code from Trellis settings, or enter the address.",
       "controls": [
         {
@@ -1170,10 +1178,12 @@
         "reducedMotion": true,
         "colorScheme": "light",
         "innerWidth": 320,
+        "innerHeight": 720,
         "scrollWidth": 320,
         "horizontalOverflow": 0,
-        "cumulativeLayoutShift": 0
-      }
+        "cumulativeLayoutShift": 0.2744753086419752
+      },
+      "httpStatus": 200
     },
     {
       "kind": "final browser evidence",
@@ -1185,10 +1195,9 @@
       "route": "/setup",
       "screenshot": "assets/light/valid-qr-320px.png",
       "expectedText": [
-        "Connected to this Trellis server.",
-        "Server default actor"
+        "Connected to this Trellis server."
       ],
-      "visibleText": "Server\nConnect this phone to the Trellis server on your computer. Test the server before you save it.\nServer URL\nScan the pair code from Trellis settings, or enter the address that Trellis prints at start.\nScan pair code\nTest connection\nYour name\nUse letters, numbers, spaces, or punctuation. Do not use a colon.\nSave server\nConnected to this Trellis server.\nVersion\n1.2.3-final\nTickets\n42 tickets\nServer default actor\nFixture Person",
+      "visibleText": "Server\nConnect this phone to the Trellis server on your computer. Test the server before you save it.\nServer URL\nScan the pair code from Trellis settings, or enter the address that Trellis prints at start.\nScan pair code\nTest connection\nYour name\nEnter your name. Use letters, numbers, spaces, or punctuation. Do not use a colon.\nSave server\nConnected to this Trellis server.\nVersion\n1.2.3-final\nTickets\n42 tickets\nServer default actor\nFixture Person",
       "controls": [
         {
           "tag": "INPUT",
@@ -1232,10 +1241,12 @@
         "reducedMotion": true,
         "colorScheme": "light",
         "innerWidth": 320,
+        "innerHeight": 720,
         "scrollWidth": 320,
         "horizontalOverflow": 0,
-        "cumulativeLayoutShift": 0
-      }
+        "cumulativeLayoutShift": 0.279684124228395
+      },
+      "httpStatus": 200
     },
     {
       "kind": "final browser evidence",
@@ -1293,55 +1304,79 @@
         "reducedMotion": true,
         "colorScheme": "light",
         "innerWidth": 320,
+        "innerHeight": 720,
         "scrollWidth": 320,
         "horizontalOverflow": 0,
-        "cumulativeLayoutShift": 0
-      }
+        "cumulativeLayoutShift": 0.2744753086419752
+      },
+      "httpStatus": 200
     },
     {
       "kind": "final browser evidence",
       "id": "focus-transitions",
-      "title": "Keyboard focus transitions",
+      "title": "Tab order from Server URL and visible focus",
       "theme": "light",
       "width": 320,
       "height": 720,
       "route": "/setup",
       "screenshot": "assets/light/focus-transitions-320px.png",
       "expectedText": [
-        "Connected to this Trellis server."
+        "Server URL",
+        "Scan pair code",
+        "Test connection",
+        "Your name",
+        "Save server"
       ],
-      "focusTransitions": {
-        "resting": "rgb(221, 221, 223)",
-        "focused": "rgb(110, 110, 115)",
-        "blurred": "rgb(221, 221, 223)",
-        "order": [
-          {
-            "tag": "INPUT",
-            "name": "Server URL",
-            "borderColor": "rgb(110, 110, 115)"
-          },
-          {
-            "tag": "BUTTON",
-            "name": "Scan pair code",
-            "borderColor": "rgb(110, 110, 115)"
-          },
-          {
-            "tag": "BUTTON",
-            "name": "Test connection",
-            "borderColor": "rgb(110, 110, 115)"
-          },
-          {
-            "tag": "INPUT",
-            "name": "Your name",
-            "borderColor": "rgb(110, 110, 115)"
-          },
-          {
-            "tag": "BUTTON",
-            "name": "Save server",
-            "borderColor": "rgb(255, 255, 255)"
-          }
-        ]
-      },
+      "tabOrderFrom": "Server URL",
+      "focusOrder": [
+        "Server URL",
+        "Scan pair code",
+        "Test connection",
+        "Your name",
+        "Save server"
+      ],
+      "focusEvidence": [
+        {
+          "name": "Server URL",
+          "focusVisible": true,
+          "outlineStyle": "auto",
+          "outlineWidth": "1px",
+          "outlineColor": "rgb(229, 151, 0)",
+          "boxShadow": "none"
+        },
+        {
+          "name": "Scan pair code",
+          "focusVisible": true,
+          "outlineStyle": "auto",
+          "outlineWidth": "1px",
+          "outlineColor": "rgb(229, 151, 0)",
+          "boxShadow": "none"
+        },
+        {
+          "name": "Test connection",
+          "focusVisible": true,
+          "outlineStyle": "auto",
+          "outlineWidth": "1px",
+          "outlineColor": "rgb(229, 151, 0)",
+          "boxShadow": "none"
+        },
+        {
+          "name": "Your name",
+          "focusVisible": true,
+          "outlineStyle": "auto",
+          "outlineWidth": "1px",
+          "outlineColor": "rgb(229, 151, 0)",
+          "boxShadow": "none"
+        },
+        {
+          "name": "Save server",
+          "focusVisible": true,
+          "outlineStyle": "auto",
+          "outlineWidth": "1px",
+          "outlineColor": "rgb(229, 151, 0)",
+          "boxShadow": "none"
+        }
+      ],
       "visibleText": "Server\nConnect this phone to the Trellis server on your computer. Test the server before you save it.\nServer URL\nScan the pair code from Trellis settings, or enter the address that Trellis prints at start.\nScan pair code\nTest connection\nYour name\nTrellis uses this name on tickets and messages.\nSave server\nConnected to this Trellis server.\nVersion\n1.2.3-final\nTickets\n42 tickets\nServer default actor\nFixture Person",
       "controls": [
         {
@@ -1386,15 +1421,17 @@
         "reducedMotion": true,
         "colorScheme": "light",
         "innerWidth": 320,
+        "innerHeight": 720,
         "scrollWidth": 320,
         "horizontalOverflow": 0,
-        "cumulativeLayoutShift": 0
-      }
+        "cumulativeLayoutShift": 0.011801503876109181
+      },
+      "httpStatus": 200
     },
     {
       "kind": "final browser evidence",
       "id": "long-content-reflow",
-      "title": "Long content at the 200 percent reflow proxy",
+      "title": "Long server details at the 200 percent reflow proxy",
       "theme": "light",
       "width": 160,
       "height": 720,
@@ -1406,25 +1443,49 @@
         "Server default actor"
       ],
       "detailBoxes": {
-        "versionLabel": {
+        "Version": {
           "x": 32,
-          "y": 814,
+          "y": 191,
           "width": 96,
           "height": 22
         },
-        "versionValue": {
+        "final-version-with-a-deliberately-long-build-identity-2026.10.07": {
           "x": 32,
-          "y": 848,
+          "y": 225,
           "width": 96,
           "height": 132
         },
-        "actorLabel": {
+        "Tickets": {
           "x": 32,
-          "y": 1092,
+          "y": 374,
+          "width": 96,
+          "height": 22
+        },
+        "987654 tickets": {
+          "x": 32,
+          "y": 408,
           "width": 96,
           "height": 44
+        },
+        "Server default actor": {
+          "x": 32,
+          "y": 469,
+          "width": 96,
+          "height": 44
+        },
+        "Synthetic Person With A Deliberately Long Browser Baseline Identity": {
+          "x": 32,
+          "y": 525,
+          "width": 96,
+          "height": 154
         }
       },
+      "detailViewport": {
+        "width": 160,
+        "height": 720,
+        "scrollY": 0
+      },
+      "allDetailsVisible": true,
       "visibleText": "Server\nConnect this phone to the Trellis server on your computer. Test the server before you save it.\nServer URL\nScan the pair code from Trellis settings, or enter the address that Trellis prints at start.\nScan pair code\nTest connection\nYour name\nTrellis uses this name on tickets and messages.\nSave server\nConnected to this Trellis server.\nVersion\nfinal-version-with-a-deliberately-long-build-identity-2026.10.07\nTickets\n987654 tickets\nServer default actor\nSynthetic Person With A Deliberately Long Browser Baseline Identity",
       "controls": [
         {
@@ -1469,10 +1530,12 @@
         "reducedMotion": true,
         "colorScheme": "light",
         "innerWidth": 160,
+        "innerHeight": 720,
         "scrollWidth": 160,
         "horizontalOverflow": 0,
-        "cumulativeLayoutShift": 0
-      }
+        "cumulativeLayoutShift": 0.011111111111111112
+      },
+      "httpStatus": 200
     },
     {
       "kind": "final browser evidence",
@@ -1487,6 +1550,70 @@
         "Connected to this Trellis server.",
         "Server default actor"
       ],
+      "before": {
+        "Server URL": {
+          "x": 16,
+          "y": 120,
+          "width": 992,
+          "height": 44
+        },
+        "Scan pair code": {
+          "x": 16,
+          "y": 202,
+          "width": 992,
+          "height": 44
+        },
+        "Test connection": {
+          "x": 16,
+          "y": 262,
+          "width": 992,
+          "height": 44
+        },
+        "Your name": {
+          "x": 16,
+          "y": 344,
+          "width": 992,
+          "height": 44
+        },
+        "Save server": {
+          "x": 16,
+          "y": 426,
+          "width": 992,
+          "height": 44
+        }
+      },
+      "after": {
+        "Server URL": {
+          "x": 16,
+          "y": 120,
+          "width": 992,
+          "height": 44
+        },
+        "Scan pair code": {
+          "x": 16,
+          "y": 202,
+          "width": 992,
+          "height": 44
+        },
+        "Test connection": {
+          "x": 16,
+          "y": 262,
+          "width": 992,
+          "height": 44
+        },
+        "Your name": {
+          "x": 16,
+          "y": 344,
+          "width": 992,
+          "height": 44
+        },
+        "Save server": {
+          "x": 16,
+          "y": 426,
+          "width": 992,
+          "height": 44
+        }
+      },
       "visibleText": "Server\nConnect this phone to the Trellis server on your computer. Test the server before you save it.\nServer URL\nScan the pair code from Trellis settings, or enter the address that Trellis prints at start.\nScan pair code\nTest connection\nYour name\nTrellis uses this name on tickets and messages.\nSave server\nConnected to this Trellis server.\nVersion\n1.2.3-final\nTickets\n42 tickets\nServer default actor\nFixture Person",
       "controls": [
         {
@@ -1531,10 +1658,12 @@
         "reducedMotion": true,
         "colorScheme": "light",
         "innerWidth": 1024,
+        "innerHeight": 768,
         "scrollWidth": 1024,
         "horizontalOverflow": 0,
-        "cumulativeLayoutShift": 0.0078125
-      }
+        "cumulativeLayoutShift": 0.007954716527213652
+      },
+      "httpStatus": 200
     },
     {
       "kind": "final browser evidence",
@@ -1553,28 +1682,6 @@
         "Save server"
       ],
       "saveDisabled": true,
-      "focusOrder": [
-        {
-          "tag": "INPUT",
-          "name": "Server URL",
-          "borderColor": "rgb(196, 196, 196)"
-        },
-        {
-          "tag": "BUTTON",
-          "name": "Scan pair code",
-          "borderColor": "rgb(196, 196, 196)"
-        },
-        {
-          "tag": "BUTTON",
-          "name": "Test connection",
-          "borderColor": "rgb(196, 196, 196)"
-        },
-        {
-          "tag": "INPUT",
-          "name": "Your name",
-          "borderColor": "rgb(196, 196, 196)"
-        }
-      ],
       "visibleText": "Server\nConnect this phone to the Trellis server on your computer. Test the server before you save it.\nServer URL\nScan the pair code from Trellis settings, or enter the address that Trellis prints at start.\nScan pair code\nTest connection\nYour name\nTrellis uses this name on tickets and messages.\nSave server",
       "controls": [
         {
@@ -1619,10 +1726,12 @@
         "reducedMotion": true,
         "colorScheme": "dark",
         "innerWidth": 320,
+        "innerHeight": 720,
         "scrollWidth": 320,
         "horizontalOverflow": 0,
-        "cumulativeLayoutShift": 0
-      }
+        "cumulativeLayoutShift": 0.011111111111111112
+      },
+      "httpStatus": 200
     },
     {
       "kind": "final browser evidence",
@@ -1680,25 +1789,28 @@
         "reducedMotion": true,
         "colorScheme": "dark",
         "innerWidth": 320,
+        "innerHeight": 720,
         "scrollWidth": 320,
         "horizontalOverflow": 0,
-        "cumulativeLayoutShift": 0
-      }
+        "cumulativeLayoutShift": 0.011111111111111112
+      },
+      "httpStatus": 200
     },
     {
       "kind": "final browser evidence",
       "id": "invalid-name",
-      "title": "Invalid name",
+      "title": "Required empty name",
       "theme": "dark",
       "width": 320,
       "height": 720,
       "route": "/setup",
       "screenshot": "assets/dark/invalid-name-320px.png",
       "expectedText": [
-        "Use letters, numbers, spaces, or punctuation.",
-        "Do not use a colon."
+        "Enter your name. Use letters, numbers, spaces, or punctuation. Do not use a colon."
       ],
-      "visibleText": "Server\nConnect this phone to the Trellis server on your computer. Test the server before you save it.\nServer URL\nScan the pair code from Trellis settings, or enter the address that Trellis prints at start.\nScan pair code\nTest connection\nYour name\nUse letters, numbers, spaces, or punctuation. Do not use a colon.\nSave server",
+      "emptyNameError": "Enter your name. Use letters, numbers, spaces, or punctuation. Do not use a colon.",
+      "saveDisabled": true,
+      "visibleText": "Server\nConnect this phone to the Trellis server on your computer. Test the server before you save it.\nServer URL\nScan the pair code from Trellis settings, or enter the address that Trellis prints at start.\nScan pair code\nTest connection\nYour name\nEnter your name. Use letters, numbers, spaces, or punctuation. Do not use a colon.\nSave server\nConnected to this Trellis server.\nVersion\n1.2.3-final\nTickets\n42 tickets\nServer default actor\nFixture Person",
       "controls": [
         {
           "tag": "INPUT",
@@ -1742,10 +1854,12 @@
         "reducedMotion": true,
         "colorScheme": "dark",
         "innerWidth": 320,
+        "innerHeight": 720,
         "scrollWidth": 320,
         "horizontalOverflow": 0,
-        "cumulativeLayoutShift": 0
-      }
+        "cumulativeLayoutShift": 0.01477500745985243
+      },
+      "httpStatus": 200
     },
     {
       "kind": "final browser evidence",
@@ -1803,10 +1917,12 @@
         "reducedMotion": true,
         "colorScheme": "dark",
         "innerWidth": 320,
+        "innerHeight": 720,
         "scrollWidth": 320,
         "horizontalOverflow": 0,
-        "cumulativeLayoutShift": 0
-      }
+        "cumulativeLayoutShift": 0.011456307493610146
+      },
+      "httpStatus": 200
     },
     {
       "kind": "final browser evidence",
@@ -1857,7 +1973,7 @@
       "consoleErrors": [],
       "pageErrors": [],
       "failedRequests": [
-        "POST http://127.0.0.1:4175/rpc/system/health net::ERR_ABORTED"
+        "http://fixture.local:4522/rpc/system/health: net::ERR_ABORTED"
       ],
       "expectedNetworkFailure": true,
       "unexpectedConsoleErrors": [],
@@ -1866,10 +1982,12 @@
         "reducedMotion": true,
         "colorScheme": "dark",
         "innerWidth": 320,
+        "innerHeight": 720,
         "scrollWidth": 320,
         "horizontalOverflow": 0,
-        "cumulativeLayoutShift": 0.00034519638249903546
-      }
+        "cumulativeLayoutShift": 0.011801503876109181
+      },
+      "httpStatus": 200
     },
     {
       "kind": "final browser evidence",
@@ -1922,7 +2040,7 @@
       ],
       "pageErrors": [],
       "failedRequests": [
-        "POST http://127.0.0.1:4175/rpc/system/health net::ERR_CONNECTION_REFUSED"
+        "http://fixture.local:4522/rpc/system/health: net::ERR_CONNECTION_REFUSED"
       ],
       "expectedNetworkFailure": true,
       "unexpectedConsoleErrors": [],
@@ -1931,10 +2049,12 @@
         "reducedMotion": true,
         "colorScheme": "dark",
         "innerWidth": 320,
+        "innerHeight": 720,
         "scrollWidth": 320,
         "horizontalOverflow": 0,
-        "cumulativeLayoutShift": 0
-      }
+        "cumulativeLayoutShift": 0.011801503876109181
+      },
+      "httpStatus": 200
     },
     {
       "kind": "final browser evidence",
@@ -1992,10 +2112,12 @@
         "reducedMotion": true,
         "colorScheme": "dark",
         "innerWidth": 320,
+        "innerHeight": 720,
         "scrollWidth": 320,
         "horizontalOverflow": 0,
-        "cumulativeLayoutShift": 0
-      }
+        "cumulativeLayoutShift": 0.011801503876109181
+      },
+      "httpStatus": 200
     },
     {
       "kind": "final browser evidence",
@@ -2007,78 +2129,74 @@
       "route": "/setup",
       "screenshot": "assets/dark/successful-probe-320px.png",
       "expectedText": [
-        "1.2.3-final",
-        "42 tickets",
-        "Server default actor",
-        "Fixture Person"
+        "Connected to this Trellis server.",
+        "Server default actor"
       ],
-      "layout": {
-        "before": {
-          "Server URL": {
-            "x": 16,
-            "y": 164,
-            "width": 288,
-            "height": 44
-          },
-          "Scan pair code": {
-            "x": 16,
-            "y": 262,
-            "width": 288,
-            "height": 44
-          },
-          "Test connection": {
-            "x": 16,
-            "y": 322,
-            "width": 288,
-            "height": 44
-          },
-          "Your name": {
-            "x": 16,
-            "y": 404,
-            "width": 288,
-            "height": 44
-          },
-          "Save server": {
-            "x": 16,
-            "y": 486,
-            "width": 288,
-            "height": 44
-          }
+      "controlBoundsBefore": {
+        "Server URL": {
+          "x": 16,
+          "y": 164,
+          "width": 288,
+          "height": 44
         },
-        "after": {
-          "Server URL": {
-            "x": 16,
-            "y": 164,
-            "width": 288,
-            "height": 44
-          },
-          "Scan pair code": {
-            "x": 16,
-            "y": 262,
-            "width": 288,
-            "height": 44
-          },
-          "Test connection": {
-            "x": 16,
-            "y": 322,
-            "width": 288,
-            "height": 44
-          },
-          "Your name": {
-            "x": 16,
-            "y": 404,
-            "width": 288,
-            "height": 44
-          },
-          "Save server": {
-            "x": 16,
-            "y": 486,
-            "width": 288,
-            "height": 44
-          }
+        "Scan pair code": {
+          "x": 16,
+          "y": 262,
+          "width": 288,
+          "height": 44
         },
-        "maxDelta": 0
+        "Test connection": {
+          "x": 16,
+          "y": 322,
+          "width": 288,
+          "height": 44
+        },
+        "Your name": {
+          "x": 16,
+          "y": 404,
+          "width": 288,
+          "height": 44
+        },
+        "Save server": {
+          "x": 16,
+          "y": 486,
+          "width": 288,
+          "height": 44
+        }
       },
+      "controlBoundsAfter": {
+        "Server URL": {
+          "x": 16,
+          "y": 164,
+          "width": 288,
+          "height": 44
+        },
+        "Scan pair code": {
+          "x": 16,
+          "y": 262,
+          "width": 288,
+          "height": 44
+        },
+        "Test connection": {
+          "x": 16,
+          "y": 322,
+          "width": 288,
+          "height": 44
+        },
+        "Your name": {
+          "x": 16,
+          "y": 404,
+          "width": 288,
+          "height": 44
+        },
+        "Save server": {
+          "x": 16,
+          "y": 486,
+          "width": 288,
+          "height": 44
+        }
+      },
+      "largestControlShift": 0,
       "visibleText": "Server\nConnect this phone to the Trellis server on your computer. Test the server before you save it.\nServer URL\nScan the pair code from Trellis settings, or enter the address that Trellis prints at start.\nScan pair code\nTest connection\nYour name\nTrellis uses this name on tickets and messages.\nSave server\nConnected to this Trellis server.\nVersion\n1.2.3-final\nTickets\n42 tickets\nServer default actor\nFixture Person",
       "controls": [
         {
@@ -2123,25 +2241,43 @@
         "reducedMotion": true,
         "colorScheme": "dark",
         "innerWidth": 320,
+        "innerHeight": 720,
         "scrollWidth": 320,
         "horizontalOverflow": 0,
-        "cumulativeLayoutShift": 0
-      }
+        "cumulativeLayoutShift": 0.011801503876109181
+      },
+      "httpStatus": 200
     },
     {
       "kind": "final browser evidence",
       "id": "existing-server-replacement",
-      "title": "Existing server replacement",
+      "title": "Existing server replacement warning before Save",
       "theme": "dark",
       "width": 320,
       "height": 720,
       "route": "/setup",
       "screenshot": "assets/dark/existing-server-replacement-320px.png",
       "expectedText": [
-        "Saving replaces the current server",
+        "A new server clears this phone's cached tickets.",
         "Server default actor"
       ],
-      "visibleText": "Server\nConnect this phone to the Trellis server on your computer. Test the server before you save it.\nServer URL\nScan the pair code from Trellis settings, or enter the address that Trellis prints at start.\nScan pair code\nTest connection\nYour name\nTrellis uses this name on tickets and messages.\nSave server\nConnected to this Trellis server.\nVersion\n1.2.3-final\nTickets\n42 tickets\nServer default actor\nFixture Person\nSaving replaces the current server and clears its cached tickets from this phone.",
+      "warningOrder": {
+        "warningBox": {
+          "x": 16,
+          "y": 454,
+          "width": 288,
+          "height": 32
+        },
+        "saveBox": {
+          "x": 16,
+          "y": 502,
+          "width": 288,
+          "height": 44
+        },
+        "beforeSave": true,
+        "gapPx": 16
+      },
+      "visibleText": "Server\nConnect this phone to the Trellis server on your computer. Test the server before you save it.\nServer URL\nScan the pair code from Trellis settings, or enter the address that Trellis prints at start.\nScan pair code\nTest connection\nYour name\nA new server clears this phone's cached tickets.\nSave server\nConnected to this Trellis server.\nVersion\n1.2.3-final\nTickets\n42 tickets\nServer default actor\nFixture Person",
       "controls": [
         {
           "tag": "INPUT",
@@ -2185,10 +2321,12 @@
         "reducedMotion": true,
         "colorScheme": "dark",
         "innerWidth": 320,
+        "innerHeight": 720,
         "scrollWidth": 320,
         "horizontalOverflow": 0,
-        "cumulativeLayoutShift": 0
-      }
+        "cumulativeLayoutShift": 0.013468170542775848
+      },
+      "httpStatus": 200
     },
     {
       "kind": "final browser evidence",
@@ -2203,15 +2341,9 @@
         "Server URL",
         "Your name"
       ],
-      "reloadRetention": {
-        "storageAfterSave": {
-          "url": "http://127.0.0.1:4175",
-          "name": "reload-person"
-        },
-        "valuesAfterReload": {
-          "url": "http://127.0.0.1:4175",
-          "name": "reload-person"
-        }
+      "retained": {
+        "url": "http://fixture.local:4522",
+        "name": "Dana Mobile"
       },
       "visibleText": "Server\nConnect this phone to the Trellis server on your computer. Test the server before you save it.\nServer URL\nScan the pair code from Trellis settings, or enter the address that Trellis prints at start.\nScan pair code\nTest connection\nYour name\nTrellis uses this name on tickets and messages.\nSave server",
       "controls": [
@@ -2257,10 +2389,12 @@
         "reducedMotion": true,
         "colorScheme": "dark",
         "innerWidth": 320,
+        "innerHeight": 720,
         "scrollWidth": 320,
         "horizontalOverflow": 0,
-        "cumulativeLayoutShift": 0
-      }
+        "cumulativeLayoutShift": 0.011111111111111112
+      },
+      "httpStatus": 200
     },
     {
       "kind": "final browser evidence",
@@ -2269,7 +2403,7 @@
       "theme": "dark",
       "width": 320,
       "height": 720,
-      "route": "/pair?url=not-a-server-url",
+      "route": "/pair?url=ftp%3A%2F%2Finvalid.example",
       "screenshot": "assets/dark/invalid-pair-link-320px.png",
       "expectedText": [
         "Start the URL with http:// or https://"
@@ -2324,10 +2458,12 @@
         "reducedMotion": true,
         "colorScheme": "dark",
         "innerWidth": 320,
+        "innerHeight": 720,
         "scrollWidth": 320,
         "horizontalOverflow": 0,
-        "cumulativeLayoutShift": 0
-      }
+        "cumulativeLayoutShift": 0.011111111111111112
+      },
+      "httpStatus": 200
     },
     {
       "kind": "final browser evidence",
@@ -2336,13 +2472,12 @@
       "theme": "dark",
       "width": 320,
       "height": 720,
-      "route": "/pair?url=http%3A%2F%2F127.0.0.1%3A4175",
+      "route": "/pair?url=http%3A%2F%2Ffixture.local%3A4522",
       "screenshot": "assets/dark/valid-pair-link-320px.png",
       "expectedText": [
-        "Connected to this Trellis server.",
-        "Server default actor"
+        "Connected to this Trellis server."
       ],
-      "visibleText": "‹\nServer\nConnect this phone to the Trellis server on your computer. Test the server before you save it.\nServer URL\nScan the pair code from Trellis settings, or enter the address that Trellis prints at start.\nScan pair code\nTest connection\nYour name\nUse letters, numbers, spaces, or punctuation. Do not use a colon.\nSave server\nConnected to this Trellis server.\nVersion\n1.2.3-final\nTickets\n42 tickets\nServer default actor\nFixture Person",
+      "visibleText": "‹\nServer\nConnect this phone to the Trellis server on your computer. Test the server before you save it.\nServer URL\nScan the pair code from Trellis settings, or enter the address that Trellis prints at start.\nScan pair code\nTest connection\nYour name\nEnter your name. Use letters, numbers, spaces, or punctuation. Do not use a colon.\nSave server\nConnected to this Trellis server.\nVersion\n1.2.3-final\nTickets\n42 tickets\nServer default actor\nFixture Person",
       "controls": [
         {
           "tag": "BUTTON",
@@ -2392,10 +2527,12 @@
         "reducedMotion": true,
         "colorScheme": "dark",
         "innerWidth": 320,
+        "innerHeight": 720,
         "scrollWidth": 320,
         "horizontalOverflow": 0,
-        "cumulativeLayoutShift": 0.0033186999662422837
-      }
+        "cumulativeLayoutShift": 0.014429811077353395
+      },
+      "httpStatus": 200
     },
     {
       "kind": "final browser evidence",
@@ -2407,7 +2544,7 @@
       "route": "/setup",
       "screenshot": "assets/dark/camera-permission-request-320px.png",
       "expectedText": [
-        "Allow camera access to scan the Trellis pair code.",
+        "Allow camera access",
         "Allow camera",
         "Cancel scan"
       ],
@@ -2461,10 +2598,12 @@
         "reducedMotion": true,
         "colorScheme": "dark",
         "innerWidth": 320,
+        "innerHeight": 720,
         "scrollWidth": 320,
         "horizontalOverflow": 0,
-        "cumulativeLayoutShift": 0
-      }
+        "cumulativeLayoutShift": 0.09116666666666667
+      },
+      "httpStatus": 200
     },
     {
       "kind": "final browser evidence",
@@ -2480,10 +2619,6 @@
         "Open Settings",
         "Cancel scan"
       ],
-      "cameraDenied": {
-        "alert": "Camera access is off. Open Settings and allow camera access for Trellis.",
-        "openSettingsName": "Open Settings"
-      },
       "visibleText": "Server\nConnect this phone to the Trellis server on your computer. Test the server before you save it.\nServer URL\nScan the pair code from Trellis settings, or enter the address that Trellis prints at start.\nScan a pairing code\nCamera access is off. Open Settings and allow camera access for Trellis.\nOpen Settings\nCancel scan\nTest connection\nYour name\nTrellis uses this name on tickets and messages.\nSave server",
       "controls": [
         {
@@ -2534,10 +2669,12 @@
         "reducedMotion": true,
         "colorScheme": "dark",
         "innerWidth": 320,
+        "innerHeight": 720,
         "scrollWidth": 320,
         "horizontalOverflow": 0,
-        "cumulativeLayoutShift": 0
-      }
+        "cumulativeLayoutShift": 0.09116666666666667
+      },
+      "httpStatus": 200
     },
     {
       "kind": "final browser evidence",
@@ -2596,10 +2733,12 @@
         "reducedMotion": true,
         "colorScheme": "dark",
         "innerWidth": 320,
+        "innerHeight": 720,
         "scrollWidth": 320,
         "horizontalOverflow": 0,
-        "cumulativeLayoutShift": 0
-      }
+        "cumulativeLayoutShift": 0.14279320987654318
+      },
+      "httpStatus": 200
     },
     {
       "kind": "final browser evidence",
@@ -2613,9 +2752,6 @@
       "expectedText": [
         "This code does not contain a Trellis pair link."
       ],
-      "invalidQr": {
-        "alert": "This code does not contain a Trellis pair link. Scan the code from Trellis settings, or enter the address."
-      },
       "visibleText": "Server\nConnect this phone to the Trellis server on your computer. Test the server before you save it.\nServer URL\nScan the pair code from Trellis settings, or enter the address that Trellis prints at start.\nScan pair code\nTest connection\nYour name\nTrellis uses this name on tickets and messages.\nSave server\nThis code does not contain a Trellis pair link. Scan the code from Trellis settings, or enter the address.",
       "controls": [
         {
@@ -2660,10 +2796,12 @@
         "reducedMotion": true,
         "colorScheme": "dark",
         "innerWidth": 320,
+        "innerHeight": 720,
         "scrollWidth": 320,
         "horizontalOverflow": 0,
-        "cumulativeLayoutShift": 0
-      }
+        "cumulativeLayoutShift": 0.2744753086419752
+      },
+      "httpStatus": 200
     },
     {
       "kind": "final browser evidence",
@@ -2675,10 +2813,9 @@
       "route": "/setup",
       "screenshot": "assets/dark/valid-qr-320px.png",
       "expectedText": [
-        "Connected to this Trellis server.",
-        "Server default actor"
+        "Connected to this Trellis server."
       ],
-      "visibleText": "Server\nConnect this phone to the Trellis server on your computer. Test the server before you save it.\nServer URL\nScan the pair code from Trellis settings, or enter the address that Trellis prints at start.\nScan pair code\nTest connection\nYour name\nUse letters, numbers, spaces, or punctuation. Do not use a colon.\nSave server\nConnected to this Trellis server.\nVersion\n1.2.3-final\nTickets\n42 tickets\nServer default actor\nFixture Person",
+      "visibleText": "Server\nConnect this phone to the Trellis server on your computer. Test the server before you save it.\nServer URL\nScan the pair code from Trellis settings, or enter the address that Trellis prints at start.\nScan pair code\nTest connection\nYour name\nEnter your name. Use letters, numbers, spaces, or punctuation. Do not use a colon.\nSave server\nConnected to this Trellis server.\nVersion\n1.2.3-final\nTickets\n42 tickets\nServer default actor\nFixture Person",
       "controls": [
         {
           "tag": "INPUT",
@@ -2722,10 +2859,12 @@
         "reducedMotion": true,
         "colorScheme": "dark",
         "innerWidth": 320,
+        "innerHeight": 720,
         "scrollWidth": 320,
         "horizontalOverflow": 0,
-        "cumulativeLayoutShift": 0
-      }
+        "cumulativeLayoutShift": 0.279684124228395
+      },
+      "httpStatus": 200
     },
     {
       "kind": "final browser evidence",
@@ -2783,55 +2922,79 @@
         "reducedMotion": true,
         "colorScheme": "dark",
         "innerWidth": 320,
+        "innerHeight": 720,
         "scrollWidth": 320,
         "horizontalOverflow": 0,
-        "cumulativeLayoutShift": 0
-      }
+        "cumulativeLayoutShift": 0.2744753086419752
+      },
+      "httpStatus": 200
     },
     {
       "kind": "final browser evidence",
       "id": "focus-transitions",
-      "title": "Keyboard focus transitions",
+      "title": "Tab order from Server URL and visible focus",
       "theme": "dark",
       "width": 320,
       "height": 720,
       "route": "/setup",
       "screenshot": "assets/dark/focus-transitions-320px.png",
       "expectedText": [
-        "Connected to this Trellis server."
+        "Server URL",
+        "Scan pair code",
+        "Test connection",
+        "Your name",
+        "Save server"
       ],
-      "focusTransitions": {
-        "resting": "rgb(50, 50, 52)",
-        "focused": "rgb(196, 196, 196)",
-        "blurred": "rgb(50, 50, 52)",
-        "order": [
-          {
-            "tag": "INPUT",
-            "name": "Server URL",
-            "borderColor": "rgb(196, 196, 196)"
-          },
-          {
-            "tag": "BUTTON",
-            "name": "Scan pair code",
-            "borderColor": "rgb(196, 196, 196)"
-          },
-          {
-            "tag": "BUTTON",
-            "name": "Test connection",
-            "borderColor": "rgb(196, 196, 196)"
-          },
-          {
-            "tag": "INPUT",
-            "name": "Your name",
-            "borderColor": "rgb(196, 196, 196)"
-          },
-          {
-            "tag": "BUTTON",
-            "name": "Save server",
-            "borderColor": "rgb(10, 10, 10)"
-          }
-        ]
-      },
+      "tabOrderFrom": "Server URL",
+      "focusOrder": [
+        "Server URL",
+        "Scan pair code",
+        "Test connection",
+        "Your name",
+        "Save server"
+      ],
+      "focusEvidence": [
+        {
+          "name": "Server URL",
+          "focusVisible": true,
+          "outlineStyle": "auto",
+          "outlineWidth": "1px",
+          "outlineColor": "rgb(229, 151, 0)",
+          "boxShadow": "none"
+        },
+        {
+          "name": "Scan pair code",
+          "focusVisible": true,
+          "outlineStyle": "auto",
+          "outlineWidth": "1px",
+          "outlineColor": "rgb(229, 151, 0)",
+          "boxShadow": "none"
+        },
+        {
+          "name": "Test connection",
+          "focusVisible": true,
+          "outlineStyle": "auto",
+          "outlineWidth": "1px",
+          "outlineColor": "rgb(229, 151, 0)",
+          "boxShadow": "none"
+        },
+        {
+          "name": "Your name",
+          "focusVisible": true,
+          "outlineStyle": "auto",
+          "outlineWidth": "1px",
+          "outlineColor": "rgb(229, 151, 0)",
+          "boxShadow": "none"
+        },
+        {
+          "name": "Save server",
+          "focusVisible": true,
+          "outlineStyle": "auto",
+          "outlineWidth": "1px",
+          "outlineColor": "rgb(229, 151, 0)",
+          "boxShadow": "none"
+        }
+      ],
       "visibleText": "Server\nConnect this phone to the Trellis server on your computer. Test the server before you save it.\nServer URL\nScan the pair code from Trellis settings, or enter the address that Trellis prints at start.\nScan pair code\nTest connection\nYour name\nTrellis uses this name on tickets and messages.\nSave server\nConnected to this Trellis server.\nVersion\n1.2.3-final\nTickets\n42 tickets\nServer default actor\nFixture Person",
       "controls": [
         {
@@ -2876,15 +3039,17 @@
         "reducedMotion": true,
         "colorScheme": "dark",
         "innerWidth": 320,
+        "innerHeight": 720,
         "scrollWidth": 320,
         "horizontalOverflow": 0,
-        "cumulativeLayoutShift": 0
-      }
+        "cumulativeLayoutShift": 0.011801503876109181
+      },
+      "httpStatus": 200
     },
     {
       "kind": "final browser evidence",
       "id": "long-content-reflow",
-      "title": "Long content at the 200 percent reflow proxy",
+      "title": "Long server details at the 200 percent reflow proxy",
       "theme": "dark",
       "width": 160,
       "height": 720,
@@ -2896,25 +3061,49 @@
         "Server default actor"
       ],
       "detailBoxes": {
-        "versionLabel": {
+        "Version": {
           "x": 32,
-          "y": 814,
+          "y": 191,
           "width": 96,
           "height": 22
         },
-        "versionValue": {
+        "final-version-with-a-deliberately-long-build-identity-2026.10.07": {
           "x": 32,
-          "y": 848,
+          "y": 225,
           "width": 96,
           "height": 132
         },
-        "actorLabel": {
+        "Tickets": {
           "x": 32,
-          "y": 1092,
+          "y": 374,
+          "width": 96,
+          "height": 22
+        },
+        "987654 tickets": {
+          "x": 32,
+          "y": 408,
           "width": 96,
           "height": 44
+        },
+        "Server default actor": {
+          "x": 32,
+          "y": 469,
+          "width": 96,
+          "height": 44
+        },
+        "Synthetic Person With A Deliberately Long Browser Baseline Identity": {
+          "x": 32,
+          "y": 525,
+          "width": 96,
+          "height": 154
         }
       },
+      "detailViewport": {
+        "width": 160,
+        "height": 720,
+        "scrollY": 0
+      },
+      "allDetailsVisible": true,
       "visibleText": "Server\nConnect this phone to the Trellis server on your computer. Test the server before you save it.\nServer URL\nScan the pair code from Trellis settings, or enter the address that Trellis prints at start.\nScan pair code\nTest connection\nYour name\nTrellis uses this name on tickets and messages.\nSave server\nConnected to this Trellis server.\nVersion\nfinal-version-with-a-deliberately-long-build-identity-2026.10.07\nTickets\n987654 tickets\nServer default actor\nSynthetic Person With A Deliberately Long Browser Baseline Identity",
       "controls": [
         {
@@ -2959,10 +3148,12 @@
         "reducedMotion": true,
         "colorScheme": "dark",
         "innerWidth": 160,
+        "innerHeight": 720,
         "scrollWidth": 160,
         "horizontalOverflow": 0,
-        "cumulativeLayoutShift": 0
-      }
+        "cumulativeLayoutShift": 0.011111111111111112
+      },
+      "httpStatus": 200
     },
     {
       "kind": "final browser evidence",
@@ -2977,6 +3168,70 @@
         "Connected to this Trellis server.",
         "Server default actor"
       ],
+      "before": {
+        "Server URL": {
+          "x": 16,
+          "y": 120,
+          "width": 992,
+          "height": 44
+        },
+        "Scan pair code": {
+          "x": 16,
+          "y": 202,
+          "width": 992,
+          "height": 44
+        },
+        "Test connection": {
+          "x": 16,
+          "y": 262,
+          "width": 992,
+          "height": 44
+        },
+        "Your name": {
+          "x": 16,
+          "y": 344,
+          "width": 992,
+          "height": 44
+        },
+        "Save server": {
+          "x": 16,
+          "y": 426,
+          "width": 992,
+          "height": 44
+        }
+      },
+      "after": {
+        "Server URL": {
+          "x": 16,
+          "y": 120,
+          "width": 992,
+          "height": 44
+        },
+        "Scan pair code": {
+          "x": 16,
+          "y": 202,
+          "width": 992,
+          "height": 44
+        },
+        "Test connection": {
+          "x": 16,
+          "y": 262,
+          "width": 992,
+          "height": 44
+        },
+        "Your name": {
+          "x": 16,
+          "y": 344,
+          "width": 992,
+          "height": 44
+        },
+        "Save server": {
+          "x": 16,
+          "y": 426,
+          "width": 992,
+          "height": 44
+        }
+      },
       "visibleText": "Server\nConnect this phone to the Trellis server on your computer. Test the server before you save it.\nServer URL\nScan the pair code from Trellis settings, or enter the address that Trellis prints at start.\nScan pair code\nTest connection\nYour name\nTrellis uses this name on tickets and messages.\nSave server\nConnected to this Trellis server.\nVersion\n1.2.3-final\nTickets\n42 tickets\nServer default actor\nFixture Person",
       "controls": [
         {
@@ -3021,10 +3276,12 @@
         "reducedMotion": true,
         "colorScheme": "dark",
         "innerWidth": 1024,
+        "innerHeight": 768,
         "scrollWidth": 1024,
         "horizontalOverflow": 0,
-        "cumulativeLayoutShift": 0.0078125
-      }
+        "cumulativeLayoutShift": 0.007954716527213652
+      },
+      "httpStatus": 200
     }
   ]
 }
