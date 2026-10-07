@@ -1,6 +1,6 @@
 import { TerminalWindow, X } from "@phosphor-icons/react";
 import { type AgentRun, sessionStatus, sessionStatusLabels } from "@trellis/api";
-import { Avatar, IconButton, Tooltip } from "@trellis/ui";
+import { Avatar, Badge, IconButton, Tooltip } from "@trellis/ui";
 import { pageSheetActions } from "../../../../../stores/pageSheetStore";
 import { agentKindOf } from "../../../agentKindOf";
 import { agentMarkState } from "../../../agentMarkState";
@@ -28,7 +28,7 @@ export function TicketAgentRun({
 				agentKind={agentKindOf(run.kind)}
 				agentProfile={agentProfileOf(run.harness)}
 				state={agentMarkState(run)}
-				status={run.assigned ? status : undefined}
+				status={run.assigned || status === "failed" ? status : undefined}
 				className="focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2"
 			/>
 			<div className="min-w-0 flex-1">
@@ -36,9 +36,12 @@ export function TicketAgentRun({
 				{run.assigned ? (
 					<p className="text-xs text-fg-muted">{sessionStatusLabels[status]}</p>
 				) : (
-					<time dateTime={run.createdAt} className="text-xs text-fg-muted tabular">
-						{dateFormat.format(new Date(run.createdAt))}
-					</time>
+					<div className="flex flex-wrap items-center gap-2">
+						<time dateTime={run.createdAt} className="text-xs text-fg-muted tabular">
+							{dateFormat.format(new Date(run.createdAt))}
+						</time>
+						{status === "failed" && <Badge tone="bad">{sessionStatusLabels[status]}</Badge>}
+					</div>
 				)}
 			</div>
 			<Tooltip content={openLabel}>

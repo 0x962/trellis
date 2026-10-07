@@ -65,6 +65,17 @@ const render = (runs: AgentRun[]) => {
 };
 
 describe("TicketAgent", () => {
+	test("keeps a visible failure state for an unassigned historical run", () => {
+		const html = render([
+			run("current", { assigned: true }),
+			run("prior-failed", { state: "failed", error: "The previous process failed." }),
+		]);
+
+		expect(html).toContain('data-agent-session="prior-failed"');
+		expect(html).toContain(">Failed<");
+		expect(html).toContain('dateTime="2026-09-26T12:00:00.000Z"');
+	});
+
 	test("opens the assigned session and every prior session of a completed ticket", () => {
 		const html = render([
 			run("current", { assigned: true, state: "exited", createdAt: "2026-09-27T12:00:00.000Z" }),
