@@ -114,7 +114,7 @@ export const AccountSwitchError: Story = {
 		await AccountSelected.play!(context);
 		await clickButton("Switch account")(context);
 		const page = within(context.canvasElement.ownerDocument.body);
-		await expect(await page.findByText("The account did not switch")).toBeVisible();
+		await waitFor(() => expect(page.getByText("The account did not switch")).toBeVisible());
 		await expect(page.getByRole("button", { name: "Retry switch" })).toBeEnabled();
 	},
 };
@@ -226,11 +226,15 @@ export const AccountLoadRecovery: Story = {
 	},
 	play: async ({ canvasElement }) => {
 		const page = within(canvasElement.ownerDocument.body);
-		await expect(await page.findByText("Accounts did not load")).toBeVisible();
+		await waitFor(() => expect(page.getByText("Accounts did not load")).toBeVisible());
+		const dialog = page.getByRole("dialog", { name: "Switch account" });
+		await waitFor(() => expect(dialog).toContainElement(canvasElement.ownerDocument.activeElement));
 		const retry = page.getByRole("button", { name: "Retry" });
 		retry.focus();
+		await expect(retry).toHaveFocus();
 		await userEvent.keyboard("{Enter}");
 		await waitFor(() => expect(page.getByRole("option", { name: /Team/ })).toBeVisible());
+		await expect(accountLoads).toBe(2);
 	},
 };
 let switchInputs: { accountId: string; expectedTerminalId: string; requestId: string }[] = [];
@@ -254,7 +258,7 @@ export const AccountRetry: Story = {
 		await AccountSelected.play!(context);
 		await clickButton("Switch account")(context);
 		const page = within(context.canvasElement.ownerDocument.body);
-		await expect(await page.findByText("The account did not switch")).toBeVisible();
+		await waitFor(() => expect(page.getByText("The account did not switch")).toBeVisible());
 		await expect(page.getByRole("dialog", { name: "Switch to Team?" })).toBeVisible();
 		const retry = page.getByRole("button", { name: "Retry switch" });
 		retry.focus();
