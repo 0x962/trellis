@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import type { ComponentType } from "react";
-import { expect, within } from "storybook/test";
+import { expect, userEvent, waitFor, within } from "storybook/test";
 import { SessionPage } from "../../features/sessions/SessionPage";
 import { Route } from "../../routes/sessions.$id";
 import { failure, pending, timestamp } from "./fixtures/project";
@@ -129,5 +129,62 @@ export const StatusUpdatesEmpty: Story = {
 		await expect(
 			await within(canvasElement).findByText("The observer has not supplied a status update yet."),
 		).toBeVisible();
+	},
+};
+
+const resumedSession = terminalSession("running");
+const pausedSession = {
+	...session,
+	run: { ...session.run, terminalId: resumedSession.run.terminalId },
+};
+let resumed = false;
+let startInput: unknown;
+let pauseInput: unknown;
+
+export const ResumeAndTerminalInput: Story = {
+	beforeEach: async () => {
+		resumed = false;
+		startInput = undefined;
+		pauseInput = undefined;
+		return prepareSessionTerminal(resumedSession.run, "running")();
+	},
+	parameters: {
+		trellis: {
+			responses: {
+				...responsesForSession(session),
+				"sessions.get": () => (resumed ? resumedSession : startInput ? pausedSession : session),
+				"sessions.list": () => [resumed ? resumedSession : startInput ? pausedSession : session],
+				"agentRuns.list": () => ({
+					items: [(resumed ? resumedSession : startInput ? pausedSession : session).run],
+					nextCursor: null,
+				}),
+				"sessions.start": (input: unknown) => {
+					startInput = input;
+					resumed = true;
+					return resumedSession;
+				},
+				"agentRuns.pause": (input: unknown) => {
+					pauseInput = input;
+					resumed = false;
+					return pausedSession.run;
+				},
+			},
+		},
+	},
+	play: async ({ canvasElement }) => {
+		const canvas = within(canvasElement);
+		await userEvent.click(await canvas.findByRole("button", { name: "Resume session" }));
+		await waitFor(() => expect(canvas.getByRole("button", { name: "Pause session" })).toBeEnabled());
+		await expect(startInput).toEqual({ id: session.id });
+		const terminal = await canvas.findByRole("textbox", { name: `Terminal input for ${run.name}` });
+		await userEvent.type(terminal, "Continue with the table.");
+		await waitFor(() =>
+			expect(canvasElement.querySelector(".xterm-accessibility-tree")).toHaveTextContent("Continue with the table."),
+		);
+		await userEvent.keyboard("{Escape}{Escape}");
+		await expect(await canvas.findByRole("heading", { level: 2, name: run.name })).toHaveFocus();
+		await userEvent.click(await canvas.findByRole("button", { name: "Pause session" }));
+		await expect(await canvas.findByText("The agent is paused")).toBeVisible();
+		await expect(pauseInput).toEqual({ id: run.id });
 	},
 };

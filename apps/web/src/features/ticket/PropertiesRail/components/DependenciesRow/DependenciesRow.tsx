@@ -9,6 +9,7 @@ import { usePickerStore } from "../../../stores/pickerStore";
 
 export type DependenciesRowProps = {
 	ticket: Ticket;
+	readOnly?: boolean;
 };
 
 const triggerClass = "-ml-2 h-auto max-w-full min-h-7 justify-start py-1 font-normal whitespace-normal";
@@ -30,7 +31,7 @@ function Identifiers({ tickets, empty }: { tickets: readonly { identifier: strin
 	);
 }
 
-export function DependenciesRow({ ticket }: DependenciesRowProps) {
+export function DependenciesRow({ ticket, readOnly = false }: DependenciesRowProps) {
 	const { client, orpc, queryClient } = useApp();
 	const open = usePickerStore((state) => state.open);
 	const setOpen = usePickerStore((state) => state.setOpen);
@@ -92,7 +93,7 @@ export function DependenciesRow({ ticket }: DependenciesRowProps) {
 					label="Waits on"
 					placeholder="Set the tickets this one waits on: an identifier or a title"
 					trigger={
-						<Button variant="quiet" className={triggerClass}>
+						<Button variant="quiet" className={triggerClass} disabled={readOnly}>
 							<Identifiers tickets={ticket.waitsOn} empty="Add dependency" />
 						</Button>
 					}
@@ -110,7 +111,7 @@ export function DependenciesRow({ ticket }: DependenciesRowProps) {
 					label="Blocks"
 					placeholder="Set the tickets this one blocks: an identifier or a title"
 					trigger={
-						<Button variant="quiet" className={triggerClass}>
+						<Button variant="quiet" className={triggerClass} disabled={readOnly}>
 							<Identifiers tickets={ticket.releases} empty="Add blocked ticket" />
 						</Button>
 					}

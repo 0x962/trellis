@@ -62,16 +62,24 @@ test("page actions reach lower ranks and a selected row survives group pages", a
 		},
 	} as unknown as AppContext;
 	let data: ReturnType<typeof useUsageRanking>;
-	const Probe = ({ row, metric = "usd" }: { row: string | null; metric?: "usd" | "tokens" }) => {
-		data = useUsageRanking(report, "account", metric, row, null, () => {});
+	const Probe = ({
+		row,
+		metric = "usd",
+		day = null,
+	}: {
+		row: string | null;
+		metric?: "usd" | "tokens";
+		day?: string | null;
+	}) => {
+		data = useUsageRanking(report, "account", metric, row, day, () => {});
 		return null;
 	};
 	const renderer = createRoot();
-	const render = (row: string | null, metric: "usd" | "tokens" = "usd") =>
+	const render = (row: string | null, metric: "usd" | "tokens" = "usd", day: string | null = null) =>
 		renderer.render(
 			<QueryClientProvider client={queryClient}>
 				<AppProvider value={app}>
-					<Probe row={row} metric={metric} />
+					<Probe row={row} metric={metric} day={day} />
 				</AppProvider>
 			</QueryClientProvider>,
 		);
@@ -85,6 +93,18 @@ test("page actions reach lower ranks and a selected row survives group pages", a
 	await act(async () => render(null));
 	await settle();
 	const firstPage = data!.data!;
+	expect(firstPage.sessions).toHaveLength(10);
+	await act(async () => data!.changeSessionPage(1));
+	await settle();
+	expect(data!.data?.sessionStart).toBe(10);
+	expect(data!.data?.sessions[0]?.sessionId).toBe("session-10");
+	await act(async () => render(null, "usd", "2026-09-28"));
+	await settle();
+	expect(data!.data?.sessionStart).toBe(0);
+	expect(data!.data?.sessions).toEqual([]);
+	await act(async () => render(null));
+	await settle();
+	expect(data!.data?.sessionStart).toBe(0);
 	const groupHtml = renderToStaticMarkup(
 		<UsageGroups
 			group="account"
@@ -101,6 +121,8 @@ test("page actions reach lower ranks and a selected row survives group pages", a
 	expect(groupHtml.match(/<li /g)).toHaveLength(8);
 	await act(async () => render("account:account-240"));
 	await settle();
+	expect(data!.data?.sessionStart).toBe(0);
+	expect(data!.data?.sessions.map((session) => session.sessionId)).toEqual(["session-240"]);
 	for (let page = 0; page < 30; page++) {
 		await act(async () => data!.changeGroupPage(1));
 		await settle();
@@ -114,6 +136,7 @@ test("page actions reach lower ranks and a selected row survives group pages", a
 	await act(async () => render(null, "tokens"));
 	await settle();
 	expect(data!.data?.groupStart).toBe(0);
+	expect(data!.data?.sessionStart).toBe(0);
 	await act(async () => render(null, "usd"));
 	await settle();
 	expect(data!.data?.groupStart).toBe(0);
