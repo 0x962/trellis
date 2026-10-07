@@ -65,7 +65,7 @@ export function ActorFooter({ collapsed = false }: { collapsed?: boolean }) {
 				trigger={
 					<button
 						type="button"
-						aria-label={`Rename actor ${actor.name}`}
+						aria-label={`${actor.name}, rename actor`}
 						className={cx(
 							"text-fg hover:bg-elevated focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2",
 							collapsed
