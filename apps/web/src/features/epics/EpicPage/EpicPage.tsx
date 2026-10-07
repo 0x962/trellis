@@ -28,6 +28,7 @@ import { epicPageSearch, epicQueryString, epicUrlSearch } from "../epicSearch";
 import { EpicCreateActions } from "./components/EpicCreateActions";
 import { EpicEmptyState } from "./components/EpicEmptyState";
 import { EpicLoadError } from "./components/EpicLoadError";
+import { EpicPageContext } from "./components/EpicPageContext";
 import { EpicResources } from "./components/EpicResources";
 import { EpicTopbarActions } from "./components/EpicTopbarActions";
 import type { EpicPageProps } from "./EpicPageProps";
@@ -36,6 +37,7 @@ import { useEpicAgentRuns } from "./hooks/useEpicAgentRuns";
 const noRuns: readonly AgentRun[] = [];
 const noWaves: readonly WaveSummary[] = [];
 const noTickets: readonly TicketSummary[] = [];
+const phoneTitleClass = "max-md:w-full";
 
 // On a phone and on a touch screen the link is 44 px tall, the least a
 // finger hits.
@@ -154,8 +156,15 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 	// The switcher is the title in both states, so the title keeps its box,
 	// its caret and its height from the first paint. Until the epic answers
 	// it carries the slug from the URL, the only name the page knows.
-	const title = (epicRef: string, name: string) => (
-		<EpicSwitcher project={project.key} epicRef={epicRef} name={name} tab={tab} />
+	const title = (epicRef: string, name: string, className?: string, wrap = false) => (
+		<EpicSwitcher
+			project={project.key}
+			epicRef={epicRef}
+			name={name}
+			tab={tab}
+			className={className}
+			wrap={wrap}
+		/>
 	);
 	const identifiers = epic.data?.tickets.map((ticket) => ticket.identifier) ?? [];
 	const topbar = (
@@ -173,7 +182,7 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 				/>
 			}
 		>
-			<PageTitle parent={titleParent} title={title(epic.data?.ref ?? ref, epic.data?.name ?? slug)} />
+			<PageTitle parent={titleParent} title={phone ? null : title(epic.data?.ref ?? ref, epic.data?.name ?? slug)} />
 			{filterBar}
 		</Topbar>
 	);
@@ -182,6 +191,7 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 		return (
 			<>
 				{topbar}
+				<EpicPageContext name={slug} phoneTitle={phone ? title(ref, slug, phoneTitleClass, true) : undefined} pending />
 				<div className="page-card flex flex-1 flex-col overflow-hidden">
 					{readOnly && <ArchivedBanner project={project} />}
 					<div aria-busy="true" className="flex min-h-0 flex-1 flex-col">
@@ -200,6 +210,8 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 				parent={titleParent}
 				error={epic.error}
 				onRetry={() => void epic.refetch()}
+				phone={phone}
+				context={<EpicPageContext name={slug} phoneTitle={phone ? title(ref, slug, phoneTitleClass, true) : undefined} />}
 			/>
 		);
 	}
@@ -217,6 +229,11 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 	return (
 		<>
 			{topbar}
+			<EpicPageContext
+				name={record.name}
+				phoneTitle={phone ? title(record.ref, record.name, phoneTitleClass, true) : undefined}
+				epic={record}
+			/>
 			<div className="page-card flex flex-1 flex-col overflow-hidden">
 				{readOnly && <ArchivedBanner project={project} />}
 				{/* The tab panels fill the card. The ticket table starts right under the tab strip. */}
