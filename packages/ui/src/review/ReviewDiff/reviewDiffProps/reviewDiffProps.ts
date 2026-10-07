@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import type { ThreadPlacement } from "../carryThreads";
 import type { DiffFileGroup } from "../diffGroups";
-import type { DiffAnchor, DiffThread, ReviewDiffFile } from "../ReviewDiff";
+import type { DiffAnchor, DiffFinding, DiffThread, ReviewDiffFile } from "../ReviewDiff";
 
 export type ReviewDiffProps = {
 	active?: boolean;
@@ -12,8 +12,8 @@ export type ReviewDiffProps = {
 	theme: "light" | "dark" | "system";
 	selectedFile?: string;
 	selectedAnchor?: DiffAnchor | null;
-	// A selected finding keeps this file open without changing its Viewed mark.
-	revealedFile?: string;
+	// Each explicit finding selection supplies a new object, including a repeat selection.
+	selectedFinding?: DiffFinding;
 	filter?: string;
 	// `place` says where the diff draws the thread: on the line it names, on
 	// the line its text moved to, or at the top of its file as outdated.
@@ -31,7 +31,7 @@ export type ReviewDiffProps = {
 	// path no group names keeps its place in the patch, after every path a
 	// group names. An empty list keeps the patch order and draws no band.
 	groups?: readonly DiffFileGroup[];
-	// A viewed file hides its lines unless revealedFile names it.
+	// A viewed file hides its lines unless selectedFinding names it.
 	viewed?: ReadonlySet<string>;
 	// Marks a file read or unread. The header draws the Viewed box only when
 	// the caller keeps this state.

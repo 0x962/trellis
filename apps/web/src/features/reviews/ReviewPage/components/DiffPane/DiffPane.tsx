@@ -2,6 +2,7 @@ import { useMutation } from "@tanstack/react-query";
 import type { PrChangeType, ReviewRevision, ReviewThread } from "@trellis/api";
 import {
 	type DiffAnchor,
+	type DiffFinding,
 	type FileRiskGroup,
 	ReviewDiff,
 	type ReviewDiffFile,
@@ -23,7 +24,7 @@ export type DiffPaneProps = {
 	// The diff list scrolls to this path.
 	selectedFile: string;
 	selectedAnchor: DiffAnchor | null;
-	selectedThread: string | null;
+	selectedFinding: DiffFinding | null;
 	active: boolean;
 	renderThread: (id: string, place: ThreadPlacement) => ReactNode;
 	// The changed files of the revision, as the patch reports them. The page
@@ -49,7 +50,7 @@ export function DiffPane({
 	threads,
 	selectedFile,
 	selectedAnchor,
-	selectedThread,
+	selectedFinding,
 	active,
 	renderThread,
 	onFiles,
@@ -61,13 +62,15 @@ export function DiffPane({
 	const { resolved: theme } = useTheme();
 	const windowRef = useRef<HTMLDivElement>(null);
 	useEffect(() => {
-		if (!active || !selectedThread) return;
+		if (!active || !selectedFinding) return;
 		const frame = requestAnimationFrame(() => {
 			windowRef.current!.scrollIntoView({ block: "start", inline: "nearest" });
-			windowRef.current!.querySelector<HTMLElement>(`[id="thread-${selectedThread}"]`)?.focus({ preventScroll: true });
+			windowRef
+				.current!.querySelector<HTMLElement>(`[id="thread-${selectedFinding.id}"]`)
+				?.focus({ preventScroll: true });
 		});
 		return () => cancelAnimationFrame(frame);
-	}, [active, selectedThread]);
+	}, [active, selectedFinding]);
 	const [mode, setMode] = useState<"split" | "unified">(() =>
 		localStorage.getItem("trellis.review.mode") === "split" ? "split" : "unified",
 	);
@@ -131,7 +134,7 @@ export function DiffPane({
 				theme={theme}
 				selectedFile={selectedFile}
 				selectedAnchor={selectedAnchor}
-				revealedFile={selectedThread ? selectedFile : undefined}
+				selectedFinding={selectedFinding ?? undefined}
 				renderThread={renderThread}
 				composer={composer?.anchor ?? null}
 				renderComposer={() =>
@@ -145,6 +148,14 @@ export function DiffPane({
 							onClose={() => {
 								addThread.reset();
 								setComposerState(null);
+								requestAnimationFrame(() => {
+									const { path, side, line } = composer.anchor;
+									windowRef
+										.current!.querySelector<HTMLButtonElement>(
+											`.review-diff-line[data-file-path="${CSS.escape(path)}"][data-side="${side}"][data-line-number="${line}"] button[aria-label="Add line comment"]`,
+										)!
+										.focus();
+								});
 							}}
 							onSave={(comment) => addThread.mutate(comment)}
 							pending={addThread.isPending}

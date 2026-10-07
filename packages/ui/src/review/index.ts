@@ -7,6 +7,7 @@ export { insertBlock, ReviewCommentEditor } from "./ReviewCommentEditor";
 export {
 	type DiffAnchor,
 	type DiffFileGroup,
+	type DiffFinding,
 	type DiffGroupHeader,
 	groupRank,
 	patchDigest,

@@ -4,7 +4,7 @@ import { expect, userEvent, waitFor, within } from "storybook/test";
 import { ReviewPage } from "../../features/reviews/ReviewPage/ReviewPage";
 import { flowHistoryResponses } from "./fixtures/flowHistory";
 import { failure, pending, ticket } from "./fixtures/project";
-import { pullRequest, reviewOverview, reviewResponses, reviewStatus, reviewThread } from "./fixtures/review";
+import { pullRequest, reviewOverview, reviewResponses, reviewStatus, reviewThread, revision } from "./fixtures/review";
 import { pageFrame } from "./pageFrame";
 
 const meta = {
@@ -22,6 +22,66 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Overview: Story = {};
+
+export const CancelComment: Story = {
+	play: async (context) => {
+		await OpenFinding.play!(context);
+		const canvas = within(context.canvasElement);
+		const trigger = () =>
+			within(
+				context.canvasElement.querySelector<HTMLElement>('.review-diff-line[data-side="new"][data-line-number="2"]')!,
+			).getByRole("button", { name: "Add line comment" });
+		trigger().focus();
+		await userEvent.keyboard("{Enter}");
+		const form = await canvas.findByRole("form", { name: "Add review comment" });
+		const cancel = within(form).getByRole("button", { name: "Cancel" });
+		await waitFor(() => expect(within(form).getByRole("textbox", { name: "Comment" })).toHaveFocus());
+		for (let step = 0; document.activeElement !== cancel && step < 8; step++) await userEvent.tab();
+		await expect(cancel).toHaveFocus();
+		await userEvent.keyboard("{Enter}");
+		await waitFor(() => expect(trigger()).toHaveFocus());
+		await expect(canvas.queryByRole("form", { name: "Add review comment" })).not.toBeInTheDocument();
+	},
+};
+const denseRevision = {
+	...revision,
+	patch:
+		"diff --git a/src/title.ts b/src/title.ts\n--- a/src/title.ts\n+++ b/src/title.ts\n@@ -1,300 +1,300 @@\n" +
+		Array.from({ length: 300 }, (_, i) => ` line ${i + 1}\n`).join(""),
+};
+export const OutdatedFinding: Story = {
+	parameters: {
+		trellis: {
+			responses: {
+				"reviews.revision": denseRevision,
+				"reviews.refresh": denseRevision,
+				"reviews.list": {
+					items: [{ ...reviewThread, revisionId: "earlier-revision", anchorLines: null }],
+					total: 1,
+					open: 1,
+				},
+			},
+		},
+	},
+};
+export const RepeatOutdatedFinding: Story = {
+	...OutdatedFinding,
+	play: async (context) => {
+		const canvas = within(context.canvasElement);
+		const open = async () => {
+			await userEvent.click(await canvas.findByRole("button", { name: /Keep the title readable/ }));
+			await waitFor(() => expect(canvas.getByRole("article", { name: "Thread by Storybook" })).toHaveFocus());
+		};
+		await open();
+		const code = context.canvasElement.querySelector<HTMLElement>(".review-code")!;
+		code.scrollTop = code.scrollHeight;
+		code.dispatchEvent(new Event("scroll"));
+		await waitFor(() => expect(canvas.queryByRole("article", { name: "Thread by Storybook" })).not.toBeInTheDocument());
+		await userEvent.click(canvas.getByRole("tab", { name: "Overview" }));
+		await open();
+		await waitFor(() => expect(code.scrollTop).toBeLessThan(100));
+	},
+};
 export const OpenFinding: Story = {
 	play: async ({ canvasElement }) => {
 		const canvas = within(canvasElement);

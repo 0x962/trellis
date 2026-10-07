@@ -17,7 +17,7 @@ test("a selected finding reveals a viewed file and retains its Viewed checkbox",
 				onSelect={() => {}}
 				onFiles={() => {}}
 				viewed={viewed}
-				revealedFile={revealedFile}
+				selectedFinding={revealedFile ? { id: "thread", path: revealedFile } : undefined}
 				onViewed={() => {}}
 			/>,
 		);

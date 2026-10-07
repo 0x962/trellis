@@ -2,7 +2,7 @@ import { createElement, type ReactNode, useCallback, useEffect, useMemo, useRef,
 import { useMediaQuery } from "../../hooks/useMediaQuery";
 import { useVirtualRows } from "../../hooks/useVirtualRows";
 import { diffRowSlots, diffRowStyle } from "./diffRowSlots";
-import type { DiffAnchor } from "./ReviewDiff";
+import type { DiffAnchor, DiffFinding } from "./ReviewDiff";
 import { type ReviewRow, reviewRowSize, rowAnnotations } from "./reviewRows";
 
 // A wrapper that reports the height of variable-height annotation content:
@@ -57,6 +57,7 @@ export function VirtualDiffRows({
 	theme,
 	selectedFile,
 	selectedAnchor,
+	selectedFinding,
 	renderRow,
 }: {
 	active: boolean;
@@ -65,6 +66,7 @@ export function VirtualDiffRows({
 	theme: "light" | "dark" | "system";
 	selectedFile?: string;
 	selectedAnchor?: DiffAnchor | null;
+	selectedFinding?: DiffFinding;
 	renderRow: (row: ReviewRow) => ReactNode;
 }) {
 	const [measured, setMeasured] = useState<ReadonlyMap<string, number>>(() => new Map());
@@ -88,10 +90,10 @@ export function VirtualDiffRows({
 	const virtual = useVirtualRows(viewportRef, sizes);
 	// A composer rebuilds the rows. The selected anchor keeps its identity,
 	// so row updates preserve the scroll position until another selection.
-	const scrolledTo = useRef<DiffAnchor | string | undefined>(undefined);
+	const scrolledTo = useRef<DiffAnchor | DiffFinding | string | undefined>(undefined);
 	useEffect(() => {
 		if (!active) return;
-		const target = selectedAnchor ?? selectedFile;
+		const target = selectedFinding ?? selectedAnchor ?? selectedFile;
 		if (target === scrolledTo.current) return;
 		scrolledTo.current = target;
 		const anchored = selectedAnchor ? rows.findIndex((row) => anchorMatches(row, selectedAnchor)) : -1;
@@ -101,7 +103,7 @@ export function VirtualDiffRows({
 		const path = selectedAnchor?.path ?? selectedFile;
 		const index = anchored >= 0 ? anchored : rows.findIndex((row) => row.kind === "file" && row.file.name === path);
 		if (index >= 0) virtual.scrollToIndex(index);
-	}, [active, rows, selectedFile, selectedAnchor, virtual.scrollToIndex]);
+	}, [active, rows, selectedFile, selectedAnchor, selectedFinding, virtual.scrollToIndex]);
 	return createElement(
 		"diffs-container",
 		{

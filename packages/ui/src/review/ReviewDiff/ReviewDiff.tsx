@@ -18,6 +18,7 @@ import {
 import { VirtualDiffRows } from "./VirtualDiffRows";
 import "./ReviewDiff.css";
 
+export type DiffFinding = { id: string; path: string };
 export type DiffAnchor = { path: string; side: "old" | "new"; line: number; startLine: number };
 export type DiffThread = DiffAnchor & {
 	id: string;
@@ -64,7 +65,7 @@ export function ReviewDiff({
 	theme,
 	selectedFile,
 	selectedAnchor = null,
-	revealedFile,
+	selectedFinding,
 	filter = "",
 	renderThread,
 	composer = null,
@@ -113,7 +114,10 @@ export function ReviewDiff({
 		() => placeThreads(shown, expanded, threads, revisionId),
 		[shown, expanded, threads, revisionId],
 	);
-	const collapsed = useMemo(() => new Set([...viewed].filter((path) => path !== revealedFile)), [viewed, revealedFile]);
+	const collapsed = useMemo(
+		() => new Set([...viewed].filter((path) => path !== selectedFinding?.path)),
+		[viewed, selectedFinding],
+	);
 	const rows = useMemo(
 		() => buildReviewRows(shown, mode, threads, places, composer, expanded, loadFile !== undefined, collapsed, headers),
 		[shown, mode, threads, places, composer, expanded, loadFile, collapsed, headers],
@@ -268,6 +272,7 @@ export function ReviewDiff({
 		);
 	return (
 		<VirtualDiffRows
+			selectedFinding={selectedFinding}
 			active={active}
 			rows={rows}
 			mode={mode}

@@ -64,7 +64,7 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 	const phone = useMediaQuery("(max-width: 767px)");
 	const [pickedPath, setPickedPath] = useState("");
 	const [pickedAnchor, setPickedAnchor] = useState<DiffAnchor | null>(null);
-	const [pickedThread, setPickedThread] = useState<string | null>(null);
+	const [pickedFinding, setPickedFinding] = useState<{ id: string; path: string } | null>(null);
 	const [filesOpen, setFilesOpen] = useState(false);
 	const [batch, setBatch] = useState<ReadonlySet<string>>(() => new Set());
 	const [applying, setApplying] = useState<string[] | null>(null);
@@ -174,7 +174,7 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 									onOpen={(path, anchor, threadId) => {
 										setPickedPath(path);
 										setPickedAnchor(anchor);
-										setPickedThread(threadId);
+										setPickedFinding({ id: threadId, path: anchor?.path ?? path });
 										setFilesOpen(true);
 										onTabChange("diff");
 									}}
@@ -215,7 +215,7 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 													selected={selectedPath}
 													onSelect={(path) => {
 														setPickedPath(path);
-														if (path !== selectedPath) setPickedThread(null);
+														if (path !== selectedPath) setPickedFinding(null);
 														// The tree reports the file of the anchor back as a
 														// choice of its own. A choice of another file drops
 														// the anchor; the echo of this one keeps it.
@@ -234,14 +234,14 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 													threads={allThreads}
 													selectedFile={selectedPath}
 													selectedAnchor={pickedAnchor}
-													selectedThread={pickedThread}
+													selectedFinding={pickedFinding}
 													active={tab === "diff"}
 													renderThread={renderThread}
 													onFiles={setChangedFiles}
 													groups={groups}
 													read={read}
 													onRead={(path, next) => {
-														setPickedThread(null);
+														setPickedFinding(null);
 														setRead(path, next);
 													}}
 												/>
