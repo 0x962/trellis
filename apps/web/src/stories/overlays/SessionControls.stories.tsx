@@ -104,7 +104,7 @@ export const AccountPending: Story = {
 		const page = within(context.canvasElement.ownerDocument.body);
 		await expect(page.getByRole("button", { name: "Cancel" })).toBeDisabled();
 		await userEvent.keyboard("{Escape}");
-		await expect(page.getByRole("dialog", { name: "Switch to Team?" })).toBeVisible();
+		await waitFor(() => expect(page.getByRole("dialog", { name: "Switch to Team?" })).toBeVisible());
 	},
 };
 export const AccountSwitchError: Story = {
@@ -118,7 +118,6 @@ export const AccountSwitchError: Story = {
 		await expect(page.getByRole("button", { name: "Retry switch" })).toBeEnabled();
 	},
 };
-
 let projectLoads = 0;
 export const MoveLoadRecovery: Story = {
 	...MoveOpen,
@@ -226,11 +225,15 @@ export const AccountLoadRecovery: Story = {
 	},
 	play: async ({ canvasElement }) => {
 		const page = within(canvasElement.ownerDocument.body);
-		await expect(await page.findByText("Accounts did not load")).toBeVisible();
+		await waitFor(() => expect(page.getByText("Accounts did not load")).toBeVisible());
+		// SwitchAccountDialog restores focus on the next frame after its search field disappears.
+		await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
 		const retry = page.getByRole("button", { name: "Retry" });
 		retry.focus();
+		await expect(retry).toHaveFocus();
 		await userEvent.keyboard("{Enter}");
 		await waitFor(() => expect(page.getByRole("option", { name: /Team/ })).toBeVisible());
+		await expect(accountLoads).toBe(2);
 	},
 };
 let switchInputs: { accountId: string; expectedTerminalId: string; requestId: string }[] = [];
@@ -288,7 +291,6 @@ export const ArchivePending: Story = {
 		await expect(page.getByRole("menuitem", { name: "Move to project…" })).toHaveAttribute("aria-disabled", "true");
 	},
 };
-
 export const AccountLongNameNarrow: Story = {
 	...AccountNamesNarrow,
 	parameters: response("harnessAccounts.list", [
