@@ -37,6 +37,9 @@ export const Populated: Story = {
 	play: async ({ canvasElement }) => {
 		const canvas = within(canvasElement);
 		await expect(await canvas.findByText("Version 2 of 2, current")).toBeVisible();
+		await expect(
+			(await canvas.findByRole("button", { name: "“The title remains readable.”" })).getBoundingClientRect().height,
+		).toBeGreaterThanOrEqual(28);
 		await userEvent.click(await canvas.findByRole("button", { name: "Page actions" }));
 		const history = await within(canvasElement.ownerDocument.body).findByRole("menuitem", {
 			name: "Version history, viewing version 2 of 2",
