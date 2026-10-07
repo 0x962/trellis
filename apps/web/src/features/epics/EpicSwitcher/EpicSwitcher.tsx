@@ -15,6 +15,7 @@ export type EpicSwitcherProps = {
 	name: string;
 	// The tab of the open epic. The epic a person switches to opens on it.
 	tab: "overview" | "resources";
+	className?: string;
 };
 
 // The epic name in the top bar, as a button that opens a search of the
@@ -22,7 +23,7 @@ export type EpicSwitcherProps = {
 // reads as a control before the pointer reaches it. A pick opens that epic
 // on the same tab; the All epics row opens the Epics list. `g e` clicks the
 // button through `data-epic-switcher` (see `useGlobalHotkeys`).
-export function EpicSwitcher({ project, epicRef, name, tab }: EpicSwitcherProps) {
+export function EpicSwitcher({ project, epicRef, name, tab, className }: EpicSwitcherProps) {
 	const { orpc } = useApp();
 	const navigate = useNavigate();
 	const [open, setOpen] = useState(false);
@@ -57,7 +58,7 @@ export function EpicSwitcher({ project, epicRef, name, tab }: EpicSwitcherProps)
 					<Kbd>E</Kbd>
 				</span>
 			}
-			trigger={<TitleMenuButton data-epic-switcher="" label={name} />}
+			trigger={<TitleMenuButton data-epic-switcher="" label={name} className={className} />}
 		>
 			<Command
 				inputRef={input}
