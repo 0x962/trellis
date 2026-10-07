@@ -22,6 +22,28 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Overview: Story = {};
+export const CancelAfterLayoutChange: Story = {
+	play: async ({ canvasElement }) => {
+		const canvas = within(canvasElement);
+		await userEvent.click(await canvas.findByRole("tab", { name: "Diff" }));
+		await userEvent.click(await canvas.findByRole("radio", { name: "Split" }));
+		const oldLine = canvasElement.querySelector<HTMLElement>(
+			'.review-diff-line[data-side="old"][data-line-number="1"]',
+		)!;
+		await userEvent.click(within(oldLine).getByRole("button", { name: "Add line comment" }));
+		const form = await canvas.findByRole("form", { name: "Add review comment" });
+		await waitFor(() => expect(within(form).getByRole("textbox", { name: "Comment" })).toHaveFocus());
+		await userEvent.click(canvas.getByRole("radio", { name: "Unified" }));
+		const cancel = canvas.getByRole("button", { name: "Cancel" });
+		for (let step = 0; document.activeElement !== cancel && step < 30; step++) await userEvent.tab();
+		await expect(cancel).toHaveFocus();
+		await userEvent.keyboard("{Enter}");
+		await waitFor(() => {
+			const line = canvasElement.querySelector<HTMLElement>('.review-diff-line[data-side="new"][data-old-line="1"]')!;
+			expect(within(line).getByRole("button", { name: "Add line comment" })).toHaveFocus();
+		});
+	},
+};
 
 export const CancelComment: Story = {
 	play: async (context) => {

@@ -14,6 +14,7 @@ import { useTheme } from "../../../../../lib/theme";
 import { type ReviewCommentInput, ReviewComposer } from "../../../ReviewComposer/ReviewComposer";
 import type { ReadMarkFile } from "../../../readMarks/readMarks";
 import { DiffToolbar } from "../DiffToolbar";
+import { lineCommentSelector } from "./lineCommentSelector";
 
 export type DiffPaneProps = {
 	pr: string;
@@ -149,11 +150,8 @@ export function DiffPane({
 								addThread.reset();
 								setComposerState(null);
 								requestAnimationFrame(() => {
-									const { path, side, line } = composer.anchor;
 									windowRef
-										.current!.querySelector<HTMLButtonElement>(
-											`.review-diff-line[data-file-path="${CSS.escape(path)}"][data-side="${side}"][data-line-number="${line}"] button[aria-label="Add line comment"]`,
-										)!
+										.current!.querySelector<HTMLButtonElement>(lineCommentSelector(composer.anchor, mode))!
 										.focus();
 								});
 							}}

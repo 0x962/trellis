@@ -32,6 +32,8 @@ export function DiffLine({
 			className="review-diff-line"
 			data-line-index={index}
 			data-file-path={file}
+			data-old-line={line.oldLine}
+			data-new-line={line.newLine}
 			data-line-number={lineNumber}
 			data-line-type={line.type === "context" ? "context" : `change-${line.type}`}
 			data-side={side}

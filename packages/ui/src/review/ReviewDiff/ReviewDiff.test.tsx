@@ -1,7 +1,23 @@
 import { expect, test } from "bun:test";
 import { renderToStaticMarkup } from "react-dom/server";
+import { DiffLine } from "./DiffLine";
 import type { DiffFileGroup } from "./diffGroups";
 import { ReviewDiff } from "./ReviewDiff";
+
+test("a unified context line retains both original line numbers", () => {
+	const html = renderToStaticMarkup(
+		<DiffLine
+			file="file.ts"
+			line={{ type: "context", text: "keep", oldLine: 3, newLine: 7 }}
+			side="new"
+			index="context"
+			select={() => {}}
+			startPointer={() => {}}
+			endPointer={() => {}}
+		/>,
+	);
+	expect(html).toContain('data-old-line="3" data-new-line="7" data-line-number="7"');
+});
 
 test("a selected finding reveals a viewed file and retains its Viewed checkbox", () => {
 	const viewed = new Set(["changed.ts"]);
