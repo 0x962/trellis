@@ -1,10 +1,16 @@
 import { DotsThree, PencilSimple, Plus, Trash } from "@phosphor-icons/react";
 import type { MenuLink } from "@trellis/api";
 import { ConfirmDialog, EmptyState, FormStatus, IconButton, Menu, SettingsListRow, Tooltip } from "@trellis/ui";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { menuLinkIcons } from "../../navRows";
 import { useSettingsDraft } from "../hooks/useSettingsDraft";
 import { MenuLinkEditor } from "./components/MenuLinkEditor";
+
+type LinkWriteCallbacks = {
+	onStarted: () => void;
+	onStored: () => void;
+	onFailed: () => void;
+};
 
 export function MenuLinks() {
 	const { saved, save } = useSettingsDraft();
@@ -13,23 +19,35 @@ export function MenuLinks() {
 	const [saveError, setSaveError] = useState<string | null>(null);
 	const [deleteError, setDeleteError] = useState<string | null>(null);
 	const [busy, setBusy] = useState(false);
+	const writeInProgress = useRef(false);
 	if (!saved) return null;
 	const menuLinks = saved.menuLinks ?? [];
-	const saveLinks = async (nextMenuLinks: MenuLink[]) => {
+	const saveLinks = async (nextMenuLinks: MenuLink[], callbacks: LinkWriteCallbacks) => {
+		if (writeInProgress.current) return;
+		writeInProgress.current = true;
 		setBusy(true);
-		const stored = await save({ menuLinks: nextMenuLinks });
+		callbacks.onStarted();
+		const stored = await save(
+			{ menuLinks: nextMenuLinks },
+			{ onStored: callbacks.onStored, retry: () => void saveLinks(nextMenuLinks, callbacks) },
+		);
+		writeInProgress.current = false;
 		setBusy(false);
-		return stored !== undefined;
+		if (stored === undefined) callbacks.onFailed();
 	};
-	const removeLink = async () => {
+	const removeLink = () => {
 		const link = deletingLink!;
-		setDeleteError(null);
-		if (!(await saveLinks(menuLinks.filter((item) => item.id !== link.id)))) {
-			setDeleteError("The menu link did not delete.");
-			return;
-		}
-		setDeletingLink(null);
-		if (editingLink !== "new" && editingLink?.id === link.id) setEditingLink(null);
+		void saveLinks(
+			menuLinks.filter((item) => item.id !== link.id),
+			{
+				onFailed: () => setDeleteError("The menu link did not delete."),
+				onStarted: () => setDeleteError(null),
+				onStored: () => {
+					setDeletingLink(null);
+					if (editingLink !== "new" && editingLink?.id === link.id) setEditingLink(null);
+				},
+			},
+		);
 	};
 	const linkEditor = editingLink !== null && (
 		<MenuLinkEditor
@@ -42,12 +60,14 @@ export function MenuLinks() {
 				setEditingLink(null);
 			}}
 			onSave={async (link) => {
-				setSaveError(null);
-				const success = await saveLinks(
+				await saveLinks(
 					editingLink === "new" ? [...menuLinks, link] : menuLinks.map((item) => (item.id === link.id ? link : item)),
+					{
+						onFailed: () => setSaveError("The menu link did not save."),
+						onStored: () => setEditingLink(null),
+						onStarted: () => setSaveError(null),
+					},
 				);
-				if (success) setEditingLink(null);
-				else setSaveError("The menu link did not save.");
 			}}
 		/>
 	);
