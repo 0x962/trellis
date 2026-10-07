@@ -68,6 +68,9 @@ export function EpicResources({ epic, description, readOnly, resourceId }: EpicR
 	};
 	const saveDoc = async (id: string, fields: { name: string } | { body: string }) => {
 		await client.resources.update({ id, ...fields });
+		queryClient.setQueryData<Resource>(orpc.resources.get.queryOptions({ input: { id } }).queryKey, (current) =>
+			current === undefined ? current : { ...current, ...fields },
+		);
 		await queryClient.invalidateQueries({ queryKey: orpc.resources.key() });
 	};
 
