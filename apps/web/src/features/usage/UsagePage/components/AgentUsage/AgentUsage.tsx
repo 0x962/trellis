@@ -60,9 +60,9 @@ export function AgentUsage() {
 	const setSearch = (patch: Partial<typeof search>) =>
 		void navigate({ search: (previous) => ({ ...previous, ...patch }), replace: true });
 	const clearRow = () => setSearch({ row: undefined });
-	const models = useUsageRanking(report.data, group, metric, selectedRow, null, clearRow);
-	const harnesses = useUsageRanking(report.data, comparisonGroup, metric, null, null, clearRow);
-	const selected = models.data?.selected ?? null;
+	const primaryRanking = useUsageRanking(report.data, group, metric, selectedRow, null, clearRow);
+	const comparisonRanking = useUsageRanking(report.data, comparisonGroup, metric, null, null, clearRow);
+	const selected = primaryRanking.data?.selected ?? null;
 	const buckets = report.data?.buckets;
 	const chartDays = useMemo(() => buckets?.map((bucket) => bucket.day) ?? [], [buckets]);
 	const dayTotals = useMemo(() => buckets?.map((bucket) => bucket[metric]) ?? [], [buckets, metric]);
@@ -72,14 +72,13 @@ export function AgentUsage() {
 	);
 	const metricLabel = metric === "usd" ? "API-rate cost" : "Tokens";
 	const title = `${selected?.label ?? metricLabel} per day`;
-	const rankingError = models.error ?? harnesses.error;
-	const pending = report.isPending || (report.isSuccess && (models.isPending || harnesses.isPending));
+	const rankingError = primaryRanking.error ?? comparisonRanking.error;
+	const pending = report.isPending || (report.isSuccess && (primaryRanking.isPending || comparisonRanking.isPending));
 	const accountReport = {
 		rows: report.data?.rankings[metric].groups.account ?? [],
 		metric,
 		total: report.data?.totals[metric] ?? 0,
 		pending: report.isPending,
-		reportAvailable: report.data !== undefined,
 	};
 
 	return (
@@ -126,11 +125,11 @@ export function AgentUsage() {
 					action={
 						<Button
 							size="md"
-							processing={report.isFetching || models.isFetching || harnesses.isFetching}
+							processing={report.isFetching || primaryRanking.isFetching || comparisonRanking.isFetching}
 							onClick={() => {
 								void report.refetch();
-								void models.refetch();
-								void harnesses.refetch();
+								void primaryRanking.refetch();
+								void comparisonRanking.refetch();
 							}}
 						>
 							Try again
@@ -190,8 +189,8 @@ export function AgentUsage() {
 					<div className="grid grid-cols-1 gap-6 md:grid-cols-2">
 						{(
 							[
-								[group, models],
-								[comparisonGroup, harnesses],
+								[group, primaryRanking],
+								[comparisonGroup, comparisonRanking],
 							] as const
 						).map(([kind, query]) => (
 							<UsageGroups
