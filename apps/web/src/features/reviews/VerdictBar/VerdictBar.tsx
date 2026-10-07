@@ -26,8 +26,7 @@ export type VerdictBarProps = {
 	onDone: () => void;
 };
 
-// The card that floats over the bottom right of the review shows the verdict
-// of the person on one line. A comment on a diff line reaches the agent when
+// The action row shows the verdict of the person on one line. A comment on a diff line reaches the agent when
 // the person posts it, so the card holds the two verdicts only.
 export function VerdictBar({ pr, revision, ticket, run, submissions, submissionsFetched, onDone }: VerdictBarProps) {
 	const state = verdictState(submissions);

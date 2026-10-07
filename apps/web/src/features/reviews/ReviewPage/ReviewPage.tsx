@@ -253,9 +253,7 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 						},
 					])}
 				/>
-				{/* The two cards float over the bottom right of the page. The box
-				    draws nothing while both are absent. */}
-				<div className="review-float-bars">
+				<div className="review-action-bars">
 					{batch.size > 0 && (
 						<ReviewBatchBar
 							count={batch.size}

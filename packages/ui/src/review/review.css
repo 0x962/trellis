@@ -3,279 +3,8 @@
 @import "./review-checks.css";
 @import "./review-verdict.css";
 
-:root {
-	--review-sheet-width: min(100vw, 32rem);
-	--review-column-width: 1040px;
-	--review-filter-width: 260px;
-	--review-row-icon-size: 14px;
-	/* The gap between the floating cards of the review and the edges of the
-	   page. It equals the side padding of `.review-blocks`, so the right
-	   edge of the card lines up with the right edge of the blocks. */
-	--review-float-gap: 28px;
-	/* The height of one floating card: a 28 px icon button inside 4 px of
-	   padding on each side. */
-	--review-float-height: 36px;
-	/* The width of the file tree beside the diff. */
-	--review-tree-width: 340px;
-	/* The width of the column that holds the line numbers of the diff, which
-	   `.review-diff-hunk-header` and `.review-diff-line` both draw. */
-	--review-diff-gutter: calc(var(--spacing) * 13);
-	/* The height of one floating card plus the gap above and below it. Every
-	   scrolling box of the review pads its bottom by this much, so the last
-	   row of the box stops one gap above the card. */
-	--review-float-clearance: calc(var(--review-float-height) + var(--review-float-gap) * 2);
-}
-.review-page,
-.review-index {
-	display: flex;
-	flex: 1;
-	min-width: 0;
-	min-height: 0;
-	flex-direction: column;
-}
-/* `.review-float-bars` pins the verdict card to the bottom right of the page,
-   and this rule makes the page the box that the card measures from. */
-.review-page {
-	position: relative;
-}
-.review-index {
-	overflow: hidden;
-	background: var(--bg);
-}
-.review-heading {
-	padding: 24px 28px 20px;
-}
-/* The buttons sit beside the first line of the title. A long title wraps to
-   a second line when it arrives, and the buttons keep the height they had. */
-.review-heading-title {
-	display: flex;
-	align-items: flex-start;
-	justify-content: space-between;
-	gap: 16px;
-}
-.review-heading-title h2 {
-	min-width: 0;
-}
-.review-header-actions {
-	display: flex;
-	flex: none;
-	align-items: center;
-	justify-content: flex-end;
-	gap: 6px;
-}
-/* One box per button of the row. The box is the size of an IconButton at
-   size sm: 28 px, and 44 px where the pointer is coarse, which is the size
-   the hit area gives that same button. Every box is drawn at the first
-   paint. The GitHub button and the internal link wait for the stored
-   revision. The ... menu waits for the ticket. Each control arrives in a box
-   that already holds its place, so no control moves another control. */
-.review-header-slot {
-	display: flex;
-	width: 28px;
-	height: 28px;
-	flex: none;
-	align-items: center;
-	justify-content: center;
-}
-@media (pointer: coarse) {
-	.review-header-slot {
-		width: 44px;
-		height: 44px;
-	}
-}
-.review-heading h2 {
-	font-size: 20px;
-	line-height: 28px;
-	font-weight: 600;
-	text-wrap: pretty;
-}
-.review-heading-meta {
-	display: flex;
-	align-items: center;
-	flex-wrap: wrap;
-	gap: 8px 16px;
-	margin-top: 10px;
-	color: var(--fg-muted);
-	font-size: 12px;
-	font-variant-numeric: tabular-nums;
-}
-.review-state-group {
-	display: inline-flex;
-	align-items: center;
-	gap: 6px;
-	min-width: 0;
-}
-/* The two marks that open the row. Each one keeps its box from the first
-   paint: 16 px for the pull request glyph, the size PrGlyph draws at size
-   sm, and 14 px for the merge conflict triangle. The GitHub poll fills the
-   glyph and the ticket answer fills the triangle, and the state word, the
-   branch and the queue position stay where they were drawn. The triangle is
-   a link, so its box must hold still even while it is empty. */
-.review-meta-marks {
-	display: inline-flex;
-	flex: none;
-	align-items: center;
-	gap: 6px;
-}
-.review-meta-glyph,
-.review-meta-conflict {
-	display: inline-flex;
-	flex: none;
-	align-items: center;
-	justify-content: center;
-}
-.review-meta-glyph {
-	width: 16px;
-	height: 16px;
-}
-.review-meta-conflict {
-	width: 14px;
-	height: 14px;
-}
-.review-queue-position {
-	display: inline-flex;
-	height: 20px;
-	align-items: center;
-	white-space: nowrap;
-	color: var(--fg-muted);
-}
-/* An agent branch name holds a ticket key and a 26 character run id, so the
-   head and base pair is long. The line takes the width the header row gives
-   it, and the phone rule below caps it at 220px. */
-.review-branch {
-	max-width: 100%;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-	font-family: var(--font-mono);
-	font-size: 11px;
-}
-.review-branch > span {
-	color: var(--fg-faint);
-}
-.review-meta {
-	color: var(--fg-muted);
-	font-size: 12px;
-	font-variant-numeric: tabular-nums;
-}
-.review-diff-toolbar,
-.review-index-toolbar {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: 16px;
-	min-height: 52px;
-	padding: 10px 20px;
-	border-bottom: var(--border-width-hairline) solid var(--border);
-}
-.review-diff-toolbar {
-	justify-content: flex-end;
-}
-.review-scroll {
-	flex: 1;
-	min-height: 0;
-	overflow: auto;
-	padding: 28px;
-}
-.review-list {
-	display: flex;
-	flex-direction: column;
-	gap: 24px;
-	width: 100%;
-	max-width: 880px;
-	margin-inline: auto;
-}
-.review-section-heading {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: 12px;
-}
-.review-section-heading h2,
-.review-section-heading h3 {
-	font-size: 14px;
-	line-height: 20px;
-	font-weight: 600;
-}
-.review-error {
-	color: var(--danger);
-	font-size: 13px;
-	line-height: 20px;
-	padding: 12px 16px;
-}
-.review-notice {
-	margin: 8px 28px;
-	padding: 10px 12px;
-	border: var(--border-width-hairline) solid var(--border);
-	border-radius: var(--radius-sm);
-	background: var(--surface);
-	color: var(--fg-muted);
-	font-size: 12px;
-	line-height: 18px;
-	text-align: start;
-}
-button.review-notice:hover {
-	color: var(--fg);
-	border-color: var(--border-strong);
-}
-.review-notice a {
-	text-decoration: underline;
-	text-underline-offset: 3px;
-}
-.review-stack {
-	display: flex;
-	gap: 12px;
-	padding: 0 28px 12px;
-	overflow-x: auto;
-	font-size: 12px;
-}
-.review-stack a {
-	white-space: nowrap;
-	color: var(--fg-muted);
-}
-.review-stack a[aria-current="page"] {
-	color: var(--fg);
-	font-weight: 600;
-}
-.review-page :focus-visible,
-.review-thread :focus-visible {
-	outline: 2px solid var(--accent);
-	outline-offset: 2px;
-}
-.review-page button:disabled,
-.review-thread button:disabled {
-	opacity: 0.5;
-	cursor: default;
-}
-/* The top band of the review page: the title of the pull request with its
-   buttons, the ticket the pull request answers, and one sentence that says
-   who acts next. The band does not scroll, so the buttons that end the review
-   stay on screen while the reader goes down the page. */
-.review-identity {
-	display: flex;
-	flex-direction: column;
-	border-bottom: var(--border-width-hairline) solid var(--border);
-	background: var(--bg);
-}
-/* The band takes the width of the sheet, so the title, the ticket, the file
-   tree and the diff all start at one left edge. */
-.review-identity > * {
-	width: 100%;
-}
-.review-identity .review-heading {
-	padding-bottom: 12px;
-}
-.review-identity-lines {
-	display: flex;
-	flex-direction: column;
-	gap: 2px;
-	padding: 0 28px 16px;
-	font-size: var(--text-base);
-	line-height: var(--text-base--line-height);
-}
-.review-ticket-line {
-	color: var(--fg-muted);
-}
+@import "./review-page.css";
+
 /* Under the identity band the review page is four tabs. Overview, Checks and
    Flows each hold one column of blocks, and the Diff panel holds two panes:
    the file tree on the left and the diff on the right. `.review-body` is the
@@ -326,7 +55,7 @@ button.review-notice:hover {
 	min-height: 0;
 	flex-direction: column;
 	gap: 28px;
-	padding: 24px 28px calc(24px + var(--review-float-clearance));
+	padding: 24px 28px;
 	overflow-y: auto;
 }
 /* `CheckResults` carries the height, scroll bar and side padding of a page
@@ -383,16 +112,7 @@ button.review-notice:hover {
 	overflow: hidden;
 	background: var(--bg);
 }
-/* The patch ends this far above the bottom of the pane, so the last line of
-   the last file scrolls clear of the floating verdict card. */
-.review-diff-window .review-code {
-	padding-bottom: var(--review-float-clearance);
-}
 @media (max-width: 767px) {
-	/* The floating cards follow the 16 px side margin of a phone page. */
-	:root {
-		--review-float-gap: 16px;
-	}
 	.review-heading {
 		padding: 20px 16px 16px;
 	}
@@ -474,11 +194,6 @@ button.review-notice:hover {
 		max-width: 100%;
 		height: min(80vh, 560px);
 		border-top: var(--border-width-hairline) solid var(--border);
-	}
-	/* A phone scrolls the whole body, so the body carries the clearance that
-	   the facts box and the diff box carry at desktop width. */
-	.review-page:has(.review-bar) .review-body {
-		padding-bottom: calc(var(--review-float-clearance) + env(safe-area-inset-bottom));
 	}
 }
 
