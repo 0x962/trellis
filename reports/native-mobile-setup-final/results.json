@@ -1,0 +1,3030 @@
+{
+  "kind": "final browser evidence",
+  "source": "ca122e2daa847a02748925e9708abec6cb96378a",
+  "capturedAt": "2026-10-07T03:43:47.523Z",
+  "scope": "Final setup and pairing routes",
+  "method": {
+    "renderer": "Expo Web with React Native Web",
+    "storage": "Temporary localStorage-backed SQLiteStorage fixture",
+    "camera": "Temporary deterministic camera fixture for permission and QR route states",
+    "browser": "Playwright Chromium 153.0.8010.12",
+    "viewports": [
+      "320 by 720",
+      "160 by 720 reflow proxy",
+      "1024 by 768 comparison"
+    ],
+    "colorSchemes": [
+      "light",
+      "dark"
+    ],
+    "reducedMotion": true,
+    "syntheticDataOnly": true
+  },
+  "counts": {
+    "cases": 42,
+    "screenshots": 42,
+    "themes": 2,
+    "width320": 38,
+    "width160": 2,
+    "width1024": 2,
+    "casesWithAxeViolations": 0,
+    "casesWithHorizontalOverflow": 0,
+    "casesWithUnexpectedConsoleErrors": 0,
+    "casesWithUnexpectedFailedRequests": 0,
+    "casesWithPageErrors": 0
+  },
+  "nativeGaps": [
+    "Android and iOS rendering",
+    "TalkBack and VoiceOver output",
+    "Camera permission sheets and hardware QR capture",
+    "Soft keyboard and native text entry",
+    "Dynamic Type at 200 percent",
+    "Safe-area insets",
+    "Native deep links",
+    "Native touch and gesture behavior",
+    "SQLite retention after an app restart",
+    "Native reduced-motion settings"
+  ],
+  "results": [
+    {
+      "kind": "final browser evidence",
+      "id": "fresh-setup",
+      "title": "Fresh setup and disabled Save server",
+      "theme": "light",
+      "width": 320,
+      "height": 720,
+      "route": "/setup",
+      "screenshot": "assets/light/fresh-setup-320px.png",
+      "expectedText": [
+        "Server URL",
+        "Scan pair code",
+        "Test connection",
+        "Your name",
+        "Save server"
+      ],
+      "saveDisabled": true,
+      "focusOrder": [
+        {
+          "tag": "INPUT",
+          "name": "Server URL",
+          "borderColor": "rgb(110, 110, 115)"
+        },
+        {
+          "tag": "BUTTON",
+          "name": "Scan pair code",
+          "borderColor": "rgb(110, 110, 115)"
+        },
+        {
+          "tag": "BUTTON",
+          "name": "Test connection",
+          "borderColor": "rgb(110, 110, 115)"
+        },
+        {
+          "tag": "INPUT",
+          "name": "Your name",
+          "borderColor": "rgb(110, 110, 115)"
+        }
+      ],
+      "visibleText": "Server\nConnect this phone to the Trellis server on your computer. Test the server before you save it.\nServer URL\nScan the pair code from Trellis settings, or enter the address that Trellis prints at start.\nScan pair code\nTest connection\nYour name\nTrellis uses this name on tickets and messages.\nSave server",
+      "controls": [
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Server URL",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Scan pair code",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Test connection",
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Your name",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Save server",
+          "disabled": true
+        }
+      ],
+      "axeViolations": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": [],
+      "expectedNetworkFailure": false,
+      "unexpectedConsoleErrors": [],
+      "unexpectedFailedRequests": [],
+      "metrics": {
+        "reducedMotion": true,
+        "colorScheme": "light",
+        "innerWidth": 320,
+        "scrollWidth": 320,
+        "horizontalOverflow": 0,
+        "cumulativeLayoutShift": 0
+      }
+    },
+    {
+      "kind": "final browser evidence",
+      "id": "invalid-url",
+      "title": "Invalid URL",
+      "theme": "light",
+      "width": 320,
+      "height": 720,
+      "route": "/setup",
+      "screenshot": "assets/light/invalid-url-320px.png",
+      "expectedText": [
+        "Start the URL with http:// or https://"
+      ],
+      "visibleText": "Server\nConnect this phone to the Trellis server on your computer. Test the server before you save it.\nServer URL\nStart the URL with http:// or https://, for example http://192.168.1.20:4521.\nScan pair code\nTest connection\nYour name\nTrellis uses this name on tickets and messages.\nSave server",
+      "controls": [
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Server URL",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Scan pair code",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Test connection",
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Your name",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Save server",
+          "disabled": true
+        }
+      ],
+      "axeViolations": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": [],
+      "expectedNetworkFailure": false,
+      "unexpectedConsoleErrors": [],
+      "unexpectedFailedRequests": [],
+      "metrics": {
+        "reducedMotion": true,
+        "colorScheme": "light",
+        "innerWidth": 320,
+        "scrollWidth": 320,
+        "horizontalOverflow": 0,
+        "cumulativeLayoutShift": 0
+      }
+    },
+    {
+      "kind": "final browser evidence",
+      "id": "invalid-name",
+      "title": "Invalid name",
+      "theme": "light",
+      "width": 320,
+      "height": 720,
+      "route": "/setup",
+      "screenshot": "assets/light/invalid-name-320px.png",
+      "expectedText": [
+        "Use letters, numbers, spaces, or punctuation.",
+        "Do not use a colon."
+      ],
+      "visibleText": "Server\nConnect this phone to the Trellis server on your computer. Test the server before you save it.\nServer URL\nScan the pair code from Trellis settings, or enter the address that Trellis prints at start.\nScan pair code\nTest connection\nYour name\nUse letters, numbers, spaces, or punctuation. Do not use a colon.\nSave server",
+      "controls": [
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Server URL",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Scan pair code",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Test connection",
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Your name",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Save server",
+          "disabled": true
+        }
+      ],
+      "axeViolations": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": [],
+      "expectedNetworkFailure": false,
+      "unexpectedConsoleErrors": [],
+      "unexpectedFailedRequests": [],
+      "metrics": {
+        "reducedMotion": true,
+        "colorScheme": "light",
+        "innerWidth": 320,
+        "scrollWidth": 320,
+        "horizontalOverflow": 0,
+        "cumulativeLayoutShift": 0
+      }
+    },
+    {
+      "kind": "final browser evidence",
+      "id": "connection-progress",
+      "title": "Connection progress",
+      "theme": "light",
+      "width": 320,
+      "height": 720,
+      "route": "/setup",
+      "screenshot": "assets/light/connection-progress-320px.png",
+      "expectedText": [
+        "Testing connection…"
+      ],
+      "visibleText": "Server\nConnect this phone to the Trellis server on your computer. Test the server before you save it.\nServer URL\nScan the pair code from Trellis settings, or enter the address that Trellis prints at start.\nScan pair code\nTesting connection…\nYour name\nTrellis uses this name on tickets and messages.\nSave server\nTesting the connection…",
+      "controls": [
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Server URL",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Scan pair code",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Testing connection…",
+          "disabled": true
+        },
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Your name",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Save server",
+          "disabled": true
+        }
+      ],
+      "axeViolations": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": [],
+      "expectedNetworkFailure": true,
+      "unexpectedConsoleErrors": [],
+      "unexpectedFailedRequests": [],
+      "metrics": {
+        "reducedMotion": true,
+        "colorScheme": "light",
+        "innerWidth": 320,
+        "scrollWidth": 320,
+        "horizontalOverflow": 0,
+        "cumulativeLayoutShift": 0
+      }
+    },
+    {
+      "kind": "final browser evidence",
+      "id": "connection-timeout",
+      "title": "Connection timeout",
+      "theme": "light",
+      "width": 320,
+      "height": 720,
+      "route": "/setup",
+      "screenshot": "assets/light/connection-timeout-320px.png",
+      "expectedText": [
+        "The server did not reply in 3 seconds."
+      ],
+      "visibleText": "Server\nConnect this phone to the Trellis server on your computer. Test the server before you save it.\nServer URL\nScan the pair code from Trellis settings, or enter the address that Trellis prints at start.\nScan pair code\nTest connection\nYour name\nTrellis uses this name on tickets and messages.\nSave server\nThe server did not reply in 3 seconds. Check that Trellis is open, then test again.",
+      "controls": [
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Server URL",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Scan pair code",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Test connection",
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Your name",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Save server",
+          "disabled": true
+        }
+      ],
+      "axeViolations": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": [
+        "POST http://127.0.0.1:4175/rpc/system/health net::ERR_ABORTED"
+      ],
+      "expectedNetworkFailure": true,
+      "unexpectedConsoleErrors": [],
+      "unexpectedFailedRequests": [],
+      "metrics": {
+        "reducedMotion": true,
+        "colorScheme": "light",
+        "innerWidth": 320,
+        "scrollWidth": 320,
+        "horizontalOverflow": 0,
+        "cumulativeLayoutShift": 0.00034519638249903546
+      }
+    },
+    {
+      "kind": "final browser evidence",
+      "id": "unreachable-server",
+      "title": "Unreachable server",
+      "theme": "light",
+      "width": 320,
+      "height": 720,
+      "route": "/setup",
+      "screenshot": "assets/light/unreachable-server-320px.png",
+      "expectedText": [
+        "Unable to reach this server."
+      ],
+      "visibleText": "Server\nConnect this phone to the Trellis server on your computer. Test the server before you save it.\nServer URL\nScan the pair code from Trellis settings, or enter the address that Trellis prints at start.\nScan pair code\nTest connection\nYour name\nTrellis uses this name on tickets and messages.\nSave server\nUnable to reach this server. Check the address and network, then test again.",
+      "controls": [
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Server URL",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Scan pair code",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Test connection",
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Your name",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Save server",
+          "disabled": true
+        }
+      ],
+      "axeViolations": [],
+      "consoleErrors": [
+        "Failed to load resource: net::ERR_CONNECTION_REFUSED"
+      ],
+      "pageErrors": [],
+      "failedRequests": [
+        "POST http://127.0.0.1:4175/rpc/system/health net::ERR_CONNECTION_REFUSED"
+      ],
+      "expectedNetworkFailure": true,
+      "unexpectedConsoleErrors": [],
+      "unexpectedFailedRequests": [],
+      "metrics": {
+        "reducedMotion": true,
+        "colorScheme": "light",
+        "innerWidth": 320,
+        "scrollWidth": 320,
+        "horizontalOverflow": 0,
+        "cumulativeLayoutShift": 0
+      }
+    },
+    {
+      "kind": "final browser evidence",
+      "id": "non-trellis-server",
+      "title": "Non-Trellis server",
+      "theme": "light",
+      "width": 320,
+      "height": 720,
+      "route": "/setup",
+      "screenshot": "assets/light/non-trellis-server-320px.png",
+      "expectedText": [
+        "This address does not respond as a Trellis server."
+      ],
+      "visibleText": "Server\nConnect this phone to the Trellis server on your computer. Test the server before you save it.\nServer URL\nScan the pair code from Trellis settings, or enter the address that Trellis prints at start.\nScan pair code\nTest connection\nYour name\nTrellis uses this name on tickets and messages.\nSave server\nThis address does not respond as a Trellis server. Check the address, then test again.",
+      "controls": [
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Server URL",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Scan pair code",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Test connection",
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Your name",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Save server",
+          "disabled": true
+        }
+      ],
+      "axeViolations": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": [],
+      "expectedNetworkFailure": false,
+      "unexpectedConsoleErrors": [],
+      "unexpectedFailedRequests": [],
+      "metrics": {
+        "reducedMotion": true,
+        "colorScheme": "light",
+        "innerWidth": 320,
+        "scrollWidth": 320,
+        "horizontalOverflow": 0,
+        "cumulativeLayoutShift": 0
+      }
+    },
+    {
+      "kind": "final browser evidence",
+      "id": "successful-probe",
+      "title": "Successful probe and stable form controls",
+      "theme": "light",
+      "width": 320,
+      "height": 720,
+      "route": "/setup",
+      "screenshot": "assets/light/successful-probe-320px.png",
+      "expectedText": [
+        "1.2.3-final",
+        "42 tickets",
+        "Server default actor",
+        "Fixture Person"
+      ],
+      "layout": {
+        "before": {
+          "Server URL": {
+            "x": 16,
+            "y": 164,
+            "width": 288,
+            "height": 44
+          },
+          "Scan pair code": {
+            "x": 16,
+            "y": 262,
+            "width": 288,
+            "height": 44
+          },
+          "Test connection": {
+            "x": 16,
+            "y": 322,
+            "width": 288,
+            "height": 44
+          },
+          "Your name": {
+            "x": 16,
+            "y": 404,
+            "width": 288,
+            "height": 44
+          },
+          "Save server": {
+            "x": 16,
+            "y": 486,
+            "width": 288,
+            "height": 44
+          }
+        },
+        "after": {
+          "Server URL": {
+            "x": 16,
+            "y": 164,
+            "width": 288,
+            "height": 44
+          },
+          "Scan pair code": {
+            "x": 16,
+            "y": 262,
+            "width": 288,
+            "height": 44
+          },
+          "Test connection": {
+            "x": 16,
+            "y": 322,
+            "width": 288,
+            "height": 44
+          },
+          "Your name": {
+            "x": 16,
+            "y": 404,
+            "width": 288,
+            "height": 44
+          },
+          "Save server": {
+            "x": 16,
+            "y": 486,
+            "width": 288,
+            "height": 44
+          }
+        },
+        "maxDelta": 0
+      },
+      "visibleText": "Server\nConnect this phone to the Trellis server on your computer. Test the server before you save it.\nServer URL\nScan the pair code from Trellis settings, or enter the address that Trellis prints at start.\nScan pair code\nTest connection\nYour name\nTrellis uses this name on tickets and messages.\nSave server\nConnected to this Trellis server.\nVersion\n1.2.3-final\nTickets\n42 tickets\nServer default actor\nFixture Person",
+      "controls": [
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Server URL",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Scan pair code",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Test connection",
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Your name",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Save server",
+          "disabled": false
+        }
+      ],
+      "axeViolations": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": [],
+      "expectedNetworkFailure": false,
+      "unexpectedConsoleErrors": [],
+      "unexpectedFailedRequests": [],
+      "metrics": {
+        "reducedMotion": true,
+        "colorScheme": "light",
+        "innerWidth": 320,
+        "scrollWidth": 320,
+        "horizontalOverflow": 0,
+        "cumulativeLayoutShift": 0
+      }
+    },
+    {
+      "kind": "final browser evidence",
+      "id": "existing-server-replacement",
+      "title": "Existing server replacement",
+      "theme": "light",
+      "width": 320,
+      "height": 720,
+      "route": "/setup",
+      "screenshot": "assets/light/existing-server-replacement-320px.png",
+      "expectedText": [
+        "Saving replaces the current server",
+        "Server default actor"
+      ],
+      "visibleText": "Server\nConnect this phone to the Trellis server on your computer. Test the server before you save it.\nServer URL\nScan the pair code from Trellis settings, or enter the address that Trellis prints at start.\nScan pair code\nTest connection\nYour name\nTrellis uses this name on tickets and messages.\nSave server\nConnected to this Trellis server.\nVersion\n1.2.3-final\nTickets\n42 tickets\nServer default actor\nFixture Person\nSaving replaces the current server and clears its cached tickets from this phone.",
+      "controls": [
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Server URL",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Scan pair code",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Test connection",
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Your name",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Save server",
+          "disabled": false
+        }
+      ],
+      "axeViolations": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": [],
+      "expectedNetworkFailure": false,
+      "unexpectedConsoleErrors": [],
+      "unexpectedFailedRequests": [],
+      "metrics": {
+        "reducedMotion": true,
+        "colorScheme": "light",
+        "innerWidth": 320,
+        "scrollWidth": 320,
+        "horizontalOverflow": 0,
+        "cumulativeLayoutShift": 0
+      }
+    },
+    {
+      "kind": "final browser evidence",
+      "id": "saved-reload-retention",
+      "title": "Saved values retained after a browser reload",
+      "theme": "light",
+      "width": 320,
+      "height": 720,
+      "route": "/setup",
+      "screenshot": "assets/light/saved-reload-retention-320px.png",
+      "expectedText": [
+        "Server URL",
+        "Your name"
+      ],
+      "reloadRetention": {
+        "storageAfterSave": {
+          "url": "http://127.0.0.1:4175",
+          "name": "reload-person"
+        },
+        "valuesAfterReload": {
+          "url": "http://127.0.0.1:4175",
+          "name": "reload-person"
+        }
+      },
+      "visibleText": "Server\nConnect this phone to the Trellis server on your computer. Test the server before you save it.\nServer URL\nScan the pair code from Trellis settings, or enter the address that Trellis prints at start.\nScan pair code\nTest connection\nYour name\nTrellis uses this name on tickets and messages.\nSave server",
+      "controls": [
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Server URL",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Scan pair code",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Test connection",
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Your name",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Save server",
+          "disabled": true
+        }
+      ],
+      "axeViolations": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": [],
+      "expectedNetworkFailure": false,
+      "unexpectedConsoleErrors": [],
+      "unexpectedFailedRequests": [],
+      "metrics": {
+        "reducedMotion": true,
+        "colorScheme": "light",
+        "innerWidth": 320,
+        "scrollWidth": 320,
+        "horizontalOverflow": 0,
+        "cumulativeLayoutShift": 0
+      }
+    },
+    {
+      "kind": "final browser evidence",
+      "id": "invalid-pair-link",
+      "title": "Invalid pair-link URL",
+      "theme": "light",
+      "width": 320,
+      "height": 720,
+      "route": "/pair?url=not-a-server-url",
+      "screenshot": "assets/light/invalid-pair-link-320px.png",
+      "expectedText": [
+        "Start the URL with http:// or https://"
+      ],
+      "visibleText": "‹\nServer\nConnect this phone to the Trellis server on your computer. Test the server before you save it.\nServer URL\nStart the URL with http:// or https://, for example http://192.168.1.20:4521.\nScan pair code\nTest connection\nYour name\nTrellis uses this name on tickets and messages.\nSave server",
+      "controls": [
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Back",
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Server URL",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Scan pair code",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Test connection",
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Your name",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Save server",
+          "disabled": true
+        }
+      ],
+      "axeViolations": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": [],
+      "expectedNetworkFailure": false,
+      "unexpectedConsoleErrors": [],
+      "unexpectedFailedRequests": [],
+      "metrics": {
+        "reducedMotion": true,
+        "colorScheme": "light",
+        "innerWidth": 320,
+        "scrollWidth": 320,
+        "horizontalOverflow": 0,
+        "cumulativeLayoutShift": 0
+      }
+    },
+    {
+      "kind": "final browser evidence",
+      "id": "valid-pair-link",
+      "title": "Valid pair-link URL",
+      "theme": "light",
+      "width": 320,
+      "height": 720,
+      "route": "/pair?url=http%3A%2F%2F127.0.0.1%3A4175",
+      "screenshot": "assets/light/valid-pair-link-320px.png",
+      "expectedText": [
+        "Connected to this Trellis server.",
+        "Server default actor"
+      ],
+      "visibleText": "‹\nServer\nConnect this phone to the Trellis server on your computer. Test the server before you save it.\nServer URL\nScan the pair code from Trellis settings, or enter the address that Trellis prints at start.\nScan pair code\nTest connection\nYour name\nUse letters, numbers, spaces, or punctuation. Do not use a colon.\nSave server\nConnected to this Trellis server.\nVersion\n1.2.3-final\nTickets\n42 tickets\nServer default actor\nFixture Person",
+      "controls": [
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Back",
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Server URL",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Scan pair code",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Test connection",
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Your name",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Save server",
+          "disabled": true
+        }
+      ],
+      "axeViolations": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": [],
+      "expectedNetworkFailure": false,
+      "unexpectedConsoleErrors": [],
+      "unexpectedFailedRequests": [],
+      "metrics": {
+        "reducedMotion": true,
+        "colorScheme": "light",
+        "innerWidth": 320,
+        "scrollWidth": 320,
+        "horizontalOverflow": 0,
+        "cumulativeLayoutShift": 0.0033186999662422837
+      }
+    },
+    {
+      "kind": "final browser evidence",
+      "id": "camera-permission-request",
+      "title": "Camera permission request",
+      "theme": "light",
+      "width": 320,
+      "height": 720,
+      "route": "/setup",
+      "screenshot": "assets/light/camera-permission-request-320px.png",
+      "expectedText": [
+        "Allow camera access to scan the Trellis pair code.",
+        "Allow camera",
+        "Cancel scan"
+      ],
+      "visibleText": "Server\nConnect this phone to the Trellis server on your computer. Test the server before you save it.\nServer URL\nScan the pair code from Trellis settings, or enter the address that Trellis prints at start.\nScan a pairing code\nAllow camera access to scan the Trellis pair code.\nAllow camera\nCancel scan\nTest connection\nYour name\nTrellis uses this name on tickets and messages.\nSave server",
+      "controls": [
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Server URL",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Allow camera",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Cancel scan",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Test connection",
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Your name",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Save server",
+          "disabled": true
+        }
+      ],
+      "axeViolations": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": [],
+      "expectedNetworkFailure": false,
+      "unexpectedConsoleErrors": [],
+      "unexpectedFailedRequests": [],
+      "metrics": {
+        "reducedMotion": true,
+        "colorScheme": "light",
+        "innerWidth": 320,
+        "scrollWidth": 320,
+        "horizontalOverflow": 0,
+        "cumulativeLayoutShift": 0
+      }
+    },
+    {
+      "kind": "final browser evidence",
+      "id": "camera-denied",
+      "title": "Camera access denied",
+      "theme": "light",
+      "width": 320,
+      "height": 720,
+      "route": "/setup",
+      "screenshot": "assets/light/camera-denied-320px.png",
+      "expectedText": [
+        "Camera access is off.",
+        "Open Settings",
+        "Cancel scan"
+      ],
+      "cameraDenied": {
+        "alert": "Camera access is off. Open Settings and allow camera access for Trellis.",
+        "openSettingsName": "Open Settings"
+      },
+      "visibleText": "Server\nConnect this phone to the Trellis server on your computer. Test the server before you save it.\nServer URL\nScan the pair code from Trellis settings, or enter the address that Trellis prints at start.\nScan a pairing code\nCamera access is off. Open Settings and allow camera access for Trellis.\nOpen Settings\nCancel scan\nTest connection\nYour name\nTrellis uses this name on tickets and messages.\nSave server",
+      "controls": [
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Server URL",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Open Settings",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Cancel scan",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Test connection",
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Your name",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Save server",
+          "disabled": true
+        }
+      ],
+      "axeViolations": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": [],
+      "expectedNetworkFailure": false,
+      "unexpectedConsoleErrors": [],
+      "unexpectedFailedRequests": [],
+      "metrics": {
+        "reducedMotion": true,
+        "colorScheme": "light",
+        "innerWidth": 320,
+        "scrollWidth": 320,
+        "horizontalOverflow": 0,
+        "cumulativeLayoutShift": 0
+      }
+    },
+    {
+      "kind": "final browser evidence",
+      "id": "camera-granted",
+      "title": "Camera access granted",
+      "theme": "light",
+      "width": 320,
+      "height": 720,
+      "route": "/setup",
+      "screenshot": "assets/light/camera-granted-320px.png",
+      "expectedText": [
+        "Point the camera at the Trellis pair code.",
+        "Cancel scan"
+      ],
+      "visibleText": "Server\nConnect this phone to the Trellis server on your computer. Test the server before you save it.\nServer URL\nScan the pair code from Trellis settings, or enter the address that Trellis prints at start.\nScan a pairing code\nPoint the camera at the Trellis pair code.\nCancel scan\nTest connection\nYour name\nTrellis uses this name on tickets and messages.\nSave server",
+      "controls": [
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Server URL",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Cancel scan",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Test connection",
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Your name",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Save server",
+          "disabled": true
+        }
+      ],
+      "axeViolations": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": [],
+      "expectedNetworkFailure": false,
+      "unexpectedConsoleErrors": [],
+      "unexpectedFailedRequests": [],
+      "metrics": {
+        "reducedMotion": true,
+        "colorScheme": "light",
+        "innerWidth": 320,
+        "scrollWidth": 320,
+        "horizontalOverflow": 0,
+        "cumulativeLayoutShift": 0
+      }
+    },
+    {
+      "kind": "final browser evidence",
+      "id": "invalid-qr",
+      "title": "Invalid QR scan",
+      "theme": "light",
+      "width": 320,
+      "height": 720,
+      "route": "/setup",
+      "screenshot": "assets/light/invalid-qr-320px.png",
+      "expectedText": [
+        "This code does not contain a Trellis pair link."
+      ],
+      "invalidQr": {
+        "alert": "This code does not contain a Trellis pair link. Scan the code from Trellis settings, or enter the address."
+      },
+      "visibleText": "Server\nConnect this phone to the Trellis server on your computer. Test the server before you save it.\nServer URL\nScan the pair code from Trellis settings, or enter the address that Trellis prints at start.\nScan pair code\nTest connection\nYour name\nTrellis uses this name on tickets and messages.\nSave server\nThis code does not contain a Trellis pair link. Scan the code from Trellis settings, or enter the address.",
+      "controls": [
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Server URL",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Scan pair code",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Test connection",
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Your name",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Save server",
+          "disabled": true
+        }
+      ],
+      "axeViolations": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": [],
+      "expectedNetworkFailure": false,
+      "unexpectedConsoleErrors": [],
+      "unexpectedFailedRequests": [],
+      "metrics": {
+        "reducedMotion": true,
+        "colorScheme": "light",
+        "innerWidth": 320,
+        "scrollWidth": 320,
+        "horizontalOverflow": 0,
+        "cumulativeLayoutShift": 0
+      }
+    },
+    {
+      "kind": "final browser evidence",
+      "id": "valid-qr",
+      "title": "Valid QR scan",
+      "theme": "light",
+      "width": 320,
+      "height": 720,
+      "route": "/setup",
+      "screenshot": "assets/light/valid-qr-320px.png",
+      "expectedText": [
+        "Connected to this Trellis server.",
+        "Server default actor"
+      ],
+      "visibleText": "Server\nConnect this phone to the Trellis server on your computer. Test the server before you save it.\nServer URL\nScan the pair code from Trellis settings, or enter the address that Trellis prints at start.\nScan pair code\nTest connection\nYour name\nUse letters, numbers, spaces, or punctuation. Do not use a colon.\nSave server\nConnected to this Trellis server.\nVersion\n1.2.3-final\nTickets\n42 tickets\nServer default actor\nFixture Person",
+      "controls": [
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Server URL",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Scan pair code",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Test connection",
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Your name",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Save server",
+          "disabled": true
+        }
+      ],
+      "axeViolations": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": [],
+      "expectedNetworkFailure": false,
+      "unexpectedConsoleErrors": [],
+      "unexpectedFailedRequests": [],
+      "metrics": {
+        "reducedMotion": true,
+        "colorScheme": "light",
+        "innerWidth": 320,
+        "scrollWidth": 320,
+        "horizontalOverflow": 0,
+        "cumulativeLayoutShift": 0
+      }
+    },
+    {
+      "kind": "final browser evidence",
+      "id": "scan-cancel",
+      "title": "Scan cancel",
+      "theme": "light",
+      "width": 320,
+      "height": 720,
+      "route": "/setup",
+      "screenshot": "assets/light/scan-cancel-320px.png",
+      "expectedText": [
+        "Scan pair code"
+      ],
+      "visibleText": "Server\nConnect this phone to the Trellis server on your computer. Test the server before you save it.\nServer URL\nScan the pair code from Trellis settings, or enter the address that Trellis prints at start.\nScan pair code\nTest connection\nYour name\nTrellis uses this name on tickets and messages.\nSave server",
+      "controls": [
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Server URL",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Scan pair code",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Test connection",
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Your name",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Save server",
+          "disabled": true
+        }
+      ],
+      "axeViolations": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": [],
+      "expectedNetworkFailure": false,
+      "unexpectedConsoleErrors": [],
+      "unexpectedFailedRequests": [],
+      "metrics": {
+        "reducedMotion": true,
+        "colorScheme": "light",
+        "innerWidth": 320,
+        "scrollWidth": 320,
+        "horizontalOverflow": 0,
+        "cumulativeLayoutShift": 0
+      }
+    },
+    {
+      "kind": "final browser evidence",
+      "id": "focus-transitions",
+      "title": "Keyboard focus transitions",
+      "theme": "light",
+      "width": 320,
+      "height": 720,
+      "route": "/setup",
+      "screenshot": "assets/light/focus-transitions-320px.png",
+      "expectedText": [
+        "Connected to this Trellis server."
+      ],
+      "focusTransitions": {
+        "resting": "rgb(221, 221, 223)",
+        "focused": "rgb(110, 110, 115)",
+        "blurred": "rgb(221, 221, 223)",
+        "order": [
+          {
+            "tag": "INPUT",
+            "name": "Server URL",
+            "borderColor": "rgb(110, 110, 115)"
+          },
+          {
+            "tag": "BUTTON",
+            "name": "Scan pair code",
+            "borderColor": "rgb(110, 110, 115)"
+          },
+          {
+            "tag": "BUTTON",
+            "name": "Test connection",
+            "borderColor": "rgb(110, 110, 115)"
+          },
+          {
+            "tag": "INPUT",
+            "name": "Your name",
+            "borderColor": "rgb(110, 110, 115)"
+          },
+          {
+            "tag": "BUTTON",
+            "name": "Save server",
+            "borderColor": "rgb(255, 255, 255)"
+          }
+        ]
+      },
+      "visibleText": "Server\nConnect this phone to the Trellis server on your computer. Test the server before you save it.\nServer URL\nScan the pair code from Trellis settings, or enter the address that Trellis prints at start.\nScan pair code\nTest connection\nYour name\nTrellis uses this name on tickets and messages.\nSave server\nConnected to this Trellis server.\nVersion\n1.2.3-final\nTickets\n42 tickets\nServer default actor\nFixture Person",
+      "controls": [
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Server URL",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Scan pair code",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Test connection",
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Your name",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Save server",
+          "disabled": false
+        }
+      ],
+      "axeViolations": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": [],
+      "expectedNetworkFailure": false,
+      "unexpectedConsoleErrors": [],
+      "unexpectedFailedRequests": [],
+      "metrics": {
+        "reducedMotion": true,
+        "colorScheme": "light",
+        "innerWidth": 320,
+        "scrollWidth": 320,
+        "horizontalOverflow": 0,
+        "cumulativeLayoutShift": 0
+      }
+    },
+    {
+      "kind": "final browser evidence",
+      "id": "long-content-reflow",
+      "title": "Long content at the 200 percent reflow proxy",
+      "theme": "light",
+      "width": 160,
+      "height": 720,
+      "route": "/setup",
+      "screenshot": "assets/light/long-content-reflow-160px.png",
+      "expectedText": [
+        "final-version-with-a-deliberately-long-build-identity-2026.10.07",
+        "987654 tickets",
+        "Server default actor"
+      ],
+      "detailBoxes": {
+        "versionLabel": {
+          "x": 32,
+          "y": 814,
+          "width": 96,
+          "height": 22
+        },
+        "versionValue": {
+          "x": 32,
+          "y": 848,
+          "width": 96,
+          "height": 132
+        },
+        "actorLabel": {
+          "x": 32,
+          "y": 1092,
+          "width": 96,
+          "height": 44
+        }
+      },
+      "visibleText": "Server\nConnect this phone to the Trellis server on your computer. Test the server before you save it.\nServer URL\nScan the pair code from Trellis settings, or enter the address that Trellis prints at start.\nScan pair code\nTest connection\nYour name\nTrellis uses this name on tickets and messages.\nSave server\nConnected to this Trellis server.\nVersion\nfinal-version-with-a-deliberately-long-build-identity-2026.10.07\nTickets\n987654 tickets\nServer default actor\nSynthetic Person With A Deliberately Long Browser Baseline Identity",
+      "controls": [
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Server URL",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Scan pair code",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Test connection",
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Your name",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Save server",
+          "disabled": false
+        }
+      ],
+      "axeViolations": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": [],
+      "expectedNetworkFailure": false,
+      "unexpectedConsoleErrors": [],
+      "unexpectedFailedRequests": [],
+      "metrics": {
+        "reducedMotion": true,
+        "colorScheme": "light",
+        "innerWidth": 160,
+        "scrollWidth": 160,
+        "horizontalOverflow": 0,
+        "cumulativeLayoutShift": 0
+      }
+    },
+    {
+      "kind": "final browser evidence",
+      "id": "desktop-success",
+      "title": "Desktop-width comparison",
+      "theme": "light",
+      "width": 1024,
+      "height": 768,
+      "route": "/setup",
+      "screenshot": "assets/light/desktop-success-1024px.png",
+      "expectedText": [
+        "Connected to this Trellis server.",
+        "Server default actor"
+      ],
+      "visibleText": "Server\nConnect this phone to the Trellis server on your computer. Test the server before you save it.\nServer URL\nScan the pair code from Trellis settings, or enter the address that Trellis prints at start.\nScan pair code\nTest connection\nYour name\nTrellis uses this name on tickets and messages.\nSave server\nConnected to this Trellis server.\nVersion\n1.2.3-final\nTickets\n42 tickets\nServer default actor\nFixture Person",
+      "controls": [
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Server URL",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Scan pair code",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Test connection",
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Your name",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Save server",
+          "disabled": false
+        }
+      ],
+      "axeViolations": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": [],
+      "expectedNetworkFailure": false,
+      "unexpectedConsoleErrors": [],
+      "unexpectedFailedRequests": [],
+      "metrics": {
+        "reducedMotion": true,
+        "colorScheme": "light",
+        "innerWidth": 1024,
+        "scrollWidth": 1024,
+        "horizontalOverflow": 0,
+        "cumulativeLayoutShift": 0.0078125
+      }
+    },
+    {
+      "kind": "final browser evidence",
+      "id": "fresh-setup",
+      "title": "Fresh setup and disabled Save server",
+      "theme": "dark",
+      "width": 320,
+      "height": 720,
+      "route": "/setup",
+      "screenshot": "assets/dark/fresh-setup-320px.png",
+      "expectedText": [
+        "Server URL",
+        "Scan pair code",
+        "Test connection",
+        "Your name",
+        "Save server"
+      ],
+      "saveDisabled": true,
+      "focusOrder": [
+        {
+          "tag": "INPUT",
+          "name": "Server URL",
+          "borderColor": "rgb(196, 196, 196)"
+        },
+        {
+          "tag": "BUTTON",
+          "name": "Scan pair code",
+          "borderColor": "rgb(196, 196, 196)"
+        },
+        {
+          "tag": "BUTTON",
+          "name": "Test connection",
+          "borderColor": "rgb(196, 196, 196)"
+        },
+        {
+          "tag": "INPUT",
+          "name": "Your name",
+          "borderColor": "rgb(196, 196, 196)"
+        }
+      ],
+      "visibleText": "Server\nConnect this phone to the Trellis server on your computer. Test the server before you save it.\nServer URL\nScan the pair code from Trellis settings, or enter the address that Trellis prints at start.\nScan pair code\nTest connection\nYour name\nTrellis uses this name on tickets and messages.\nSave server",
+      "controls": [
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Server URL",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Scan pair code",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Test connection",
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Your name",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Save server",
+          "disabled": true
+        }
+      ],
+      "axeViolations": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": [],
+      "expectedNetworkFailure": false,
+      "unexpectedConsoleErrors": [],
+      "unexpectedFailedRequests": [],
+      "metrics": {
+        "reducedMotion": true,
+        "colorScheme": "dark",
+        "innerWidth": 320,
+        "scrollWidth": 320,
+        "horizontalOverflow": 0,
+        "cumulativeLayoutShift": 0
+      }
+    },
+    {
+      "kind": "final browser evidence",
+      "id": "invalid-url",
+      "title": "Invalid URL",
+      "theme": "dark",
+      "width": 320,
+      "height": 720,
+      "route": "/setup",
+      "screenshot": "assets/dark/invalid-url-320px.png",
+      "expectedText": [
+        "Start the URL with http:// or https://"
+      ],
+      "visibleText": "Server\nConnect this phone to the Trellis server on your computer. Test the server before you save it.\nServer URL\nStart the URL with http:// or https://, for example http://192.168.1.20:4521.\nScan pair code\nTest connection\nYour name\nTrellis uses this name on tickets and messages.\nSave server",
+      "controls": [
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Server URL",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Scan pair code",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Test connection",
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Your name",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Save server",
+          "disabled": true
+        }
+      ],
+      "axeViolations": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": [],
+      "expectedNetworkFailure": false,
+      "unexpectedConsoleErrors": [],
+      "unexpectedFailedRequests": [],
+      "metrics": {
+        "reducedMotion": true,
+        "colorScheme": "dark",
+        "innerWidth": 320,
+        "scrollWidth": 320,
+        "horizontalOverflow": 0,
+        "cumulativeLayoutShift": 0
+      }
+    },
+    {
+      "kind": "final browser evidence",
+      "id": "invalid-name",
+      "title": "Invalid name",
+      "theme": "dark",
+      "width": 320,
+      "height": 720,
+      "route": "/setup",
+      "screenshot": "assets/dark/invalid-name-320px.png",
+      "expectedText": [
+        "Use letters, numbers, spaces, or punctuation.",
+        "Do not use a colon."
+      ],
+      "visibleText": "Server\nConnect this phone to the Trellis server on your computer. Test the server before you save it.\nServer URL\nScan the pair code from Trellis settings, or enter the address that Trellis prints at start.\nScan pair code\nTest connection\nYour name\nUse letters, numbers, spaces, or punctuation. Do not use a colon.\nSave server",
+      "controls": [
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Server URL",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Scan pair code",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Test connection",
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Your name",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Save server",
+          "disabled": true
+        }
+      ],
+      "axeViolations": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": [],
+      "expectedNetworkFailure": false,
+      "unexpectedConsoleErrors": [],
+      "unexpectedFailedRequests": [],
+      "metrics": {
+        "reducedMotion": true,
+        "colorScheme": "dark",
+        "innerWidth": 320,
+        "scrollWidth": 320,
+        "horizontalOverflow": 0,
+        "cumulativeLayoutShift": 0
+      }
+    },
+    {
+      "kind": "final browser evidence",
+      "id": "connection-progress",
+      "title": "Connection progress",
+      "theme": "dark",
+      "width": 320,
+      "height": 720,
+      "route": "/setup",
+      "screenshot": "assets/dark/connection-progress-320px.png",
+      "expectedText": [
+        "Testing connection…"
+      ],
+      "visibleText": "Server\nConnect this phone to the Trellis server on your computer. Test the server before you save it.\nServer URL\nScan the pair code from Trellis settings, or enter the address that Trellis prints at start.\nScan pair code\nTesting connection…\nYour name\nTrellis uses this name on tickets and messages.\nSave server\nTesting the connection…",
+      "controls": [
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Server URL",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Scan pair code",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Testing connection…",
+          "disabled": true
+        },
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Your name",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Save server",
+          "disabled": true
+        }
+      ],
+      "axeViolations": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": [],
+      "expectedNetworkFailure": true,
+      "unexpectedConsoleErrors": [],
+      "unexpectedFailedRequests": [],
+      "metrics": {
+        "reducedMotion": true,
+        "colorScheme": "dark",
+        "innerWidth": 320,
+        "scrollWidth": 320,
+        "horizontalOverflow": 0,
+        "cumulativeLayoutShift": 0
+      }
+    },
+    {
+      "kind": "final browser evidence",
+      "id": "connection-timeout",
+      "title": "Connection timeout",
+      "theme": "dark",
+      "width": 320,
+      "height": 720,
+      "route": "/setup",
+      "screenshot": "assets/dark/connection-timeout-320px.png",
+      "expectedText": [
+        "The server did not reply in 3 seconds."
+      ],
+      "visibleText": "Server\nConnect this phone to the Trellis server on your computer. Test the server before you save it.\nServer URL\nScan the pair code from Trellis settings, or enter the address that Trellis prints at start.\nScan pair code\nTest connection\nYour name\nTrellis uses this name on tickets and messages.\nSave server\nThe server did not reply in 3 seconds. Check that Trellis is open, then test again.",
+      "controls": [
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Server URL",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Scan pair code",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Test connection",
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Your name",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Save server",
+          "disabled": true
+        }
+      ],
+      "axeViolations": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": [
+        "POST http://127.0.0.1:4175/rpc/system/health net::ERR_ABORTED"
+      ],
+      "expectedNetworkFailure": true,
+      "unexpectedConsoleErrors": [],
+      "unexpectedFailedRequests": [],
+      "metrics": {
+        "reducedMotion": true,
+        "colorScheme": "dark",
+        "innerWidth": 320,
+        "scrollWidth": 320,
+        "horizontalOverflow": 0,
+        "cumulativeLayoutShift": 0.00034519638249903546
+      }
+    },
+    {
+      "kind": "final browser evidence",
+      "id": "unreachable-server",
+      "title": "Unreachable server",
+      "theme": "dark",
+      "width": 320,
+      "height": 720,
+      "route": "/setup",
+      "screenshot": "assets/dark/unreachable-server-320px.png",
+      "expectedText": [
+        "Unable to reach this server."
+      ],
+      "visibleText": "Server\nConnect this phone to the Trellis server on your computer. Test the server before you save it.\nServer URL\nScan the pair code from Trellis settings, or enter the address that Trellis prints at start.\nScan pair code\nTest connection\nYour name\nTrellis uses this name on tickets and messages.\nSave server\nUnable to reach this server. Check the address and network, then test again.",
+      "controls": [
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Server URL",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Scan pair code",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Test connection",
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Your name",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Save server",
+          "disabled": true
+        }
+      ],
+      "axeViolations": [],
+      "consoleErrors": [
+        "Failed to load resource: net::ERR_CONNECTION_REFUSED"
+      ],
+      "pageErrors": [],
+      "failedRequests": [
+        "POST http://127.0.0.1:4175/rpc/system/health net::ERR_CONNECTION_REFUSED"
+      ],
+      "expectedNetworkFailure": true,
+      "unexpectedConsoleErrors": [],
+      "unexpectedFailedRequests": [],
+      "metrics": {
+        "reducedMotion": true,
+        "colorScheme": "dark",
+        "innerWidth": 320,
+        "scrollWidth": 320,
+        "horizontalOverflow": 0,
+        "cumulativeLayoutShift": 0
+      }
+    },
+    {
+      "kind": "final browser evidence",
+      "id": "non-trellis-server",
+      "title": "Non-Trellis server",
+      "theme": "dark",
+      "width": 320,
+      "height": 720,
+      "route": "/setup",
+      "screenshot": "assets/dark/non-trellis-server-320px.png",
+      "expectedText": [
+        "This address does not respond as a Trellis server."
+      ],
+      "visibleText": "Server\nConnect this phone to the Trellis server on your computer. Test the server before you save it.\nServer URL\nScan the pair code from Trellis settings, or enter the address that Trellis prints at start.\nScan pair code\nTest connection\nYour name\nTrellis uses this name on tickets and messages.\nSave server\nThis address does not respond as a Trellis server. Check the address, then test again.",
+      "controls": [
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Server URL",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Scan pair code",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Test connection",
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Your name",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Save server",
+          "disabled": true
+        }
+      ],
+      "axeViolations": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": [],
+      "expectedNetworkFailure": false,
+      "unexpectedConsoleErrors": [],
+      "unexpectedFailedRequests": [],
+      "metrics": {
+        "reducedMotion": true,
+        "colorScheme": "dark",
+        "innerWidth": 320,
+        "scrollWidth": 320,
+        "horizontalOverflow": 0,
+        "cumulativeLayoutShift": 0
+      }
+    },
+    {
+      "kind": "final browser evidence",
+      "id": "successful-probe",
+      "title": "Successful probe and stable form controls",
+      "theme": "dark",
+      "width": 320,
+      "height": 720,
+      "route": "/setup",
+      "screenshot": "assets/dark/successful-probe-320px.png",
+      "expectedText": [
+        "1.2.3-final",
+        "42 tickets",
+        "Server default actor",
+        "Fixture Person"
+      ],
+      "layout": {
+        "before": {
+          "Server URL": {
+            "x": 16,
+            "y": 164,
+            "width": 288,
+            "height": 44
+          },
+          "Scan pair code": {
+            "x": 16,
+            "y": 262,
+            "width": 288,
+            "height": 44
+          },
+          "Test connection": {
+            "x": 16,
+            "y": 322,
+            "width": 288,
+            "height": 44
+          },
+          "Your name": {
+            "x": 16,
+            "y": 404,
+            "width": 288,
+            "height": 44
+          },
+          "Save server": {
+            "x": 16,
+            "y": 486,
+            "width": 288,
+            "height": 44
+          }
+        },
+        "after": {
+          "Server URL": {
+            "x": 16,
+            "y": 164,
+            "width": 288,
+            "height": 44
+          },
+          "Scan pair code": {
+            "x": 16,
+            "y": 262,
+            "width": 288,
+            "height": 44
+          },
+          "Test connection": {
+            "x": 16,
+            "y": 322,
+            "width": 288,
+            "height": 44
+          },
+          "Your name": {
+            "x": 16,
+            "y": 404,
+            "width": 288,
+            "height": 44
+          },
+          "Save server": {
+            "x": 16,
+            "y": 486,
+            "width": 288,
+            "height": 44
+          }
+        },
+        "maxDelta": 0
+      },
+      "visibleText": "Server\nConnect this phone to the Trellis server on your computer. Test the server before you save it.\nServer URL\nScan the pair code from Trellis settings, or enter the address that Trellis prints at start.\nScan pair code\nTest connection\nYour name\nTrellis uses this name on tickets and messages.\nSave server\nConnected to this Trellis server.\nVersion\n1.2.3-final\nTickets\n42 tickets\nServer default actor\nFixture Person",
+      "controls": [
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Server URL",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Scan pair code",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Test connection",
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Your name",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Save server",
+          "disabled": false
+        }
+      ],
+      "axeViolations": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": [],
+      "expectedNetworkFailure": false,
+      "unexpectedConsoleErrors": [],
+      "unexpectedFailedRequests": [],
+      "metrics": {
+        "reducedMotion": true,
+        "colorScheme": "dark",
+        "innerWidth": 320,
+        "scrollWidth": 320,
+        "horizontalOverflow": 0,
+        "cumulativeLayoutShift": 0
+      }
+    },
+    {
+      "kind": "final browser evidence",
+      "id": "existing-server-replacement",
+      "title": "Existing server replacement",
+      "theme": "dark",
+      "width": 320,
+      "height": 720,
+      "route": "/setup",
+      "screenshot": "assets/dark/existing-server-replacement-320px.png",
+      "expectedText": [
+        "Saving replaces the current server",
+        "Server default actor"
+      ],
+      "visibleText": "Server\nConnect this phone to the Trellis server on your computer. Test the server before you save it.\nServer URL\nScan the pair code from Trellis settings, or enter the address that Trellis prints at start.\nScan pair code\nTest connection\nYour name\nTrellis uses this name on tickets and messages.\nSave server\nConnected to this Trellis server.\nVersion\n1.2.3-final\nTickets\n42 tickets\nServer default actor\nFixture Person\nSaving replaces the current server and clears its cached tickets from this phone.",
+      "controls": [
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Server URL",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Scan pair code",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Test connection",
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Your name",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Save server",
+          "disabled": false
+        }
+      ],
+      "axeViolations": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": [],
+      "expectedNetworkFailure": false,
+      "unexpectedConsoleErrors": [],
+      "unexpectedFailedRequests": [],
+      "metrics": {
+        "reducedMotion": true,
+        "colorScheme": "dark",
+        "innerWidth": 320,
+        "scrollWidth": 320,
+        "horizontalOverflow": 0,
+        "cumulativeLayoutShift": 0
+      }
+    },
+    {
+      "kind": "final browser evidence",
+      "id": "saved-reload-retention",
+      "title": "Saved values retained after a browser reload",
+      "theme": "dark",
+      "width": 320,
+      "height": 720,
+      "route": "/setup",
+      "screenshot": "assets/dark/saved-reload-retention-320px.png",
+      "expectedText": [
+        "Server URL",
+        "Your name"
+      ],
+      "reloadRetention": {
+        "storageAfterSave": {
+          "url": "http://127.0.0.1:4175",
+          "name": "reload-person"
+        },
+        "valuesAfterReload": {
+          "url": "http://127.0.0.1:4175",
+          "name": "reload-person"
+        }
+      },
+      "visibleText": "Server\nConnect this phone to the Trellis server on your computer. Test the server before you save it.\nServer URL\nScan the pair code from Trellis settings, or enter the address that Trellis prints at start.\nScan pair code\nTest connection\nYour name\nTrellis uses this name on tickets and messages.\nSave server",
+      "controls": [
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Server URL",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Scan pair code",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Test connection",
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Your name",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Save server",
+          "disabled": true
+        }
+      ],
+      "axeViolations": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": [],
+      "expectedNetworkFailure": false,
+      "unexpectedConsoleErrors": [],
+      "unexpectedFailedRequests": [],
+      "metrics": {
+        "reducedMotion": true,
+        "colorScheme": "dark",
+        "innerWidth": 320,
+        "scrollWidth": 320,
+        "horizontalOverflow": 0,
+        "cumulativeLayoutShift": 0
+      }
+    },
+    {
+      "kind": "final browser evidence",
+      "id": "invalid-pair-link",
+      "title": "Invalid pair-link URL",
+      "theme": "dark",
+      "width": 320,
+      "height": 720,
+      "route": "/pair?url=not-a-server-url",
+      "screenshot": "assets/dark/invalid-pair-link-320px.png",
+      "expectedText": [
+        "Start the URL with http:// or https://"
+      ],
+      "visibleText": "‹\nServer\nConnect this phone to the Trellis server on your computer. Test the server before you save it.\nServer URL\nStart the URL with http:// or https://, for example http://192.168.1.20:4521.\nScan pair code\nTest connection\nYour name\nTrellis uses this name on tickets and messages.\nSave server",
+      "controls": [
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Back",
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Server URL",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Scan pair code",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Test connection",
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Your name",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Save server",
+          "disabled": true
+        }
+      ],
+      "axeViolations": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": [],
+      "expectedNetworkFailure": false,
+      "unexpectedConsoleErrors": [],
+      "unexpectedFailedRequests": [],
+      "metrics": {
+        "reducedMotion": true,
+        "colorScheme": "dark",
+        "innerWidth": 320,
+        "scrollWidth": 320,
+        "horizontalOverflow": 0,
+        "cumulativeLayoutShift": 0
+      }
+    },
+    {
+      "kind": "final browser evidence",
+      "id": "valid-pair-link",
+      "title": "Valid pair-link URL",
+      "theme": "dark",
+      "width": 320,
+      "height": 720,
+      "route": "/pair?url=http%3A%2F%2F127.0.0.1%3A4175",
+      "screenshot": "assets/dark/valid-pair-link-320px.png",
+      "expectedText": [
+        "Connected to this Trellis server.",
+        "Server default actor"
+      ],
+      "visibleText": "‹\nServer\nConnect this phone to the Trellis server on your computer. Test the server before you save it.\nServer URL\nScan the pair code from Trellis settings, or enter the address that Trellis prints at start.\nScan pair code\nTest connection\nYour name\nUse letters, numbers, spaces, or punctuation. Do not use a colon.\nSave server\nConnected to this Trellis server.\nVersion\n1.2.3-final\nTickets\n42 tickets\nServer default actor\nFixture Person",
+      "controls": [
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Back",
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Server URL",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Scan pair code",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Test connection",
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Your name",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Save server",
+          "disabled": true
+        }
+      ],
+      "axeViolations": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": [],
+      "expectedNetworkFailure": false,
+      "unexpectedConsoleErrors": [],
+      "unexpectedFailedRequests": [],
+      "metrics": {
+        "reducedMotion": true,
+        "colorScheme": "dark",
+        "innerWidth": 320,
+        "scrollWidth": 320,
+        "horizontalOverflow": 0,
+        "cumulativeLayoutShift": 0.0033186999662422837
+      }
+    },
+    {
+      "kind": "final browser evidence",
+      "id": "camera-permission-request",
+      "title": "Camera permission request",
+      "theme": "dark",
+      "width": 320,
+      "height": 720,
+      "route": "/setup",
+      "screenshot": "assets/dark/camera-permission-request-320px.png",
+      "expectedText": [
+        "Allow camera access to scan the Trellis pair code.",
+        "Allow camera",
+        "Cancel scan"
+      ],
+      "visibleText": "Server\nConnect this phone to the Trellis server on your computer. Test the server before you save it.\nServer URL\nScan the pair code from Trellis settings, or enter the address that Trellis prints at start.\nScan a pairing code\nAllow camera access to scan the Trellis pair code.\nAllow camera\nCancel scan\nTest connection\nYour name\nTrellis uses this name on tickets and messages.\nSave server",
+      "controls": [
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Server URL",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Allow camera",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Cancel scan",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Test connection",
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Your name",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Save server",
+          "disabled": true
+        }
+      ],
+      "axeViolations": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": [],
+      "expectedNetworkFailure": false,
+      "unexpectedConsoleErrors": [],
+      "unexpectedFailedRequests": [],
+      "metrics": {
+        "reducedMotion": true,
+        "colorScheme": "dark",
+        "innerWidth": 320,
+        "scrollWidth": 320,
+        "horizontalOverflow": 0,
+        "cumulativeLayoutShift": 0
+      }
+    },
+    {
+      "kind": "final browser evidence",
+      "id": "camera-denied",
+      "title": "Camera access denied",
+      "theme": "dark",
+      "width": 320,
+      "height": 720,
+      "route": "/setup",
+      "screenshot": "assets/dark/camera-denied-320px.png",
+      "expectedText": [
+        "Camera access is off.",
+        "Open Settings",
+        "Cancel scan"
+      ],
+      "cameraDenied": {
+        "alert": "Camera access is off. Open Settings and allow camera access for Trellis.",
+        "openSettingsName": "Open Settings"
+      },
+      "visibleText": "Server\nConnect this phone to the Trellis server on your computer. Test the server before you save it.\nServer URL\nScan the pair code from Trellis settings, or enter the address that Trellis prints at start.\nScan a pairing code\nCamera access is off. Open Settings and allow camera access for Trellis.\nOpen Settings\nCancel scan\nTest connection\nYour name\nTrellis uses this name on tickets and messages.\nSave server",
+      "controls": [
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Server URL",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Open Settings",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Cancel scan",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Test connection",
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Your name",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Save server",
+          "disabled": true
+        }
+      ],
+      "axeViolations": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": [],
+      "expectedNetworkFailure": false,
+      "unexpectedConsoleErrors": [],
+      "unexpectedFailedRequests": [],
+      "metrics": {
+        "reducedMotion": true,
+        "colorScheme": "dark",
+        "innerWidth": 320,
+        "scrollWidth": 320,
+        "horizontalOverflow": 0,
+        "cumulativeLayoutShift": 0
+      }
+    },
+    {
+      "kind": "final browser evidence",
+      "id": "camera-granted",
+      "title": "Camera access granted",
+      "theme": "dark",
+      "width": 320,
+      "height": 720,
+      "route": "/setup",
+      "screenshot": "assets/dark/camera-granted-320px.png",
+      "expectedText": [
+        "Point the camera at the Trellis pair code.",
+        "Cancel scan"
+      ],
+      "visibleText": "Server\nConnect this phone to the Trellis server on your computer. Test the server before you save it.\nServer URL\nScan the pair code from Trellis settings, or enter the address that Trellis prints at start.\nScan a pairing code\nPoint the camera at the Trellis pair code.\nCancel scan\nTest connection\nYour name\nTrellis uses this name on tickets and messages.\nSave server",
+      "controls": [
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Server URL",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Cancel scan",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Test connection",
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Your name",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Save server",
+          "disabled": true
+        }
+      ],
+      "axeViolations": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": [],
+      "expectedNetworkFailure": false,
+      "unexpectedConsoleErrors": [],
+      "unexpectedFailedRequests": [],
+      "metrics": {
+        "reducedMotion": true,
+        "colorScheme": "dark",
+        "innerWidth": 320,
+        "scrollWidth": 320,
+        "horizontalOverflow": 0,
+        "cumulativeLayoutShift": 0
+      }
+    },
+    {
+      "kind": "final browser evidence",
+      "id": "invalid-qr",
+      "title": "Invalid QR scan",
+      "theme": "dark",
+      "width": 320,
+      "height": 720,
+      "route": "/setup",
+      "screenshot": "assets/dark/invalid-qr-320px.png",
+      "expectedText": [
+        "This code does not contain a Trellis pair link."
+      ],
+      "invalidQr": {
+        "alert": "This code does not contain a Trellis pair link. Scan the code from Trellis settings, or enter the address."
+      },
+      "visibleText": "Server\nConnect this phone to the Trellis server on your computer. Test the server before you save it.\nServer URL\nScan the pair code from Trellis settings, or enter the address that Trellis prints at start.\nScan pair code\nTest connection\nYour name\nTrellis uses this name on tickets and messages.\nSave server\nThis code does not contain a Trellis pair link. Scan the code from Trellis settings, or enter the address.",
+      "controls": [
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Server URL",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Scan pair code",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Test connection",
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Your name",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Save server",
+          "disabled": true
+        }
+      ],
+      "axeViolations": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": [],
+      "expectedNetworkFailure": false,
+      "unexpectedConsoleErrors": [],
+      "unexpectedFailedRequests": [],
+      "metrics": {
+        "reducedMotion": true,
+        "colorScheme": "dark",
+        "innerWidth": 320,
+        "scrollWidth": 320,
+        "horizontalOverflow": 0,
+        "cumulativeLayoutShift": 0
+      }
+    },
+    {
+      "kind": "final browser evidence",
+      "id": "valid-qr",
+      "title": "Valid QR scan",
+      "theme": "dark",
+      "width": 320,
+      "height": 720,
+      "route": "/setup",
+      "screenshot": "assets/dark/valid-qr-320px.png",
+      "expectedText": [
+        "Connected to this Trellis server.",
+        "Server default actor"
+      ],
+      "visibleText": "Server\nConnect this phone to the Trellis server on your computer. Test the server before you save it.\nServer URL\nScan the pair code from Trellis settings, or enter the address that Trellis prints at start.\nScan pair code\nTest connection\nYour name\nUse letters, numbers, spaces, or punctuation. Do not use a colon.\nSave server\nConnected to this Trellis server.\nVersion\n1.2.3-final\nTickets\n42 tickets\nServer default actor\nFixture Person",
+      "controls": [
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Server URL",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Scan pair code",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Test connection",
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Your name",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Save server",
+          "disabled": true
+        }
+      ],
+      "axeViolations": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": [],
+      "expectedNetworkFailure": false,
+      "unexpectedConsoleErrors": [],
+      "unexpectedFailedRequests": [],
+      "metrics": {
+        "reducedMotion": true,
+        "colorScheme": "dark",
+        "innerWidth": 320,
+        "scrollWidth": 320,
+        "horizontalOverflow": 0,
+        "cumulativeLayoutShift": 0
+      }
+    },
+    {
+      "kind": "final browser evidence",
+      "id": "scan-cancel",
+      "title": "Scan cancel",
+      "theme": "dark",
+      "width": 320,
+      "height": 720,
+      "route": "/setup",
+      "screenshot": "assets/dark/scan-cancel-320px.png",
+      "expectedText": [
+        "Scan pair code"
+      ],
+      "visibleText": "Server\nConnect this phone to the Trellis server on your computer. Test the server before you save it.\nServer URL\nScan the pair code from Trellis settings, or enter the address that Trellis prints at start.\nScan pair code\nTest connection\nYour name\nTrellis uses this name on tickets and messages.\nSave server",
+      "controls": [
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Server URL",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Scan pair code",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Test connection",
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Your name",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Save server",
+          "disabled": true
+        }
+      ],
+      "axeViolations": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": [],
+      "expectedNetworkFailure": false,
+      "unexpectedConsoleErrors": [],
+      "unexpectedFailedRequests": [],
+      "metrics": {
+        "reducedMotion": true,
+        "colorScheme": "dark",
+        "innerWidth": 320,
+        "scrollWidth": 320,
+        "horizontalOverflow": 0,
+        "cumulativeLayoutShift": 0
+      }
+    },
+    {
+      "kind": "final browser evidence",
+      "id": "focus-transitions",
+      "title": "Keyboard focus transitions",
+      "theme": "dark",
+      "width": 320,
+      "height": 720,
+      "route": "/setup",
+      "screenshot": "assets/dark/focus-transitions-320px.png",
+      "expectedText": [
+        "Connected to this Trellis server."
+      ],
+      "focusTransitions": {
+        "resting": "rgb(50, 50, 52)",
+        "focused": "rgb(196, 196, 196)",
+        "blurred": "rgb(50, 50, 52)",
+        "order": [
+          {
+            "tag": "INPUT",
+            "name": "Server URL",
+            "borderColor": "rgb(196, 196, 196)"
+          },
+          {
+            "tag": "BUTTON",
+            "name": "Scan pair code",
+            "borderColor": "rgb(196, 196, 196)"
+          },
+          {
+            "tag": "BUTTON",
+            "name": "Test connection",
+            "borderColor": "rgb(196, 196, 196)"
+          },
+          {
+            "tag": "INPUT",
+            "name": "Your name",
+            "borderColor": "rgb(196, 196, 196)"
+          },
+          {
+            "tag": "BUTTON",
+            "name": "Save server",
+            "borderColor": "rgb(10, 10, 10)"
+          }
+        ]
+      },
+      "visibleText": "Server\nConnect this phone to the Trellis server on your computer. Test the server before you save it.\nServer URL\nScan the pair code from Trellis settings, or enter the address that Trellis prints at start.\nScan pair code\nTest connection\nYour name\nTrellis uses this name on tickets and messages.\nSave server\nConnected to this Trellis server.\nVersion\n1.2.3-final\nTickets\n42 tickets\nServer default actor\nFixture Person",
+      "controls": [
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Server URL",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Scan pair code",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Test connection",
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Your name",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Save server",
+          "disabled": false
+        }
+      ],
+      "axeViolations": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": [],
+      "expectedNetworkFailure": false,
+      "unexpectedConsoleErrors": [],
+      "unexpectedFailedRequests": [],
+      "metrics": {
+        "reducedMotion": true,
+        "colorScheme": "dark",
+        "innerWidth": 320,
+        "scrollWidth": 320,
+        "horizontalOverflow": 0,
+        "cumulativeLayoutShift": 0
+      }
+    },
+    {
+      "kind": "final browser evidence",
+      "id": "long-content-reflow",
+      "title": "Long content at the 200 percent reflow proxy",
+      "theme": "dark",
+      "width": 160,
+      "height": 720,
+      "route": "/setup",
+      "screenshot": "assets/dark/long-content-reflow-160px.png",
+      "expectedText": [
+        "final-version-with-a-deliberately-long-build-identity-2026.10.07",
+        "987654 tickets",
+        "Server default actor"
+      ],
+      "detailBoxes": {
+        "versionLabel": {
+          "x": 32,
+          "y": 814,
+          "width": 96,
+          "height": 22
+        },
+        "versionValue": {
+          "x": 32,
+          "y": 848,
+          "width": 96,
+          "height": 132
+        },
+        "actorLabel": {
+          "x": 32,
+          "y": 1092,
+          "width": 96,
+          "height": 44
+        }
+      },
+      "visibleText": "Server\nConnect this phone to the Trellis server on your computer. Test the server before you save it.\nServer URL\nScan the pair code from Trellis settings, or enter the address that Trellis prints at start.\nScan pair code\nTest connection\nYour name\nTrellis uses this name on tickets and messages.\nSave server\nConnected to this Trellis server.\nVersion\nfinal-version-with-a-deliberately-long-build-identity-2026.10.07\nTickets\n987654 tickets\nServer default actor\nSynthetic Person With A Deliberately Long Browser Baseline Identity",
+      "controls": [
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Server URL",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Scan pair code",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Test connection",
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Your name",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Save server",
+          "disabled": false
+        }
+      ],
+      "axeViolations": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": [],
+      "expectedNetworkFailure": false,
+      "unexpectedConsoleErrors": [],
+      "unexpectedFailedRequests": [],
+      "metrics": {
+        "reducedMotion": true,
+        "colorScheme": "dark",
+        "innerWidth": 160,
+        "scrollWidth": 160,
+        "horizontalOverflow": 0,
+        "cumulativeLayoutShift": 0
+      }
+    },
+    {
+      "kind": "final browser evidence",
+      "id": "desktop-success",
+      "title": "Desktop-width comparison",
+      "theme": "dark",
+      "width": 1024,
+      "height": 768,
+      "route": "/setup",
+      "screenshot": "assets/dark/desktop-success-1024px.png",
+      "expectedText": [
+        "Connected to this Trellis server.",
+        "Server default actor"
+      ],
+      "visibleText": "Server\nConnect this phone to the Trellis server on your computer. Test the server before you save it.\nServer URL\nScan the pair code from Trellis settings, or enter the address that Trellis prints at start.\nScan pair code\nTest connection\nYour name\nTrellis uses this name on tickets and messages.\nSave server\nConnected to this Trellis server.\nVersion\n1.2.3-final\nTickets\n42 tickets\nServer default actor\nFixture Person",
+      "controls": [
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Server URL",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Scan pair code",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Test connection",
+          "disabled": false
+        },
+        {
+          "tag": "INPUT",
+          "role": null,
+          "name": "Your name",
+          "disabled": false
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "name": "Save server",
+          "disabled": false
+        }
+      ],
+      "axeViolations": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": [],
+      "expectedNetworkFailure": false,
+      "unexpectedConsoleErrors": [],
+      "unexpectedFailedRequests": [],
+      "metrics": {
+        "reducedMotion": true,
+        "colorScheme": "dark",
+        "innerWidth": 1024,
+        "scrollWidth": 1024,
+        "horizontalOverflow": 0,
+        "cumulativeLayoutShift": 0.0078125
+      }
+    }
+  ]
+}
