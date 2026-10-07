@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { type ComponentProps, type ComponentType, useState } from "react";
 import { Pressable, StyleSheet, Text } from "react-native";
 import { layout } from "../../theme/layout";
 import { tokens } from "../../theme/tokens";
@@ -27,12 +27,15 @@ const styles = StyleSheet.create({
 	disabled: { opacity: 0.5 },
 });
 
+const NativePressable = Pressable as ComponentType<ComponentProps<typeof Pressable> & { cssInterop?: false }>;
+
 export function Button({ label, onPress, disabled = false, accessibilityHint, variant = "secondary" }: ButtonProps) {
 	const palette = usePalette();
 	const [focused, setFocused] = useState(false);
 	const primary = variant === "primary";
 	return (
-		<Pressable
+		<NativePressable
+			cssInterop={false}
 			accessibilityHint={accessibilityHint}
 			accessibilityRole="button"
 			accessibilityLabel={label}
@@ -56,6 +59,6 @@ export function Button({ label, onPress, disabled = false, accessibilityHint, va
 			]}
 		>
 			<Text style={[styles.label, { color: primary ? palette.onAccent : palette.fg }]}>{label}</Text>
-		</Pressable>
+		</NativePressable>
 	);
 }
