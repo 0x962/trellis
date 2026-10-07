@@ -21,7 +21,7 @@ export function CommentedDocument({
 	const comments = useDocumentComments(resourceId, handle);
 	const wide = useMediaQuery(WIDE_QUERY);
 	const [sheetOpen, setSheetOpen] = useState(false);
-	const hasMargin = comments.threads.length > 0 || comments.draftQuote !== null;
+	const hasMargin = comments.threads.length > 0 || comments.draftQuote !== null || comments.loadError !== null;
 	return (
 		<EpicDocument
 			{...props}
@@ -58,7 +58,7 @@ export function CommentedDocument({
 						</div>
 					</Sheet>
 				),
-				titleAction: !wide && comments.threads.length > 0 && (
+				titleAction: !wide && hasMargin && (
 					<Tooltip content="Comments">
 						<IconButton label="Comments" icon={<ChatText />} onClick={() => setSheetOpen(true)} />
 					</Tooltip>
