@@ -23,7 +23,7 @@ This report uses these sources as of 2026-10-07 UTC:
 - The TRL-1334 and TRL-1386 ticket proof criteria
 - [Expo SQLite web setup](https://docs.expo.dev/versions/latest/sdk/sqlite/)
 
-The supplied Superset report covers Apache Superset. The competitor for this epic is the coding-agent workspace at superset.sh. This report excludes every competitor conclusion from the supplied report.
+The proof method does not depend on competitor evidence. It uses the Trellis baseline and the ticket proof criteria.
 
 The pilot uses source `e0f0450215d603def5728d343347908a5ade43b3`.
 
