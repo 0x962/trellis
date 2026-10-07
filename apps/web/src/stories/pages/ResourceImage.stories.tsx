@@ -21,7 +21,7 @@ const longName = "Interface acceptance evidence with a long descriptive filename
 const previewIsUsable: NonNullable<Story["play"]> = async ({ args, canvasElement }) => {
 	const body = within(canvasElement.ownerDocument.body);
 	const dialog = await body.findByRole("dialog", { name: args.name });
-	const image = within(dialog).getByRole("img", { name: args.name });
+	const image = within(dialog).getByAltText(args.name);
 	expect(image.parentElement).toHaveAttribute("data-image-stage");
 	await waitFor(() => expect(image).not.toHaveClass("invisible"));
 	expect(image.parentElement).not.toHaveAttribute("aria-busy");

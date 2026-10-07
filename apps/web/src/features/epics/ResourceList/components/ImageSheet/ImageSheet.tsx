@@ -1,4 +1,4 @@
-import { FailureState, Spinner, cx } from "@trellis/ui";
+import { cx, FailureState, Spinner } from "@trellis/ui";
 import { useState } from "react";
 import { PageSheet } from "../../../../shell/PageSheet";
 import { PageTitle } from "../../../../shell/PageTitle";
