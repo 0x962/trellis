@@ -1,6 +1,6 @@
 import { Checks } from "@phosphor-icons/react";
 import type { ResourceComment, ResourceCommentThread } from "@trellis/api";
-import { IconButton, Tooltip } from "@trellis/ui";
+import { Button, FailureState, IconButton, Tooltip } from "@trellis/ui";
 import { ReviewThreadCard } from "@trellis/ui/review";
 import "@trellis/ui/review.css";
 import { useEffect, useState } from "react";
@@ -90,9 +90,20 @@ export function DocumentComments({ comments, titled }: { comments: Comments; tit
 				<CommentDraft quote={comments.draftQuote} onSend={comments.sendDraft} onCancel={comments.cancelDraft} />
 			)}
 			{comments.loadError !== null && (
-				<p role="alert" className="text-sm text-danger">
-					Could not load the comments. {errorMessage(comments.loadError)}
-				</p>
+				<FailureState
+					title="Could not load comments"
+					detail={errorMessage(comments.loadError)}
+					action={
+						<Button
+							size="md"
+							processing={comments.retrying}
+							focusableWhenDisabled
+							onClick={() => void comments.retry()}
+						>
+							Retry
+						</Button>
+					}
+				/>
 			)}
 			{rows.length === 0 && comments.draftQuote === null && comments.loadError === null && (
 				<p className="text-sm text-fg-faint">
