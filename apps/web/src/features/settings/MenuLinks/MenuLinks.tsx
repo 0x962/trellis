@@ -20,6 +20,7 @@ export function MenuLinks() {
 	const [deleteError, setDeleteError] = useState<string | null>(null);
 	const [busy, setBusy] = useState(false);
 	const writeInProgress = useRef(false);
+	const addButton = useRef<HTMLButtonElement>(null);
 	if (!saved) return null;
 	const menuLinks = saved.menuLinks ?? [];
 	const saveLinks = async (nextMenuLinks: MenuLink[], callbacks: LinkWriteCallbacks) => {
@@ -29,11 +30,19 @@ export function MenuLinks() {
 		callbacks.onStarted();
 		const stored = await save(
 			{ menuLinks: nextMenuLinks },
-			{ onStored: callbacks.onStored, retry: () => void saveLinks(nextMenuLinks, callbacks) },
+			{
+				onStored: () => {
+					writeInProgress.current = false;
+					setBusy(false);
+					callbacks.onStored();
+				},
+				retry: () => void saveLinks(nextMenuLinks, callbacks),
+			},
 		);
 		writeInProgress.current = false;
+		if (stored !== undefined) return;
 		setBusy(false);
-		if (stored === undefined) callbacks.onFailed();
+		callbacks.onFailed();
 	};
 	const removeLink = () => {
 		const link = deletingLink!;
@@ -78,6 +87,7 @@ export function MenuLinks() {
 					<IconButton
 						label="Add menu link"
 						icon={<Plus />}
+						ref={addButton}
 						disabled={busy}
 						onClick={() => {
 							setSaveError(null);
@@ -140,6 +150,7 @@ export function MenuLinks() {
 				confirmLabel="Delete menu link"
 				danger
 				processing={busy}
+				finalFocus={addButton}
 				onCancel={() => {
 					if (busy) return;
 					setDeleteError(null);

@@ -1,12 +1,22 @@
 import { afterAll, afterEach, expect, mock, test } from "bun:test";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { Settings } from "@trellis/api";
-import { act, type ComponentProps, type ReactNode, type Ref, useImperativeHandle } from "react";
+import {
+	act,
+	type ComponentProps,
+	type ReactNode,
+	type Ref,
+	type RefObject,
+	useEffect,
+	useImperativeHandle,
+	useRef,
+} from "react";
 import { createRoot, type TestInstance } from "test-renderer";
 import { type AppContext, AppProvider } from "../../../lib/appContext";
 
 let retryWrite: (() => void) | undefined;
 
+let focusedControl: string | undefined;
 mock.module("@trellis/ui", () => ({
 	Button: ({ processing, ...props }: ComponentProps<"button"> & { processing?: boolean }) => (
 		<button {...props} disabled={props.disabled || processing} aria-busy={processing || undefined} />
@@ -17,6 +27,7 @@ mock.module("@trellis/ui", () => ({
 		description,
 		confirmLabel,
 		processing,
+		finalFocus,
 		children,
 		onConfirm,
 		onCancel,
@@ -26,11 +37,18 @@ mock.module("@trellis/ui", () => ({
 		description: string;
 		confirmLabel: string;
 		processing?: boolean;
+		finalFocus: RefObject<HTMLElement | null>;
 		children?: ReactNode;
 		onConfirm: () => void;
 		onCancel: () => void;
-	}) =>
-		open ? (
+	}) => {
+		const previousOpen = useRef(open);
+		useEffect(() => {
+			if (previousOpen.current && !open) finalFocus.current?.focus();
+			previousOpen.current = open;
+		}, [open, finalFocus]);
+		if (!open) return null;
+		return (
 			<section role="dialog">
 				<h2>{title}</h2>
 				<p>{description}</p>
@@ -42,16 +60,28 @@ mock.module("@trellis/ui", () => ({
 					{confirmLabel}
 				</button>
 			</section>
-		) : null,
+		);
+	},
 	EmptyState: ({ title }: { title: string }) => <p>{title}</p>,
 	FormStatus: ({ status, message }: { status: string; message?: string }) => (
 		<p role={status === "error" ? "alert" : "status"}>
 			{message ?? (status === "saving" ? "Save in progress" : status === "saved" ? "Saved" : "")}
 		</p>
 	),
-	IconButton: ({ label, disabled, onClick }: { label: string; disabled?: boolean; onClick?: () => void }) => (
-		<button type="button" aria-label={label} disabled={disabled} onClick={onClick} />
-	),
+	IconButton: ({
+		label,
+		disabled,
+		onClick,
+		ref,
+	}: {
+		label: string;
+		disabled?: boolean;
+		onClick?: () => void;
+		ref?: Ref<HTMLButtonElement>;
+	}) => {
+		useImperativeHandle(ref, () => ({ focus: () => (focusedControl = label) }) as HTMLButtonElement);
+		return <button type="button" aria-label={label} disabled={disabled} onClick={onClick} />;
+	},
 	Input: ({
 		label,
 		error,
@@ -137,6 +167,7 @@ let dispose = async () => {};
 afterEach(async () => {
 	await dispose();
 	retryWrite = undefined;
+	focusedControl = undefined;
 });
 afterAll(() => mock.restore());
 
@@ -195,10 +226,14 @@ const settle = () =>
 		await new Promise((resolve) => setTimeout(resolve, 0));
 	});
 
-async function submitDelete(root: ReturnType<typeof createRoot>) {
+async function openDelete(root: ReturnType<typeof createRoot>) {
 	await act(async () => button(root, "Delete").props.onClick());
 	expect(text(root.container)).toContain("Delete Actions?");
 	expect(text(root.container)).toContain(link.url);
+}
+
+async function submitDelete(root: ReturnType<typeof createRoot>) {
+	await openDelete(root);
 	await act(async () => {
 		button(root, "Delete menu link").props.onClick();
 	});
@@ -212,6 +247,27 @@ async function retry() {
 		await Promise.resolve();
 	});
 }
+
+test("Cancel returns focus to Add menu link", async () => {
+	const root = await mount(async () => stored);
+	await openDelete(root);
+
+	await act(async () => button(root, "Cancel").props.onClick());
+	await settle();
+
+	expect(text(root.container)).not.toContain("Delete Actions?");
+	expect(focusedControl).toBe("Add menu link");
+});
+
+test("a successful delete returns focus to Add menu link", async () => {
+	const root = await mount(async () => stored);
+
+	await submitDelete(root);
+
+	expect(text(root.container)).not.toContain(link.url);
+	expect(text(root.container)).not.toContain("Delete Actions?");
+	expect(focusedControl).toBe("Add menu link");
+});
 
 test("a failed delete keeps the link and the confirmation open", async () => {
 	const calls: Settings[] = [];
@@ -283,4 +339,5 @@ test("a successful Retry removes the link and closes the confirmation", async ()
 	expect(attempts).toBe(2);
 	expect(text(root.container)).not.toContain(link.url);
 	expect(text(root.container)).not.toContain("Delete Actions?");
+	expect(focusedControl).toBe("Add menu link");
 });
