@@ -64,6 +64,22 @@ export const pageThread: PageCommentThread = {
 	updatedAt: timestamp,
 };
 
+export const historicalPageThread: PageCommentThread = {
+	...pageThread,
+	id: id(612),
+	version: 1,
+	anchor: { kind: "text", path: "html>body>main>p", quote: "Earlier version text.", prefix: "", suffix: "" },
+	selectedText: "Earlier version text.",
+	comments: [
+		{
+			...pageThread.comments[0]!,
+			id: id(613),
+			threadId: id(612),
+			body: "Open the source version and keep this comment selected.",
+		},
+	],
+};
+
 const longSections = Array.from(
 	{ length: 24 },
 	(_, index) =>

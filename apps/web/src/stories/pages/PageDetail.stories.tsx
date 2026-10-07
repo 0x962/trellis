@@ -1,8 +1,10 @@
 import { ORPCError } from "@orpc/client";
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { useRouterState } from "@tanstack/react-router";
+import type { PageGetInput } from "@trellis/api";
 import { expect, userEvent, within } from "storybook/test";
 import { PageDetail } from "../../features/pages/PageDetail";
-import { page, pageLease, pageResponses } from "./fixtures/page";
+import { historicalPageThread, page, pageLease, pageResponses, pageThread } from "./fixtures/page";
 import { actor, archivedProject, failure, pending, project, timestamp } from "./fixtures/project";
 import { pageFrame } from "./pageFrame";
 
@@ -61,6 +63,9 @@ export const Historical: Story = {
 			},
 		},
 	},
+	play: async ({ canvasElement }) => {
+		await expect(await within(canvasElement).findByRole("link", { name: "Back to current" })).toBeVisible();
+	},
 };
 export const Deleted: Story = {
 	parameters: {
@@ -88,8 +93,41 @@ export const VersionsAndRetainedDraft: Story = {
 		await userEvent.click(await canvas.findByRole("button", { name: "Page actions" }));
 		await userEvent.click(await within(document.body).findByRole("menuitem", { name: "Version history" }));
 		await expect(await within(document.body).findByRole("heading", { name: "Version history" })).toBeVisible();
+		await expect(await within(document.body).findByRole("link", { name: "Open version 2" })).toBeVisible();
 		await userEvent.click(await within(document.body).findByRole("button", { name: "Close" }));
 		await expect(await canvas.findByDisplayValue("Retain this draft")).toBeVisible();
+	},
+};
+
+export const CrossVersionComment: Story = {
+	render: function Render(args) {
+		const rawSearch = useRouterState({ select: (state) => state.location.search as { version?: string | number } });
+		const search = { version: rawSearch.version === undefined ? undefined : Number(rawSearch.version) };
+		return <PageDetail {...args} search={search} />;
+	},
+	parameters: {
+		trellis: {
+			responses: {
+				"pages.get": (input: PageGetInput) =>
+					input.version === 1
+						? { ...page, requestedVersion: { ...page.requestedVersion, number: 1, label: "First copy" } }
+						: page,
+				"pages.comments": [pageThread, historicalPageThread],
+				"pages.createRenderLease": (input: { version: number }) => ({ ...pageLease(), version: input.version }),
+				"pages.renewRenderLease": (input: { version: number }) => ({ ...pageLease(), version: input.version }),
+			},
+		},
+	},
+	play: async ({ canvasElement }) => {
+		const canvas = within(canvasElement);
+		await userEvent.click(await canvas.findByRole("button", { name: /Earlier version text/ }));
+		await expect(await canvas.findByText("Version 1, read-only")).toBeVisible();
+		const anchor = await canvas.findByRole("button", { name: /Earlier version text/ });
+		await expect(anchor.closest("[data-active]")).toHaveAttribute("data-active", "true");
+		await expect(await canvas.findByRole("button", { name: /Comment 2.*Earlier version text/ })).toHaveAttribute(
+			"aria-pressed",
+			"true",
+		);
 	},
 };
 

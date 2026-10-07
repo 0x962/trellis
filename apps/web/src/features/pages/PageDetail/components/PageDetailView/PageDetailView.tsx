@@ -32,11 +32,15 @@ export function PageDetailView({
 	project,
 	historical,
 	offline,
+	selectedThread,
+	onSelectedThreadChange,
 }: {
 	page: PageRecord;
 	project: Project;
 	historical: boolean;
 	offline: boolean;
+	selectedThread: string | null;
+	onSelectedThreadChange: (thread: string | null) => void;
 }) {
 	const { live } = useApp();
 	const inSheet = usePageSheet() !== null;
@@ -185,6 +189,7 @@ export function PageDetailView({
 									/>
 								}
 								nativeButton={false}
+								role="link"
 							/>
 						</Tooltip>
 					)}
@@ -214,6 +219,8 @@ export function PageDetailView({
 						title={page.title}
 						historical={historical}
 						blocked={blocked}
+						selectedThread={selectedThread}
+						onSelectedThreadChange={onSelectedThreadChange}
 					/>
 				)}
 			</div>

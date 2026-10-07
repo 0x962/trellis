@@ -2,6 +2,7 @@ import { ArrowClockwise } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import type { Project } from "@trellis/api";
 import { FailureState, IconButton, Tooltip } from "@trellis/ui";
+import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { PageTitle } from "../../shell/PageTitle";
 import { failureKind } from "../../shell/RouteError";
@@ -12,6 +13,7 @@ import type { PageDetailSearch } from "./pageLink";
 
 export function PageDetail({ project, slug, search }: { project: Project; slug: string; search: PageDetailSearch }) {
 	const { orpc } = useApp();
+	const [selectedThread, setSelectedThread] = useState<string | null>(null);
 	const query = useQuery({
 		...orpc.pages.get.queryOptions({
 			input: { page: `${project.key}/pages/${slug}`, version: search.version, includeDeleted: true },
@@ -25,6 +27,8 @@ export function PageDetail({ project, slug, search }: { project: Project; slug: 
 				project={project}
 				historical={search.version !== undefined}
 				offline={query.error !== null && failureKind(query.error) === "offline"}
+				selectedThread={selectedThread}
+				onSelectedThreadChange={setSelectedThread}
 			/>
 		);
 	if (query.isPending) return <PageDetailLoading />;

@@ -2,7 +2,7 @@ import { ChatText } from "@phosphor-icons/react";
 import type { PageCommentAnchor } from "@trellis/api";
 import { ConfirmDialog, IconButton, Sheet, Tooltip, useMediaQuery } from "@trellis/ui";
 import { ReviewCommentEditor } from "@trellis/ui/review";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ReadOnlyMarkdown } from "../../../components/ReadOnlyMarkdown";
 import { errorMessage } from "../../../lib/conflict";
 import { usePageVersionNavigation } from "../usePageVersionNavigation";
@@ -23,6 +23,8 @@ export function PageComments({
 	title,
 	historical,
 	blocked,
+	selectedThread,
+	onSelectedThreadChange,
 }: {
 	page: string;
 	version: number;
@@ -30,6 +32,8 @@ export function PageComments({
 	title: string;
 	historical: boolean;
 	blocked: boolean;
+	selectedThread: string | null;
+	onSelectedThreadChange: (thread: string | null) => void;
 }) {
 	const comments = usePageComments(page);
 	const { openVersion } = usePageVersionNavigation(page);
@@ -37,7 +41,6 @@ export function PageComments({
 	const trigger = useRef<HTMLButtonElement>(null);
 	const [sheetOpen, setSheetOpen] = useState(false);
 	const [showResolved, setShowResolved] = useState(false);
-	const [selected, setSelected] = useState<string | null>(null);
 	const [pendingAnchor, setPendingAnchor] = useState<PageCommentAnchor | null>(null);
 	const [body, setBody] = useState("");
 	const [saveError, setSaveError] = useState<string | null>(null);
@@ -48,20 +51,25 @@ export function PageComments({
 		() => pageCommentPins(numbered, version, showResolved),
 		[numbered, showResolved, version],
 	);
+	useEffect(() => {
+		const target = numbered.find(({ thread }) => thread.id === selectedThread)?.thread;
+		if (target?.resolved !== null) setShowResolved(true);
+		if (target?.version === version && !wide) setSheetOpen(true);
+	}, [numbered, selectedThread, version, wide]);
 	const select = (id: string) => {
 		const target = numbered.find(({ thread }) => thread.id === id)?.thread;
+		onSelectedThreadChange(id);
 		if (target !== undefined && target.version !== version) {
 			openVersion(pageCommentSearch(target.version, latestVersion).version);
 			return;
 		}
 		if (target?.resolved !== null) setShowResolved(true);
-		setSelected(id);
 		if (!wide) setSheetOpen(true);
 	};
 	const openPendingAnchor = (anchor: PageCommentAnchor) => {
 		if (blocked || historical) return;
 		setPendingAnchor(anchor);
-		setSelected(null);
+		onSelectedThreadChange(null);
 		setSaveError(null);
 		if (!wide) setSheetOpen(true);
 	};
@@ -78,7 +86,7 @@ export function PageComments({
 		try {
 			const thread = await comments.create(version, pendingAnchor, body.trim());
 			closePendingAnchor();
-			setSelected(thread.id);
+			onSelectedThreadChange(thread.id);
 		} catch (error) {
 			setSaveError(errorMessage(error));
 		} finally {
@@ -104,7 +112,7 @@ export function PageComments({
 			)}
 			<PageCommentThreads
 				threads={numbered}
-				selected={selected}
+				selected={selectedThread}
 				showResolved={showResolved}
 				readOnly={blocked || historical}
 				loading={comments.pending}
@@ -135,7 +143,7 @@ export function PageComments({
 						version={version}
 						title={title}
 						comments={currentPins}
-						selectedThread={selected}
+						selectedThread={selectedThread}
 						onCommentAnchor={openPendingAnchor}
 						onOpenThread={select}
 					/>

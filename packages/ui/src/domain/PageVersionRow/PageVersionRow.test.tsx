@@ -26,6 +26,6 @@ test("names a historical version and preserves its provenance", () => {
 	])
 		expect(html).toContain(text);
 	expect(html).toContain('aria-label="Open version 3"');
-	expect(html).toContain('role="button"');
+	expect(html).toContain('role="link"');
 	expect(html).not.toContain("<button");
 });
