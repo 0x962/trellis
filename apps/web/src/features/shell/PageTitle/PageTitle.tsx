@@ -22,7 +22,7 @@ export function PageTitle({ parent, title }: PageTitleProps) {
 		<div className="flex min-w-0 items-center gap-2">
 			{parent !== undefined && (
 				<>
-					<span className="max-w-1/2 min-w-0 truncate text-lg text-fg-muted *:transition-colors *:duration-hover *:hover:text-fg">
+					<span className="max-w-1/2 min-w-0 text-lg text-fg-muted *:max-w-full *:transition-colors *:duration-hover *:hover:text-fg max-md:w-11 max-md:shrink-0">
 						{parent}
 					</span>
 					<span aria-hidden="true" className="text-fg-faint">

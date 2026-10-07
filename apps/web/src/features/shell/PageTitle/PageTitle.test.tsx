@@ -4,15 +4,16 @@ import { PageTitle } from "./PageTitle";
 import { TitleMenuButton } from "./TitleMenuButton";
 
 describe("PageTitle", () => {
-	test("lets the parent and heading share a narrow top bar", () => {
+	test("keeps the parent focus edge visible and reserves the remaining phone width for the current title", () => {
 		const html = renderToStaticMarkup(
 			<PageTitle
-				parent="A project name that needs part of the available width"
+				parent={<a href="/project">A project name that needs part of the available width</a>}
 				title="A page heading that needs the rest"
 			/>,
 		);
 
-		expect(html).toContain("max-w-1/2 min-w-0 truncate text-lg text-fg-muted");
+		expect(html).toContain("max-w-1/2 min-w-0 text-lg text-fg-muted *:max-w-full");
+		expect(html).toContain("max-md:w-11 max-md:shrink-0");
 		expect(html).toContain("min-w-0 flex-1 text-lg font-semibold text-fg truncate");
 		expect(html).toContain("A project name that needs part of the available width");
 		expect(html).toContain("A page heading that needs the rest");
