@@ -38,7 +38,7 @@ test("settings show saved order, edits, and deletions from the shared cache", ()
 
 test("the row editor exposes label, URL, and icon controls", () => {
 	const html = renderToStaticMarkup(
-		<MenuLinkEditor link={null} busy={false} onCancel={() => {}} onSave={async () => {}} />,
+		<MenuLinkEditor link={null} busy={false} saveError={null} onCancel={() => {}} onSave={async () => {}} />,
 	);
 	for (const label of ["Label", "HTTPS URL", "Icon", "Save", "Cancel"]) expect(html).toContain(label);
 	expect(html).not.toMatch(/maxlength/i);
