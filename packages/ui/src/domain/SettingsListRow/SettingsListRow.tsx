@@ -1,4 +1,5 @@
 import { type ReactNode, useId } from "react";
+import { Badge } from "../../primitives/Badge";
 import { cx } from "../../utils/cx";
 
 export type SettingsListRowProps = {
@@ -43,7 +44,11 @@ export function SettingsListRow({
 					<span className="status-row-copy">
 						<span className="status-row-name-line">
 							<span className="status-row-name">{label}</span>
-							{badge && <span className="status-row-default">{badge}</span>}
+							{badge && (
+								<Badge tone="accent" size="sm">
+									{badge}
+								</Badge>
+							)}
 						</span>
 						<span className={cx("status-row-description", wrapDescription && "whitespace-normal text-pretty")}>
 							{description}

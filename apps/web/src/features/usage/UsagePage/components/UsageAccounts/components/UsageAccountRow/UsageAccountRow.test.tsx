@@ -79,7 +79,8 @@ describe("UsageAccountRow", () => {
 	test("shows the compact identity, quota, report value, and two row actions", () => {
 		const html = render();
 		expect(html).toContain('class="status-row-name">Work</span>');
-		expect(html).toContain('class="status-row-default">Default</span>');
+		expect(html).toContain("bg-accent-soft text-accent");
+		expect(html).toContain(">Default</span>");
 		expect(html).toContain('aria-label="Edit Work, Default"');
 		expect(html).toContain("whitespace-normal text-pretty");
 		expect(html).not.toContain("Work · Default");
