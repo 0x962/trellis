@@ -1,5 +1,5 @@
 import { useNavigate, useSearch } from "@tanstack/react-router";
-import type { UsageDays, UsageMetric } from "@trellis/api";
+import type { UsageDays, UsageGroupBy, UsageMetric } from "@trellis/api";
 import {
 	Button,
 	Chip,
@@ -21,6 +21,7 @@ import { UsageGroups } from "../UsageGroups";
 import { UsageProviders } from "../UsageProviders";
 import { UsageTotals } from "../UsageTotals";
 import { MergedWork } from "./components/MergedWork";
+import { UsageSessions } from "./components/UsageSessions";
 import { useUsageRanking } from "./components/useUsageRanking";
 import { usageChartSeries } from "./usageChartSeries";
 
@@ -34,6 +35,16 @@ const rangeOptions = [
 	{ value: "90", label: "Last 90 days" },
 ] as const;
 
+const groupOptions = [
+	{ value: "ticket", label: "Ticket" },
+	{ value: "agent", label: "Agent" },
+	{ value: "project", label: "Project" },
+	{ value: "kind", label: "Run kind" },
+	{ value: "account", label: "Account" },
+	{ value: "model", label: "Model" },
+	{ value: "harness", label: "Harness" },
+] as const;
+
 export function AgentUsage() {
 	const [explanationOpen, setExplanationOpen] = useState(false);
 	const explanationId = useId();
@@ -41,22 +52,17 @@ export function AgentUsage() {
 	const navigate = useNavigate({ from: "/usage" });
 	const { days, setDays, report } = useUsageReport();
 	const metric: UsageMetric = search.metric ?? "usd";
-	const group = search.group === "harness" ? "harness" : "model";
+	const group: UsageGroupBy = search.group ?? "model";
+	const comparisonGroup = group === "harness" ? "model" : "harness";
+	const groupLabel = groupOptions.find((option) => option.value === group)!.label;
 	const selectedRow = search.row ?? null;
 	const selectedDay = search.day ?? null;
 	const setSearch = (patch: Partial<typeof search>) =>
 		void navigate({ search: (previous) => ({ ...previous, ...patch }), replace: true });
 	const clearRow = () => setSearch({ row: undefined });
-	const models = useUsageRanking(report.data, "model", metric, group === "model" ? selectedRow : null, null, clearRow);
-	const harnesses = useUsageRanking(
-		report.data,
-		"harness",
-		metric,
-		group === "harness" ? selectedRow : null,
-		null,
-		clearRow,
-	);
-	const selected = (group === "model" ? models : harnesses).data?.selected ?? null;
+	const models = useUsageRanking(report.data, group, metric, selectedRow, null, clearRow);
+	const harnesses = useUsageRanking(report.data, comparisonGroup, metric, null, null, clearRow);
+	const selected = models.data?.selected ?? null;
 	const buckets = report.data?.buckets;
 	const chartDays = useMemo(() => buckets?.map((bucket) => bucket.day) ?? [], [buckets]);
 	const dayTotals = useMemo(() => buckets?.map((bucket) => bucket[metric]) ?? [], [buckets, metric]);
@@ -68,6 +74,13 @@ export function AgentUsage() {
 	const title = `${selected?.label ?? metricLabel} per day`;
 	const rankingError = models.error ?? harnesses.error;
 	const pending = report.isPending || (report.isSuccess && (models.isPending || harnesses.isPending));
+	const accountReport = {
+		rows: report.data?.rankings[metric].groups.account ?? [],
+		metric,
+		total: report.data?.totals[metric] ?? 0,
+		pending: report.isPending,
+		reportAvailable: report.data !== undefined,
+	};
 
 	return (
 		<div className="mx-auto flex w-full max-w-6xl flex-col gap-6 py-6">
@@ -132,13 +145,13 @@ export function AgentUsage() {
 			) : (
 				<>
 					<Panel aria-label="Usage totals and daily chart">
-						<UsageTotals totals={report.data.totals} />
+						<UsageTotals totals={report.data.totals} pricingDate={report.data.pricingTableUpdated} />
 						<div className="flex flex-col gap-6 border-t border-border px-7 pt-6 pb-4 max-sm:px-4">
 							<div className="flex flex-wrap items-center justify-between gap-3">
 								<SectionHeader title={title} level={3} appearance="overview" />
 								{selected && (
 									<Chip
-										label={group === "model" ? "Model" : "Harness"}
+										label={groupLabel}
 										value={selected.label}
 										onRemove={clearRow}
 										removeLabel="Clear usage filter"
@@ -157,11 +170,28 @@ export function AgentUsage() {
 							/>
 						</div>
 					</Panel>
+					<div className="flex flex-wrap items-center gap-3">
+						<Select
+							label="Break down usage by"
+							hideLabel={false}
+							items={groupOptions}
+							value={group}
+							onValueChange={(value) => setSearch({ group: value, row: undefined })}
+						/>
+						{selectedDay && (
+							<Chip
+								label="Date"
+								value={formatDayLabel(selectedDay)}
+								onRemove={() => setSearch({ day: undefined })}
+								removeLabel="Clear usage date"
+							/>
+						)}
+					</div>
 					<div className="grid grid-cols-1 gap-6 md:grid-cols-2">
 						{(
 							[
-								["model", models],
-								["harness", harnesses],
+								[group, models],
+								[comparisonGroup, harnesses],
 							] as const
 						).map(([kind, query]) => (
 							<UsageGroups
@@ -176,7 +206,7 @@ export function AgentUsage() {
 								onSelectRow={(row) => setSearch({ group: kind, row: row ?? undefined })}
 								pages={
 									<Pagination
-										label={kind === "model" ? "models" : "harnesses"}
+										label="groups"
 										start={query.data?.groupStart ?? 0}
 										count={query.data?.groups.length ?? 0}
 										total={query.data?.groupTotal ?? 0}
@@ -187,7 +217,17 @@ export function AgentUsage() {
 							/>
 						))}
 					</div>
-					<p className="-mt-2 text-xs text-fg-muted">Select a model or harness to filter the daily chart.</p>
+					<p className="-mt-2 text-sm text-fg-muted">
+						Select a row to filter the daily chart and matching sessions. Totals cover the full report range.
+					</p>
+					<UsageSessions
+						report={report.data}
+						group={group}
+						metric={metric}
+						row={selectedRow}
+						day={selectedDay}
+						clearRow={clearRow}
+					/>
 				</>
 			)}
 			{report.data && <MergedWork report={report.data} />}
@@ -208,7 +248,8 @@ export function AgentUsage() {
 								bill. A ~ marks an approximate rate.
 							</p>
 							<p>
-								Model and harness bars show the same usage in two ways. Their filters change only the daily usage chart.
+								Breakdowns show the same usage in different ways. Their filters change the daily chart and matching
+								sessions.
 							</p>
 							<p>
 								Merged work uses saved GitHub data. Each linked repository and PR number counts once, by merge date,
@@ -224,12 +265,10 @@ export function AgentUsage() {
 			)}
 			<section aria-label="Configuration" className="mt-4 flex flex-col gap-4 border-t border-border pt-6">
 				<SectionHeader title="Configuration" />
-				<UsageAccounts
-					rows={report.data?.rankings[metric].groups.account ?? []}
-					metric={metric}
-					total={report.data?.totals[metric] ?? 0}
-					pending={report.isPending}
-				/>
+				{!report.data && (
+					<p className="text-sm text-fg-muted">Report cost is unavailable until the usage report loads.</p>
+				)}
+				<UsageAccounts {...accountReport} />
 				<UsageProviders />
 			</section>
 		</div>
