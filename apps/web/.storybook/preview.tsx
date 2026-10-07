@@ -1,5 +1,5 @@
 import type { Preview } from "@storybook/react-vite";
-import { AppStory, resetStoryState } from "../src/stories/support";
+import { AppStory, prepareStory } from "../src/stories/support";
 import "../src/stories/support/networkBoundary";
 import "../src/app.css";
 import "@trellis/ui/review.css";
@@ -18,6 +18,7 @@ const preview: Preview = {
 		},
 	},
 	initialGlobals: { theme: "dark" },
+	loaders: [async (context) => ({ appStory: await prepareStory(context.abortSignal, context.parameters.trellis) })],
 	parameters: {
 		layout: "fullscreen",
 		controls: { expanded: true },
@@ -43,11 +44,15 @@ const preview: Preview = {
 				__trellisStoryViewport?: (size: { width: number; height: number }) => Promise<void>;
 			}
 		).__trellisStoryViewport?.(viewport?.isRotated ? { width: height, height: width } : { width, height });
-		resetStoryState(context.parameters.trellis?.actor);
 	},
 	decorators: [
 		(Story, context) => (
-			<AppStory key={context.id} parameters={context.parameters.trellis} theme={context.globals.theme}>
+			<AppStory
+				key={context.id}
+				prepared={context.loaded.appStory}
+				parameters={context.parameters.trellis}
+				theme={context.globals.theme}
+			>
 				<Story />
 			</AppStory>
 		),

@@ -1,5 +1,5 @@
-import type { UsageGroupBy, UsageGroupRow, UsageHarness, UsageMetric } from "@trellis/api";
-import { type ChartTone, type ModelProvider, otherTone, rankedTones } from "@trellis/ui";
+import type { UsageHarness, UsageMetric } from "@trellis/api";
+import type { ModelProvider } from "@trellis/ui";
 
 // "$19,211", "$46.20", "$0.85", "<$0.01". Whole dollars from $100 up.
 export function formatUsd(usd: number): string {
@@ -57,30 +57,3 @@ export const harnessProvider: Partial<Record<UsageHarness, ModelProvider>> = {
 	codex: "openai",
 	muse: "meta",
 };
-
-// The company behind a model id, from the vendor prefix or the model name.
-export function modelProvider(model: string): ModelProvider | null {
-	const id = model.toLowerCase();
-	if (id.startsWith("anthropic/") || id.includes("claude")) return "anthropic";
-	if (id.startsWith("openai/") || id.includes("gpt") || id.includes("codex")) return "openai";
-	if (id.startsWith("meta/") || id.includes("muse") || id.includes("llama")) return "meta";
-	if (id.startsWith("google/") || id.includes("gemini")) return "google";
-	return null;
-}
-
-// Each harness keeps one tone on every chart, so Claude Code takes the same
-// tone on the harness split, on the model list, and on the quota cards.
-export const harnessTone: Record<UsageHarness, ChartTone> = {
-	claude: "agent",
-	codex: "fg",
-	opencode: "success",
-	pi: "warning",
-	muse: "danger",
-};
-
-// The tone of a breakdown row. Under the harness grouping a row keeps its
-// harness tone. Under every other grouping a row takes the tone of its
-// rank, and every row past the ranked tones takes the quiet tone of
-// "everything else".
-export const rowTone = (row: UsageGroupRow, rank: number, group: UsageGroupBy): ChartTone =>
-	group === "harness" && row.harness ? harnessTone[row.harness] : (rankedTones[rank] ?? otherTone);

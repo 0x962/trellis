@@ -27,7 +27,9 @@ export type UsageChartProps = {
 	onSelectDay: (day: string | null) => void;
 	// A percentage chart uses 100 so a small value does not fill the plot.
 	max?: number;
-	variant?: "bar" | "line";
+	integerScale?: boolean;
+	variant?: "bar" | "line" | "grouped";
+	appearance?: "default" | "overview";
 	className?: string;
 };
 
@@ -53,8 +55,10 @@ export function UsageChart({
 	selectedDay,
 	onSelectDay,
 	max,
+	integerScale = false,
 	variant = "bar",
 	className,
+	appearance = "default",
 }: UsageChartProps) {
 	const [hoverDay, setHoverDay] = useState<string | null>(null);
 	const [hasFocus, setHasFocus] = useState(false);
@@ -63,7 +67,14 @@ export function UsageChart({
 	const count = days.length;
 	const dayIndexByDay = useMemo(() => new Map(days.map((day, index) => [day, index])), [days]);
 	const dayTotal = (index: number) => series.reduce((sum, row) => sum + (row.values[index] ?? 0), 0);
-	const top = max ?? niceMax(Math.max(0, ...days.map((_, index) => dayTotal(index))));
+	const top = useMemo(() => {
+		const values =
+			variant === "grouped"
+				? series.flatMap((row) => [...row.values])
+				: days.map((_, index) => series.reduce((sum, row) => sum + (row.values[index] ?? 0), 0));
+		const scaleMax = max ?? niceMax(Math.max(0, ...values));
+		return integerScale ? Math.max(4, Math.ceil(scaleMax / 4) * 4) : scaleMax;
+	}, [days, series, variant, max, integerScale]);
 	const selectedIndex = selectedDay === null ? -1 : (dayIndexByDay.get(selectedDay) ?? -1);
 	const cursorIndex = cursor.day === null ? -1 : (dayIndexByDay.get(cursor.day) ?? -1);
 	const focusIndex =
@@ -78,9 +89,9 @@ export function UsageChart({
 	const hoverIndex = hoverDay === null ? -1 : (dayIndexByDay.get(hoverDay) ?? -1);
 	const captionIndex = hoverIndex >= 0 ? hoverIndex : hasFocus ? focusIndex : selectedIndex;
 	const ticks = count >= 3 ? [0, Math.floor(count / 2), count - 1] : days.map((_, index) => index);
-	// A bar takes 70% of its day slot, so a short range keeps a gap between bars.
+	// Gaps keep bars for adjacent days distinct.
 	const slot = 100 / Math.max(1, count);
-	const barWidth = slot * 0.7;
+	const barWidth = slot * (appearance === "overview" ? 0.45 : 0.7);
 	const point = (index: number, value: number) => ({
 		x: count <= 1 ? 50 : (index / (count - 1)) * 100,
 		y: 100 - (value / top) * 100,
@@ -113,14 +124,19 @@ export function UsageChart({
 				select or clear a day.
 			</span>
 			<div className="flex min-w-0 gap-2">
-				<div className="flex w-12 shrink-0 flex-col justify-between text-right text-xs text-fg-faint tabular">
+				<div
+					className={cx(
+						"flex w-12 shrink-0 flex-col justify-between text-right text-xs tabular",
+						appearance === "overview" ? "text-fg-muted" : "text-fg-faint",
+					)}
+				>
 					{GRID_LINES.map((share) => (
 						<span key={share} className="leading-none">
 							{format(top * share)}
 						</span>
 					))}
 				</div>
-				<div className="relative h-48 min-w-0 flex-1">
+				<div className={cx("relative min-w-0 flex-1", appearance === "overview" ? "h-44" : "h-48")}>
 					<div aria-hidden="true" className="absolute inset-0 flex flex-col justify-between">
 						{GRID_LINES.map((share) => (
 							<span key={share} className="block h-px w-full bg-border" />
@@ -133,13 +149,13 @@ export function UsageChart({
 						preserveAspectRatio="none"
 						className="absolute inset-0 size-full"
 					>
-						{variant === "bar"
+						{variant !== "line"
 							? days.map((day, index) => {
 									let stacked = 0;
-									const dim = captionIndex >= 0 && captionIndex !== index;
+									const dim = appearance === "default" && captionIndex >= 0 && captionIndex !== index;
 									return (
 										<g key={day} data-day={day} className={cx(dim && "opacity-60")}>
-											{series.map((row) => {
+											{series.map((row, seriesIndex) => {
 												const value = row.values[index] ?? 0;
 												if (value <= 0) return null;
 												const height = (value / top) * 100;
@@ -148,9 +164,13 @@ export function UsageChart({
 													<rect
 														key={row.key}
 														data-series={row.key}
-														x={index * slot + (slot - barWidth) / 2}
-														y={100 - stacked}
-														width={barWidth}
+														x={
+															index * slot +
+															(slot - barWidth) / 2 +
+															(variant === "grouped" ? (seriesIndex * barWidth) / series.length : 0)
+														}
+														y={100 - (variant === "grouped" ? height : stacked)}
+														width={variant === "grouped" ? (barWidth / series.length) * 0.85 : barWidth}
 														height={height}
 														className={chartFillClass[row.tone]}
 													/>
@@ -236,7 +256,7 @@ export function UsageChart({
 					)}
 				</div>
 			</div>
-			<div className="flex pl-14 text-xs text-fg-faint tabular">
+			<div className={cx("flex pl-14 text-xs tabular", appearance === "overview" ? "text-fg-muted" : "text-fg-faint")}>
 				{ticks.map((index, position) => (
 					<span
 						key={index}

@@ -29,7 +29,8 @@ Each page supplies its data and available actions. It does not choose new contro
 | Sort field and direction | `DisplayPopover` | `packages/ui/src/domain/DisplayPopover/DisplayPopover.tsx` |
 | Table display preferences | Web `DisplayPopover` with the shared popover | `apps/web/src/features/table/DisplayPopover/DisplayPopover.tsx` |
 | Collapsible data groups | `GroupHeader` | `packages/ui/src/domain/GroupHeader/GroupHeader.tsx` |
-| Ticket detail sections | `SectionHeader` | `packages/ui/src/primitives/SectionHeader/SectionHeader.tsx` |
+| Section headings | `SectionHeader` | `packages/ui/src/primitives/SectionHeader/SectionHeader.tsx` |
+| Static panels | `Panel` | `packages/ui/src/primitives/Panel/Panel.tsx` |
 | Property label and value | `PropertyRow` | `packages/ui/src/primitives/PropertyRow/PropertyRow.tsx` |
 | Ticket table rows | `Row`, with `columns` and `rowHeights` | `apps/web/src/features/table/Row/Row.tsx` |
 | Ticket identity and state | `TicketId`, `PriorityIcon`, `StatusIcon` | `packages/ui/src/domain/` |
@@ -244,7 +245,9 @@ If the anchor ticket leaves the view, the next Shift click starts a new range.
 
 ## Group headers
 
-Use `GroupHeader` for groups of data rows. Use `SectionHeader` for sections in ticket details and settings.
+Use `GroupHeader` for groups of data rows and controlled disclosure regions. Use `SectionHeader` for section headings. Its `level` sets the heading depth. The `overview` and `prominent` appearances set the title size independently of that depth.
+
+Use `Panel` for a static frame around summary data or charts. The caller supplies the content and padding.
 The data header has a rounded inset band, a collapse chevron, a label, and a muted count.
 The band starts 12 px inside a desktop list and 8 px inside a phone list.
 Keep the label aligned with the rows by reducing the padding inside the band.

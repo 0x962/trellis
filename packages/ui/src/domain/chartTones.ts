@@ -4,10 +4,25 @@
 // neutral of a part that has not started, as the Todo status icon draws it.
 // It reads 4.5:1 or better on `--elevated`, the ground of a bar, in both
 // themes.
-export type ChartTone = "agent" | "fg" | "faint" | "success" | "warning" | "danger" | "accent";
+export type ChartTone =
+	| "agent"
+	| "fg"
+	| "faint"
+	| "success"
+	| "warning"
+	| "danger"
+	| "accent"
+	| "usage"
+	| "merged"
+	| "added"
+	| "deleted";
 
 // The text color of a tone, for a legend swatch drawn with `bg-current`.
 export const chartToneClass: Record<ChartTone, string> = {
+	usage: "text-chart-usage",
+	merged: "text-chart-merged",
+	added: "text-chart-added",
+	deleted: "text-chart-deleted",
 	agent: "text-agent",
 	fg: "text-fg",
 	faint: "text-fg-faint",
@@ -19,6 +34,10 @@ export const chartToneClass: Record<ChartTone, string> = {
 
 // The fill of a tone, for an SVG shape or a bar.
 export const chartFillClass: Record<ChartTone, string> = {
+	usage: "fill-chart-usage",
+	merged: "fill-chart-merged",
+	added: "fill-chart-added",
+	deleted: "fill-chart-deleted",
 	agent: "fill-agent",
 	fg: "fill-fg",
 	faint: "fill-fg-faint",
@@ -30,6 +49,10 @@ export const chartFillClass: Record<ChartTone, string> = {
 
 // The background of a tone, for an HTML bar segment.
 export const chartBgClass: Record<ChartTone, string> = {
+	usage: "bg-chart-usage",
+	merged: "bg-chart-merged",
+	added: "bg-chart-added",
+	deleted: "bg-chart-deleted",
 	agent: "bg-agent",
 	fg: "bg-fg",
 	faint: "bg-fg-faint",

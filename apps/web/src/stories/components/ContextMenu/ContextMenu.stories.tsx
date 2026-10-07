@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { Button, ContextMenu, ContextMenuTrigger } from "@trellis/ui";
-import { expect, userEvent, within } from "storybook/test";
+import { expect, userEvent, waitFor, within } from "storybook/test";
 import { useMenuItems } from "../useMenuItems";
 import { useStoryState } from "../useStoryState";
 
@@ -39,15 +39,30 @@ type Story = StoryObj<typeof meta>;
 export const Default: Story = {};
 export const Disabled: Story = { args: { disabled: true } };
 export const ToggleCheck: Story = {
-	play: async ({ canvasElement }) => {
+	play: async ({ canvasElement, step }) => {
 		const trigger = within(canvasElement).getByRole("button", { name: "Page tab" });
 		const body = within(canvasElement.ownerDocument.body);
-		await userEvent.pointer({ target: trigger, keys: "[MouseRight]" });
-		const pin = await body.findByRole("menuitemcheckbox", { name: "Pin" });
-		await expect(pin).toHaveAttribute("aria-checked", "true");
-		await userEvent.click(pin);
-		await userEvent.pointer({ target: trigger, keys: "[MouseRight]" });
-		await expect(await body.findByRole("menuitemcheckbox", { name: "Pin" })).toHaveAttribute("aria-checked", "false");
-		await userEvent.keyboard("{Escape}");
+		await step("Open the checked Pin menu", async () => {
+			await userEvent.pointer({ target: trigger, keys: "[MouseRight]" });
+			const menu = await body.findByRole("menu", { name: "Page actions" });
+			await waitFor(() => expect(menu).toBeVisible());
+			await expect(within(menu).getByRole("menuitemcheckbox", { name: "Pin" })).toHaveAttribute("aria-checked", "true");
+		});
+		await step("Unpin and wait for the menu to close", async () => {
+			const menu = body.getByRole("menu", { name: "Page actions" });
+			await userEvent.click(within(menu).getByRole("menuitemcheckbox", { name: "Pin" }));
+			await waitFor(() => expect(menu).not.toBeInTheDocument());
+		});
+		await step("Reopen the unchecked Pin menu", async () => {
+			await userEvent.pointer({ target: trigger, keys: "[MouseRight]" });
+			const menu = await body.findByRole("menu", { name: "Page actions" });
+			await waitFor(() => expect(menu).toBeVisible());
+			await expect(within(menu).getByRole("menuitemcheckbox", { name: "Pin" })).toHaveAttribute(
+				"aria-checked",
+				"false",
+			);
+			await userEvent.keyboard("{Escape}");
+			await waitFor(() => expect(menu).not.toBeInTheDocument());
+		});
 	},
 };

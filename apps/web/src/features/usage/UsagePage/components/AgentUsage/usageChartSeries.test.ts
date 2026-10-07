@@ -21,19 +21,17 @@ const row: UsageGroupRow = {
 
 describe("usageChartSeries", () => {
 	it("shows one total series until a breakdown row is selected", () => {
-		expect(usageChartSeries(["2026-09-28", "2026-09-29"], [9, 14], [row], null, "usd", "ticket")).toEqual([
-			{ key: "total", label: "All usage", tone: "agent", values: [9, 14] },
+		expect(usageChartSeries(["2026-09-28", "2026-09-29"], [9, 14], null, "usd")).toEqual([
+			{ key: "total", label: "All usage", tone: "usage", values: [9, 14] },
 		]);
 	});
 
 	it("shows one selected row series with a value for each day", () => {
-		expect(
-			usageChartSeries(["2026-09-27", "2026-09-28", "2026-09-29"], [2, 9, 14], [row], row, "tokens", "ticket"),
-		).toEqual([
+		expect(usageChartSeries(["2026-09-27", "2026-09-28", "2026-09-29"], [2, 9, 14], row, "tokens")).toEqual([
 			{
 				key: "ticket:TRL-661",
 				label: "TRL-661 Usage report",
-				tone: "success",
+				tone: "usage",
 				values: [0, 500, 700],
 			},
 		]);
