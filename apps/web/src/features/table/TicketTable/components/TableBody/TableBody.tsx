@@ -70,6 +70,9 @@ const ribbonHeight = 12;
 export const gridRowCount = (ticketCount: number, items: readonly TableItem[], hasWaveSections: boolean): number =>
 	hasWaveSections ? items.reduce((count, item) => count + (item.kind === "header" ? 1 : 0), ticketCount) : ticketCount;
 
+export const hasWaveSections = (tableKind: TableKind, pinHeaders: boolean): boolean =>
+	tableKind === "epic" && pinHeaders;
+
 export function TableBody({
 	items: allItems,
 	tableKind,
@@ -110,7 +113,8 @@ export function TableBody({
 		pendingFocus,
 		scrollPaddingStart: pinHeaders ? headerHeight : 0,
 	});
-	const ariaRowCount = gridRowCount(rowCount, items, waves !== undefined);
+	const waveSections = hasWaveSections(tableKind, pinHeaders);
+	const ariaRowCount = gridRowCount(rowCount, items, waveSections);
 
 	useLineMotion(body, items);
 	const confetti = useCheckConfetti(items);
@@ -175,7 +179,7 @@ export function TableBody({
 									filling={wash.waves.includes(item.group.key)}
 									waves={waves}
 									onToggleGroup={onToggleGroup}
-									waveSection={waves !== undefined}
+									waveSection={waveSections}
 									onCreateInGroup={onCreateInGroup}
 									onStartGroup={onStartGroup}
 								/>

@@ -1,5 +1,7 @@
 import type { ComponentProps } from "react";
 
-export function ComposerTitle(props: ComponentProps<"textarea">) {
-	return <textarea rows={1} {...props} className="ticket-composer-title" />;
+type Props = ComponentProps<"textarea"> & { variant?: "composer" | "document" };
+
+export function ComposerTitle({ variant = "composer", ...props }: Props) {
+	return <textarea rows={1} {...props} data-variant={variant} className="ticket-composer-title" />;
 }

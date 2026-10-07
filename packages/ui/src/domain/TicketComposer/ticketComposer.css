@@ -38,6 +38,13 @@
 .ticket-composer-title::placeholder {
 	color: var(--fg-faint);
 }
+.ticket-composer-title[data-variant="document"] {
+	max-height: none;
+	border-radius: var(--radius-sm);
+}
+.ticket-composer-title[data-variant="document"]:focus {
+	outline: 2px solid var(--accent);
+}
 .ticket-composer-title[aria-invalid="true"] {
 	box-shadow: -3px 0 var(--danger);
 }
