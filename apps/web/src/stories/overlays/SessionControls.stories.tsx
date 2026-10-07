@@ -105,7 +105,7 @@ export const AccountPending: Story = {
 		const page = within(context.canvasElement.ownerDocument.body);
 		await expect(page.getByRole("button", { name: "Cancel" })).toBeDisabled();
 		await userEvent.keyboard("{Escape}");
-		await expect(page.getByRole("dialog", { name: "Switch to Team?" })).toBeVisible();
+		await waitFor(() => expect(page.getByRole("dialog", { name: "Switch to Team?" })).toBeVisible());
 	},
 };
 export const AccountSwitchError: Story = {
@@ -119,7 +119,6 @@ export const AccountSwitchError: Story = {
 		await expect(page.getByRole("button", { name: "Retry switch" })).toBeEnabled();
 	},
 };
-
 let projectLoads = 0;
 export const MoveLoadRecovery: Story = {
 	...MoveOpen,
@@ -270,7 +269,6 @@ export const ArchivePending: Story = {
 		await expect(page.getByRole("menuitem", { name: "Move to project…" })).toHaveAttribute("aria-disabled", "true");
 	},
 };
-
 export const AccountLongNameNarrow: Story = {
 	...AccountNamesNarrow,
 	parameters: response("harnessAccounts.list", [
