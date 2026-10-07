@@ -152,7 +152,7 @@ export const ChangedKind: Story = {
 		await checkProvider(context);
 		const body = within(context.canvasElement.ownerDocument.body);
 		await body.findByText(/Provider checked\./);
-		await userEvent.click(await body.findByRole("combobox", { name: "Provider kind" }));
+		await userEvent.click(await body.findByLabelText("Provider kind"));
 		await userEvent.click(await body.findByRole("option", { name: "OpenAI-compatible" }));
 		await expect(body.getByRole("button", { name: "Add provider" })).toBeDisabled();
 		await expect(body.getByText("Select Check provider before you save.")).toBeVisible();
