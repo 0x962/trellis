@@ -1,5 +1,6 @@
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { Button, Command, FailureState, Spinner } from "@trellis/ui";
+import { useCommandState } from "cmdk";
 import { useEffect } from "react";
 import { useApp } from "../../../../../lib/appContext";
 import type { RowDeps, Submenu } from "../../../rows";
@@ -10,6 +11,12 @@ export type SubmenuGroupProps = {
 	submenu: Submenu;
 	deps: RowDeps;
 };
+
+function FilteredEmpty({ hasRows }: { hasRows: boolean }) {
+	const filteredCount = useCommandState((state) => state.filtered.count);
+	if (!hasRows || filteredCount > 0) return null;
+	return <Command.Empty>No options match your search</Command.Empty>;
+}
 
 // The values one submenu offers. The five lists it can need come from the
 // server: the statuses of a project, the tickets a parent is picked from,
@@ -88,28 +95,38 @@ export function SubmenuGroup({ submenu, deps }: SubmenuGroupProps) {
 		if (submenu.kind === "wave") void epic.refetch();
 	};
 
+	if (loading) {
+		return (
+			<div
+				aria-live="polite"
+				aria-busy="true"
+				className="flex min-h-0 flex-1 items-center justify-center gap-2 px-2 py-6 text-sm text-fg-muted"
+			>
+				<Spinner />
+				Loading options
+			</div>
+		);
+	}
+
+	if (error !== null) {
+		return (
+			<FailureState
+				variant="section"
+				title="Options did not load"
+				detail={error.message}
+				action={<Button onClick={retry}>Retry</Button>}
+			/>
+		);
+	}
+
 	return (
-		<Command.Group heading={submenuHeadings[submenu.kind]}>
-			{loading && (
-				<div
-					aria-live="polite"
-					aria-busy="true"
-					className="flex items-center justify-center gap-2 px-2 py-6 text-sm text-fg-muted"
-				>
-					<Spinner />
-					Loading options
-				</div>
+		<Command.List className="min-h-0 flex-1 max-h-none">
+			{rows.length === 0 ? (
+				<Command.Empty>No options available</Command.Empty>
+			) : (
+				<Command.Group heading={submenuHeadings[submenu.kind]}>{drawRows(rows)}</Command.Group>
 			)}
-			{!loading && error !== null && (
-				<FailureState
-					variant="section"
-					title="Options did not load"
-					detail={error.message}
-					action={<Button onClick={retry}>Retry</Button>}
-				/>
-			)}
-			{!loading && error === null && rows.length === 0 && <Command.Empty>No options available</Command.Empty>}
-			{!loading && error === null && drawRows(rows)}
-		</Command.Group>
+			<FilteredEmpty hasRows={rows.length > 0} />
+		</Command.List>
 	);
 }

@@ -34,7 +34,7 @@ const rowClass = "h-9 border-b border-border text-fg transition-colors duration-
 const phoneRowClass = "h-14 border-b border-border text-fg transition-colors duration-hover ease-out hover:bg-band";
 // The link takes no height of its own, so the row keeps its 36 px.
 const linkClass =
-	"inline-flex max-w-full items-center rounded-sm focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2";
+	"inline-flex min-h-7 max-w-full items-center rounded-sm focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2";
 // Below 768 px one link fills the whole row, so a tap anywhere on the 56 px
 // row opens the result, and the target clears 44 px on both axes.
 const phoneLinkClass =

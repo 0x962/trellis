@@ -58,14 +58,14 @@ export function PageRow({
 				),
 				children: search ? (
 					<>
-						<FileHtml aria-hidden="true" className="size-4 text-fg-faint max-md:hidden" />
-						<span className="font-mono text-fg-faint max-md:hidden">Page</span>
+						<FileHtml aria-hidden="true" className="size-4 text-fg-faint max-md:hidden!" />
+						<span className="font-mono text-fg-faint max-md:hidden!">Page</span>
 						<span className="flex min-w-0 flex-col">
 							<span className="truncate font-medium text-fg">{titleContent ?? title}</span>
 							<span className="truncate text-xs text-fg-muted">{summary || "No summary"}</span>
 						</span>
-						<span className="min-w-0 max-md:hidden">{project}</span>
-						<span className="text-fg-muted tabular max-md:hidden">v{latestVersion}</span>
+						<span className="min-w-0 max-md:hidden!">{project}</span>
+						<span className="text-fg-muted tabular max-md:hidden!">v{latestVersion}</span>
 						<time
 							dateTime={publishedAt}
 							title={new Date(publishedAt).toLocaleString()}

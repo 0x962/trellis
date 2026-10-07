@@ -37,6 +37,7 @@ const placeholders = {
 	projects: "Go to a project",
 };
 
+const footerKeyClass = "text-fg-muted opacity-100!";
 // A text answers the typed words when every typed word starts a word of
 // it: "toggle the" names Toggle theme.
 const textMatches = (text: string, typed: string) => {
@@ -100,6 +101,7 @@ export function PalettePanel({ identifier, ticket, submenu, onSubmenu, bulk }: P
 		// choices by the field, so the field starts empty there.
 		openSubmenu: (next) => {
 			setQuery("");
+			setValue("");
 			onSubmenu(next);
 		},
 		close: commandActions.close,
@@ -160,6 +162,13 @@ export function PalettePanel({ identifier, ticket, submenu, onSubmenu, bulk }: P
 	}, [best]);
 
 	const onKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+		if (event.key === "Backspace" && submenu !== null && query === "") {
+			event.preventDefault();
+			setQuery("");
+			setValue("");
+			onSubmenu(null);
+			return;
+		}
 		if (event.key !== "Enter" || !(event.metaKey || event.ctrlKey)) return;
 		event.preventDefault();
 		action.navigate(typed === "" ? "/search" : `/search?q=${encodeURIComponent(typed)}`);
@@ -172,7 +181,7 @@ export function PalettePanel({ identifier, ticket, submenu, onSubmenu, bulk }: P
 			value={value}
 			onValueChange={setValue}
 			shouldFilter={submenu !== null}
-			className="min-h-0"
+			className="min-h-0 flex-1 max-md:[&_[cmdk-item]]:h-11"
 		>
 			<Command.Field
 				label={submenu === null ? placeholders[mode] : submenuHeadings[submenu.kind]}
@@ -183,48 +192,52 @@ export function PalettePanel({ identifier, ticket, submenu, onSubmenu, bulk }: P
 				onKeyDown={onKeyDown}
 				autoFocus
 			/>
-			<Command.List>
-				{submenu === null && results.state === "loading" && (
-					<div
-						aria-live="polite"
-						aria-busy="true"
-						className="flex items-center justify-center gap-2 px-2 py-6 text-sm text-fg-muted"
-					>
-						<Spinner />
-						Searching tickets
-					</div>
-				)}
-				{submenu === null && results.state === "error" && (
-					<FailureState
-						variant="section"
-						title="Ticket search did not load"
-						detail={results.error}
-						action={<Button onClick={results.retry}>Retry</Button>}
-					/>
-				)}
-				{results.jump !== null && drawRows([jumpRow(results.jump, deps)])}
-				{submenu !== null && <SubmenuGroup submenu={submenu} deps={deps} />}
-				{groups.map((group) => (
-					<Command.Group key={group.id} heading={group.heading}>
-						{drawRows(group.rows)}
-					</Command.Group>
-				))}
-				{nothing && <Command.Empty>No results</Command.Empty>}
-			</Command.List>
+			{submenu === null && results.state === "loading" && (
+				<div
+					aria-live="polite"
+					aria-busy="true"
+					className="flex min-h-0 flex-1 items-center justify-center gap-2 px-2 py-6 text-sm text-fg-muted"
+				>
+					<Spinner />
+					Searching tickets
+				</div>
+			)}
+			{submenu === null && results.state === "error" && (
+				<FailureState
+					variant="section"
+					title="Ticket search did not load"
+					detail={results.error}
+					action={<Button onClick={results.retry}>Retry</Button>}
+				/>
+			)}
+			{submenu !== null && <SubmenuGroup submenu={submenu} deps={deps} />}
+			{submenu === null && results.state !== "loading" && results.state !== "error" && (
+				<Command.List className="min-h-0 flex-1 max-h-none">
+					{results.jump !== null && drawRows([jumpRow(results.jump, deps)])}
+					{groups.map((group) => (
+						<Command.Group key={group.id} heading={group.heading}>
+							{drawRows(group.rows)}
+						</Command.Group>
+					))}
+					{nothing && <Command.Empty>No results</Command.Empty>}
+				</Command.List>
+			)}
 			<Command.Footer>
-				<span className="flex items-center gap-1.5">
-					<Kbd>↑↓</Kbd> move
+				<span className="flex items-center gap-1.5 max-sm:hidden">
+					<Kbd className={footerKeyClass}>↑↓</Kbd> move
 				</span>
-				<span className="flex items-center gap-1.5">
-					<Kbd>↵</Kbd> run
+				<span className="flex items-center gap-1.5 max-sm:hidden">
+					<Kbd className={footerKeyClass}>↵</Kbd> run
 				</span>
-				<span className="flex items-center gap-1.5">
+				<span className="flex items-center gap-1.5 text-fg-muted">
 					{formatShortcut("mod+enter", currentPlatform()).map((cap) => (
-						<Kbd key={cap}>{cap}</Kbd>
+						<Kbd key={cap} className={footerKeyClass}>
+							{cap}
+						</Kbd>
 					))}
 					open full search
 				</span>
-				<span className="ml-auto" title={`Type an ID such as ${hintKey}-12 to open the ticket`}>
+				<span className="ml-auto max-md:hidden" title={`Type an ID such as ${hintKey}-12 to open the ticket`}>
 					Type an ID such as <CodeText>{hintKey}-12</CodeText> to open the ticket
 				</span>
 			</Command.Footer>

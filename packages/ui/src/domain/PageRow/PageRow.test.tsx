@@ -60,5 +60,6 @@ test("shows the search project without the actions column", () => {
 	expect(html).toContain("<mark>Release</mark>");
 	expect(html).toContain(">TRL</span>");
 	expect(html).toContain("Page</span>");
+	expect(html.match(/max-md:hidden!/g)).toHaveLength(4);
 	expect(html).not.toContain("Page actions");
 });

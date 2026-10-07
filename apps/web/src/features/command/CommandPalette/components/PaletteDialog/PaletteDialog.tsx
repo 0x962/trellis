@@ -49,9 +49,21 @@ export function PaletteDialog({ open, ready, identifier, ticket }: PaletteDialog
 
 	return (
 		<>
-			<Command.Dialog open={open && ready} onOpenChange={onOpenChange} finalFocus={paletteOpener}>
+			<Command.Dialog
+				open={open && ready}
+				onOpenChange={onOpenChange}
+				finalFocus={paletteOpener}
+				className="top-4! flex max-h-[calc(100dvh-var(--spacing)*8)] flex-col"
+			>
 				{open && (
-					<PalettePanel identifier={identifier} ticket={ticket} submenu={submenu} onSubmenu={setSubmenu} bulk={bulk} />
+					<PalettePanel
+						key={submenu?.kind ?? "root"}
+						identifier={identifier}
+						ticket={ticket}
+						submenu={submenu}
+						onSubmenu={setSubmenu}
+						bulk={bulk}
+					/>
 				)}
 			</Command.Dialog>
 			<DeleteConfirm />
