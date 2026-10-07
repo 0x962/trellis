@@ -164,6 +164,8 @@ export const SearchName: Story = {
 	play: async (context) => {
 		const canvas = within(context.canvasElement);
 		const search = canvas.getByRole("searchbox", { name: "Search providers" });
+		await new Promise(requestAnimationFrame);
+		await new Promise(requestAnimationFrame);
 		const before = search.getBoundingClientRect();
 		await searchProviders(context, "CATALOG");
 		await expect(canvas.getByRole("button", { name: "Edit Catalog provider · On" })).toBeVisible();
@@ -175,7 +177,9 @@ export const SearchNoResults: Story = {
 	play: async (context) => {
 		await searchProviders(context, "No such provider");
 		const canvas = within(context.canvasElement);
-		await expect(canvas.getByRole("status")).toHaveTextContent("No matching providers");
+		const heading = canvas.getByRole("heading", { name: "No matching providers" });
+		await expect(heading).toBeVisible();
+		await expect(heading.parentElement).toHaveTextContent("Change or clear the search to see other providers.");
 		await expect(canvas.queryByText("No providers")).not.toBeInTheDocument();
 		await expect(canvas.getByRole("button", { name: "Add provider" })).toBeEnabled();
 	},
