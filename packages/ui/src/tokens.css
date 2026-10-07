@@ -405,6 +405,10 @@
  * data-theme swap. The default palette is cleared: a class like bg-red-500
  * does not exist, so a raw color cannot enter a component through a utility.
  */
+@theme static {
+	--breakpoint-md: 48rem;
+}
+
 @theme {
 	--color-*: initial;
 	--color-bg: var(--bg);

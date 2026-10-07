@@ -24,28 +24,11 @@ import {
 	Skeleton,
 	Tooltip,
 } from "@trellis/ui";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { copyText } from "../../../../../../../lib/clipboard";
 import { formatMetric, formatShare, formatUsd, harnessLabel, harnessProvider } from "../../../../../formatUsage";
 
-type QuotaStatus = UsageAccount["quota"]["status"];
-
-const quotaStatusLabel: Record<QuotaStatus, string> = {
-	ok: "Quota available",
-	unlimited: "Unlimited",
-	metered: "Metered billing",
-	signed_out: "Sign in required",
-	stale: "Quota refresh pending",
-	expired: "Sign-in expired",
-	unavailable: "Quota unavailable",
-};
-
-export const accountQuotaSummary = (account: UsageAccount) => {
-	if (account.quota.status !== "ok") return quotaStatusLabel[account.quota.status];
-	if (account.quota.windows.length === 0) return quotaStatusLabel.ok;
-	const mostUsed = Math.max(...account.quota.windows.map((window) => window.usedPercent));
-	return `${Math.round(mostUsed)}% used`;
-};
+import { accountQuotaSummary } from "../../accountQuotaSummary";
 
 export function UsageAccountRow({
 	account,
@@ -55,6 +38,7 @@ export function UsageAccountRow({
 	metric,
 	total,
 	pending,
+	reportAvailable = true,
 	busy,
 	refreshing,
 	onDefault,
@@ -70,6 +54,7 @@ export function UsageAccountRow({
 	metric: UsageMetric;
 	total: number;
 	pending: boolean;
+	reportAvailable?: boolean;
 	busy: boolean;
 	refreshing: boolean;
 	onDefault: () => void;
@@ -82,6 +67,7 @@ export function UsageAccountRow({
 	const [details, setDetails] = useState(false);
 	const value = row?.[metric] ?? 0;
 	const sharedValue = shared?.[metric] ?? 0;
+	const share = reportAvailable ? formatShare(value, total) : "";
 	const provider = harnessProvider[account.harness];
 	const quotaDetail =
 		account.quota.creditsBalance !== null
@@ -89,12 +75,15 @@ export function UsageAccountRow({
 			: account.quota.extraUsage
 				? `${formatUsd(account.quota.extraUsage.usedCents / 100)} of ${formatUsd(account.quota.extraUsage.limitCents / 100)} extra usage`
 				: null;
-	const description = `${harnessLabel[account.harness]} · ${accountQuotaSummary(account)}`;
+	const quotaSummary = useMemo(() => accountQuotaSummary(account), [account]);
+	const description = `${harnessLabel[account.harness]} · ${quotaSummary}`;
 	return (
 		<>
 			<SettingsListRow
-				label={`${account.name}${account.isDefault ? " · Default" : ""}`}
+				label={account.name}
+				badge={account.isDefault ? "Default" : undefined}
 				description={description}
+				wrapDescription
 				icon={
 					provider ? (
 						<ProviderIcon provider={provider} decorative className="text-fg-muted" />
@@ -113,15 +102,13 @@ export function UsageAccountRow({
 							<Skeleton width="w-14" height="h-4" className="col-span-2 justify-self-end sm:mr-1" />
 						) : (
 							<span className="col-span-2 justify-self-end text-sm font-medium text-fg tabular sm:mr-1">
-								{formatMetric(metric, value)}
-								<span className="ml-1 hidden text-xs font-normal text-fg-faint sm:inline">
-									{formatShare(value, total)}
-								</span>
+								{reportAvailable ? formatMetric(metric, value) : "Not available"}
+								{share && <span className="ml-1 hidden text-xs font-normal text-fg-faint sm:inline">{share}</span>}
 							</span>
 						)}
-						<Tooltip content="Refresh">
+						<Tooltip content="Refresh all account quotas">
 							<IconButton
-								label={`Refresh quota for ${account.name}`}
+								label="Refresh all account quotas"
 								processing={refreshing}
 								onClick={onRefresh}
 								icon={<ArrowClockwise />}
@@ -185,7 +172,7 @@ export function UsageAccountRow({
 						{account.quota.plan && <PropertyRow label="Plan">{account.quota.plan}</PropertyRow>}
 						<PropertyRow label="Quota" align="start">
 							<span className="flex min-w-0 flex-1 flex-col gap-2">
-								<span>{accountQuotaSummary(account)}</span>
+								<span>{quotaSummary}</span>
 								{account.quota.status === "ok" && <QuotaWindows name={account.name} windows={account.quota.windows} />}
 								{quotaDetail && <span className="text-sm text-fg-muted tabular">{quotaDetail}</span>}
 							</span>
@@ -226,7 +213,7 @@ export function UsageAccountRow({
 					onActiveChange?.(open);
 				}}
 				title={`Sign in to ${account.name}`}
-				description="Run this command on the Trellis host. Complete the CLI sign-in, then refresh this account."
+				description="Run this command on the Trellis host. Complete the CLI sign-in, then refresh all account quotas."
 				titleClassName="text-md font-medium"
 			>
 				<SheetBody>
@@ -247,7 +234,7 @@ export function UsageAccountRow({
 								onRefresh();
 							}}
 						>
-							Done
+							Refresh all quotas
 						</Button>
 					</div>
 				</SheetBody>
