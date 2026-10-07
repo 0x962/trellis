@@ -2,7 +2,8 @@ import { describe, expect, test } from "bun:test";
 import type { HarnessAccount, UsageAccount, UsageGroupRow } from "@trellis/api";
 import { formatDayTime } from "@trellis/ui";
 import { renderToStaticMarkup } from "react-dom/server";
-import { accountQuotaSummary, UsageAccountRow } from "./UsageAccountRow";
+import { accountQuotaSummary } from "../../accountQuotaSummary";
+import { UsageAccountRow } from "./UsageAccountRow";
 
 const account: UsageAccount = {
 	key: "account:Work",
@@ -99,6 +100,28 @@ describe("UsageAccountRow", () => {
 		const unavailable = render({ reportAvailable: false });
 		expect(unavailable).toContain("Not available");
 		expect(unavailable).not.toContain("$96.00");
+	});
+
+	test("prepares the quota summary once for both row views", () => {
+		let resetReads = 0;
+		render({
+			account: {
+				...account,
+				quota: {
+					...account.quota,
+					windows: [
+						{
+							...account.quota.windows[1]!,
+							get resetsAt() {
+								resetReads++;
+								return "2026-10-05T08:00:00.000Z";
+							},
+						},
+					],
+				},
+			},
+		});
+		expect(resetReads).toBe(2);
 	});
 
 	test("names the limiting quota window when its reset time is unavailable", () => {

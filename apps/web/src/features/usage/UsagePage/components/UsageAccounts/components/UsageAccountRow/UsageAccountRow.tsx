@@ -13,7 +13,6 @@ import type { HarnessAccount, UsageAccount, UsageGroupRow, UsageMetric } from "@
 import {
 	Button,
 	CodeText,
-	formatDayTime,
 	IconButton,
 	Menu,
 	PropertyRow,
@@ -25,31 +24,11 @@ import {
 	Skeleton,
 	Tooltip,
 } from "@trellis/ui";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { copyText } from "../../../../../../../lib/clipboard";
 import { formatMetric, formatShare, formatUsd, harnessLabel, harnessProvider } from "../../../../../formatUsage";
 
-type QuotaStatus = UsageAccount["quota"]["status"];
-
-const quotaStatusLabel: Record<QuotaStatus, string> = {
-	ok: "Quota available",
-	unlimited: "Unlimited",
-	metered: "Metered billing",
-	signed_out: "Sign in required",
-	stale: "Quota refresh pending",
-	expired: "Sign-in expired",
-	unavailable: "Quota unavailable",
-};
-
-export const accountQuotaSummary = (account: UsageAccount) => {
-	if (account.quota.status !== "ok") return quotaStatusLabel[account.quota.status];
-	if (account.quota.windows.length === 0) return quotaStatusLabel.ok;
-	const limiting = account.quota.windows.reduce((current, window) =>
-		window.usedPercent > current.usedPercent ? window : current,
-	);
-	const reset = limiting.resetsAt ? `Resets ${formatDayTime(limiting.resetsAt)}` : "Reset time unavailable";
-	return [limiting.label, `${Math.round(limiting.usedPercent)}% used`, reset].join(" \u00b7 ");
-};
+import { accountQuotaSummary } from "../../accountQuotaSummary";
 
 export function UsageAccountRow({
 	account,
@@ -96,7 +75,8 @@ export function UsageAccountRow({
 			: account.quota.extraUsage
 				? `${formatUsd(account.quota.extraUsage.usedCents / 100)} of ${formatUsd(account.quota.extraUsage.limitCents / 100)} extra usage`
 				: null;
-	const description = `${harnessLabel[account.harness]} · ${accountQuotaSummary(account)}`;
+	const quotaSummary = useMemo(() => accountQuotaSummary(account), [account]);
+	const description = `${harnessLabel[account.harness]} · ${quotaSummary}`;
 	return (
 		<>
 			<SettingsListRow
@@ -192,7 +172,7 @@ export function UsageAccountRow({
 						{account.quota.plan && <PropertyRow label="Plan">{account.quota.plan}</PropertyRow>}
 						<PropertyRow label="Quota" align="start">
 							<span className="flex min-w-0 flex-1 flex-col gap-2">
-								<span>{accountQuotaSummary(account)}</span>
+								<span>{quotaSummary}</span>
 								{account.quota.status === "ok" && <QuotaWindows name={account.name} windows={account.quota.windows} />}
 								{quotaDetail && <span className="text-sm text-fg-muted tabular">{quotaDetail}</span>}
 							</span>

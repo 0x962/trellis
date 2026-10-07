@@ -4,7 +4,6 @@ import type {
 	HarnessAccount,
 	HarnessAccountCreate,
 	HarnessAccountUpdate,
-	UsageAccount,
 	UsageGroupRow,
 	UsageMetric,
 } from "@trellis/api";
@@ -27,7 +26,8 @@ import { useApp } from "../../../../../lib/appContext";
 import { accountError } from "./accountError";
 import { UsageAccountRow } from "./components/UsageAccountRow";
 import { VirtualUsageAccountRows } from "./components/VirtualUsageAccountRows";
-import { usageAccountMatches } from "./usageAccountMatches";
+import { unavailableUsageAccounts } from "./unavailableUsageAccounts";
+import { usageAccountMatches, usageAccountSearchText } from "./usageAccountMatches";
 
 export type UsageAccountsProps = {
 	rows: readonly UsageGroupRow[];
@@ -37,29 +37,6 @@ export type UsageAccountsProps = {
 	reportAvailable?: boolean;
 };
 
-export const unavailableUsageAccounts = (accounts: readonly HarnessAccount[]): UsageAccount[] =>
-	accounts.map((account) => ({
-		key: `account:${account.name}`,
-		id: account.id,
-		name: account.name,
-		harness: account.harness,
-		profilePath: account.profilePath,
-		isDefault: account.isDefault,
-		defaultSource: null,
-		loginCommand: account.loginCommand,
-		sharedWith: [],
-		quota: {
-			status: "unavailable",
-			email: null,
-			plan: null,
-			detail: null,
-			windows: [],
-			creditsBalance: null,
-			extraUsage: null,
-			fetchedAt: account.updatedAt,
-		},
-	}));
-
 export function UsageAccounts({ rows, metric, total, pending, reportAvailable = true }: UsageAccountsProps) {
 	const { orpc, client, queryClient } = useApp();
 	const accountOptions = orpc.usage.accounts.queryOptions({ input: {} });
@@ -68,16 +45,26 @@ export function UsageAccounts({ rows, metric, total, pending, reportAvailable = 
 		...orpc.harnessAccounts.list.queryOptions({ input: {} }),
 		refetchInterval: 30_000,
 	});
-	const usageAccounts = accounts.isError ? unavailableUsageAccounts(configured.data ?? []) : (accounts.data ?? []);
+	const usageAccounts = useMemo(
+		() => (accounts.isError ? unavailableUsageAccounts(configured.data ?? []) : (accounts.data ?? [])),
+		[accounts.isError, accounts.data, configured.data],
+	);
 	const configuredById = useMemo(
 		() => new Map((configured.data ?? []).map((account) => [account.id, account])),
 		[configured.data],
 	);
 	const rowsByKey = useMemo(() => new Map(rows.map((row) => [row.key, row])), [rows]);
 	const [query, setQuery] = useState("");
+	const searchableAccounts = useMemo(
+		() => usageAccounts.map((account) => ({ account, searchText: usageAccountSearchText(account) })),
+		[usageAccounts],
+	);
 	const filteredUsageAccounts = useMemo(
-		() => usageAccounts.filter((account) => usageAccountMatches(account, query)),
-		[query, usageAccounts],
+		() =>
+			searchableAccounts
+				.filter(({ searchText }) => usageAccountMatches(searchText, query))
+				.map(({ account }) => account),
+		[query, searchableAccounts],
 	);
 	const [addOpen, setAddOpen] = useState(false);
 	const [edit, setEdit] = useState<HarnessAccount | null>(null);

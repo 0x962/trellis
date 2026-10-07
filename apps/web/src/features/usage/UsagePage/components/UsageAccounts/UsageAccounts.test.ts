@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import type { HarnessAccount, UsageAccount } from "@trellis/api";
-import { unavailableUsageAccounts } from "./UsageAccounts";
-import { usageAccountMatches } from "./usageAccountMatches";
+import { unavailableUsageAccounts } from "./unavailableUsageAccounts";
+import { usageAccountMatches, usageAccountSearchText } from "./usageAccountMatches";
 
 const account: HarnessAccount = {
 	id: "01M2Q0Z191Q244RDP6R3SBFKE5",
@@ -71,6 +71,8 @@ const usageAccount: UsageAccount = {
 	},
 };
 
+const searchText = usageAccountSearchText(usageAccount);
+
 describe("usageAccountMatches", () => {
 	test("matches the visible account identity without case sensitivity", () => {
 		for (const query of [
@@ -85,12 +87,35 @@ describe("usageAccountMatches", () => {
 			"82% used",
 			"team workspace",
 		]) {
-			expect(usageAccountMatches(usageAccount, query)).toBe(true);
+			expect(usageAccountMatches(searchText, query)).toBe(true);
 		}
 	});
 
+	test("reads quota dates only when it prepares search text", () => {
+		let resetReads = 0;
+		const prepared = usageAccountSearchText({
+			...usageAccount,
+			quota: {
+				...usageAccount.quota,
+				windows: [
+					{
+						...usageAccount.quota.windows[0]!,
+						get resetsAt() {
+							resetReads++;
+							return "2026-10-12T10:00:00.000Z";
+						},
+					},
+				],
+			},
+		});
+		const preparedReads = resetReads;
+		for (const query of ["weekly", "82%", "avery", "catalog"]) usageAccountMatches(prepared, query);
+		expect(preparedReads).toBeGreaterThan(0);
+		expect(resetReads).toBe(preparedReads);
+	});
+
 	test("matches a blank query and rejects unrelated text", () => {
-		expect(usageAccountMatches(usageAccount, "   ")).toBe(true);
-		expect(usageAccountMatches(usageAccount, "not-a-real-account")).toBe(false);
+		expect(usageAccountMatches(searchText, "   ")).toBe(true);
+		expect(usageAccountMatches(searchText, "not-a-real-account")).toBe(false);
 	});
 });
