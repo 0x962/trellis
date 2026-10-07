@@ -1,9 +1,9 @@
 import { expect, test } from "bun:test";
 import { renderToStaticMarkup } from "react-dom/server";
+import { MachineRuns } from "../../../../../MachineRuns";
 import type { MachinePressureReadingView } from "../../../../MachinePressure";
 import { MachineDetails } from "./components/MachineDetails";
 import { MachineOverview } from "./components/MachineOverview";
-import { MachineRuns } from "./components/MachineRuns";
 
 const readings: MachinePressureReadingView[] = [
 	{ key: "thermal", label: "Thermal pressure", value: "Nominal", tone: "normal", freshness: "stale" },
