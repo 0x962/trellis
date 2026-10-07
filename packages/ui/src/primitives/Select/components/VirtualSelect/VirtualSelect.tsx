@@ -24,8 +24,8 @@ export function VirtualSelect<Value extends string>({
 	disabled = false,
 	className,
 }: SelectProps<Value>) {
-	const coarse = useMediaQuery("(pointer: coarse)");
-	const rowHeight = coarse ? 44 : 28;
+	const largeTargets = useMediaQuery("(pointer: coarse), (width < 48rem)");
+	const rowHeight = largeTargets ? 44 : 28;
 	const [list, setList] = useState<HTMLDivElement | null>(null);
 	const [open, setOpen] = useState(false);
 	const [viewport, setViewport] = useState({ top: 0, height: 280 });
@@ -89,7 +89,7 @@ export function VirtualSelect<Value extends string>({
 						"inline-flex h-7 min-w-24 shrink-0 items-center justify-between gap-2 rounded-md border border-border-strong bg-control pr-1.5 pl-2 text-sm text-fg whitespace-nowrap select-none transition duration-hover ease-out",
 						hitArea.box28Bordered,
 						"hover:bg-control-hover active:bg-control-active data-popup-open:bg-control-active",
-						"aria-invalid:border-danger pointer-coarse:h-11 focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2",
+						"aria-invalid:border-danger max-md:h-11 pointer-coarse:h-11 focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2",
 						"disabled:bg-surface disabled:border-border disabled:text-fg-faint disabled:pointer-events-none",
 						className,
 					)}
