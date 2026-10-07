@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import type { UsageAccount, UsageGroupRow } from "@trellis/api";
-import { expect, userEvent, within } from "storybook/test";
+import { expect, userEvent, waitFor, within } from "storybook/test";
 import {
 	UsageAccounts,
 	unavailableUsageAccounts,
@@ -203,7 +203,7 @@ export const AddError: Story = {
 	play: async (context) => {
 		await add(context);
 		const body = within(context.canvasElement.ownerDocument.body);
-		await expect(await body.findByRole("alert")).toBeVisible();
+		await waitFor(() => expect(body.getByRole("alert")).toBeVisible());
 		await expect(body.getByRole("textbox", { name: "Account name" })).toHaveValue("Catalog account");
 	},
 };
@@ -218,7 +218,7 @@ export const RenameError: Story = {
 	play: async (context) => {
 		await rename(context);
 		const body = within(context.canvasElement.ownerDocument.body);
-		await expect(await body.findByRole("alert")).toBeVisible();
+		await waitFor(() => expect(body.getByRole("alert")).toBeVisible());
 		await expect(body.getByRole("textbox", { name: "Account name" })).toHaveValue("Catalog account");
 	},
 };
@@ -231,7 +231,7 @@ export const RemoveError: Story = {
 	parameters: { trellis: { responses: { "harnessAccounts.remove": failure } } },
 	play: async (context) => {
 		await remove(context);
-		await expect(await within(context.canvasElement.ownerDocument.body).findByRole("alert")).toBeVisible();
+		await waitFor(() => expect(within(context.canvasElement.ownerDocument.body).getByRole("alert")).toBeVisible());
 	},
 };
 export const DetailsOpen: Story = { play: choose("Edit details") };
