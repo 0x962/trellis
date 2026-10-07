@@ -17,13 +17,18 @@ export type SearchBarProps = {
 };
 
 const styles = StyleSheet.create({
-	bar: { paddingHorizontal: tokens.space[4], paddingTop: tokens.space[4] },
+	bar: { paddingHorizontal: tokens.space[4], paddingTop: tokens.space[4], paddingBottom: tokens.space[2] },
 	row: { flexDirection: "row", alignItems: "flex-end", gap: tokens.space[2] },
 	field: { flex: 1 },
 	clear: { width: layout.hit, height: layout.hit, alignItems: "center", justifyContent: "center" },
-	// The hint keeps its line whether or not it holds words, so the results
-	// under it stay where they are while a person types.
-	hint: { fontSize: tokens.text.sm, lineHeight: tokens.leading.sm, paddingTop: tokens.space[1] },
+	// The hint holds its own line height whether or not it holds words, so
+	// the results under it stay where they are while a person types.
+	hint: {
+		height: tokens.leading.sm,
+		marginTop: tokens.space[1],
+		fontSize: tokens.text.sm,
+		lineHeight: tokens.leading.sm,
+	},
 });
 
 // The search field, a control that empties it, and one line that names the
