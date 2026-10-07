@@ -39,9 +39,11 @@ export function ThreadReplyForm({
 	resolveRef,
 }: Props) {
 	const replyInput = useRef<HTMLTextAreaElement>(null);
+	const form = useRef<HTMLFormElement>(null);
 	const resolveLabel = resolved ? "Reopen comment" : "Resolve comment";
 	return (
 		<form
+			ref={form}
 			className="review-reply"
 			onSubmit={(e) => {
 				e.preventDefault();
@@ -62,6 +64,11 @@ export function ThreadReplyForm({
 				disabled={readOnly}
 				value={reply}
 				onChange={(e) => setReply(e.target.value)}
+				onFocus={() => {
+					requestAnimationFrame(() => {
+						form.current?.scrollIntoView({ block: "nearest", inline: "nearest" });
+					});
+				}}
 				onKeyDown={(e) => {
 					if (
 						commentKeySubmits(
