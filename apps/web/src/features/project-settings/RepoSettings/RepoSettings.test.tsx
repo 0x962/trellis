@@ -3,6 +3,7 @@ import type { Project, ProjectSetReposInput, ProjectUpdateInput } from "@trellis
 import { act, type ComponentProps, type ReactNode, type Ref, useEffect, useImperativeHandle, useRef } from "react";
 import { createRoot } from "test-renderer";
 import { type AppContext, AppProvider } from "../../../lib/appContext";
+import { projectFixture } from "./components/projectFixture";
 
 type ConfirmProps = {
 	open: boolean;
@@ -103,28 +104,13 @@ const { RepoSettings } = await import("./RepoSettings");
 afterAll(() => mock.restore());
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
-const project = (): Project =>
-	({
-		id: "01K00000000000000000000000",
-		key: "TRL",
-		slug: "trellis",
-		name: "Trellis",
-		description: "Saved description",
-		color: "blue",
-		ticketCounter: 0,
-		repos: [
-			{ id: "01K00000000000000000000001", projectId: "01K00000000000000000000000", owner: "0x962", repo: "trellis" },
-			{ id: "01K00000000000000000000002", projectId: "01K00000000000000000000000", owner: "0x962", repo: "agents" },
-		],
-	}) as Project;
-
 const cleanups: Array<() => Promise<void>> = [];
 afterEach(async () => {
 	for (const close of cleanups.splice(0)) await close();
 });
 
 async function fixture(setRepos: (input: ProjectSetReposInput) => Promise<Project>) {
-	const current = project();
+	const current = projectFixture();
 	const invalidations: number[] = [];
 	const app = {
 		client: { projects: { setRepos } },
@@ -166,7 +152,7 @@ async function fixture(setRepos: (input: ProjectSetReposInput) => Promise<Projec
 }
 
 async function detailsFixture(update: (input: ProjectUpdateInput) => Promise<Project>) {
-	const current = project();
+	const current = projectFixture();
 	const invalidations: number[] = [];
 	const app = {
 		client: { projects: { update } },
