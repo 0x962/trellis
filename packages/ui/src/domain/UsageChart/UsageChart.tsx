@@ -37,6 +37,13 @@ export type UsageChartProps = {
 // The gridlines, top first, as the share of the top value each one marks.
 const GRID_LINES = [1, 0.75, 0.5, 0.25, 0] as const;
 
+const tickIndexes = (count: number) => {
+	const target = count <= 7 ? 4 : count <= 31 ? 5 : 7;
+	const tickCount = Math.min(count, target);
+	if (tickCount <= 1) return count === 0 ? [] : [0];
+	return Array.from({ length: tickCount }, (_, index) => Math.round((index * (count - 1)) / (tickCount - 1)));
+};
+
 export function UsageChart({
 	label,
 	days,
@@ -79,7 +86,7 @@ export function UsageChart({
 	const focusDay = focusIndex < 0 ? null : days[focusIndex]!;
 	const hoverIndex = hoverDay === null ? -1 : (dayIndexByDay.get(hoverDay) ?? -1);
 	const captionIndex = hoverIndex >= 0 ? hoverIndex : hasFocus ? focusIndex : selectedIndex;
-	const ticks = count >= 3 ? [0, Math.floor(count / 2), count - 1] : days.map((_, index) => index);
+	const ticks = tickIndexes(count);
 	// Gaps keep bars for adjacent days distinct.
 	const slot = 100 / Math.max(1, count);
 	const barWidth = slot * (appearance === "overview" ? 0.45 : 0.7);
@@ -263,6 +270,7 @@ export function UsageChart({
 						className={cx(
 							"flex-1",
 							position === 0 ? "text-left" : position === ticks.length - 1 ? "text-right" : "text-center",
+							position !== 0 && position !== ticks.length - 1 && position !== Math.floor(ticks.length / 2) && "max-sm:hidden",
 						)}
 					>
 						{formatDay(days[index]!)}
