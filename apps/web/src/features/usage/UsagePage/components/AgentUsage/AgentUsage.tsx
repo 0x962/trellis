@@ -79,6 +79,7 @@ export function AgentUsage() {
 		metric,
 		total: report.data?.totals[metric] ?? 0,
 		pending: report.isPending,
+		reportAvailable: Boolean(report.data),
 	};
 
 	return (
