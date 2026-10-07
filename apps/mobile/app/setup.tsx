@@ -1,13 +1,13 @@
 import { parsePairLink } from "@trellis/api";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { Button } from "../src/components/Button";
 import { Field } from "../src/components/Field";
 import { KeyValueRow } from "../src/components/KeyValueRow";
+import { Spinner } from "../src/components/Spinner";
 import { QrScanner } from "../src/features/setup/QrScanner";
 import { setupFeedback } from "../src/features/setup/setupFeedback";
-import { useReduceMotion } from "../src/hooks/useReduceMotion";
 import { queryClient } from "../src/lib/queryClient";
 import { actorHeader, type ProbeResult, probeHealth, validateActorName, validateServerUrl } from "../src/lib/server";
 import { keys } from "../src/lib/store";
@@ -52,7 +52,6 @@ export default function SetupScreen() {
 	// flag that stays true after the first one.
 	const [saves, setSaves] = useState(0);
 	const palette = usePalette();
-	const reduceMotion = useReduceMotion();
 	const configured = Boolean(storedUrl) && Boolean(storedName);
 
 	useEffect(() => {
@@ -171,7 +170,7 @@ export default function SetupScreen() {
 			/>
 			{feedback !== undefined && (
 				<View style={styles.feedback}>
-					{busy && !reduceMotion && <ActivityIndicator color={palette.accent} />}
+					{busy && <Spinner />}
 					<Text
 						accessibilityLiveRegion={feedback.tone === "danger" ? "assertive" : "polite"}
 						accessibilityRole={feedback.tone === "danger" ? "alert" : undefined}

@@ -1,8 +1,8 @@
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { useRef } from "react";
-import { ActivityIndicator, Linking, StyleSheet, Text, View } from "react-native";
+import { Linking, StyleSheet, Text, View } from "react-native";
 import { Button } from "../../../components/Button";
-import { useReduceMotion } from "../../../hooks/useReduceMotion";
+import { Spinner } from "../../../components/Spinner";
 import { tokens } from "../../../theme/tokens";
 import { usePalette } from "../../../theme/usePalette";
 
@@ -14,18 +14,15 @@ export type QrScannerProps = {
 
 const styles = StyleSheet.create({
 	box: { gap: tokens.space[3] },
-	heading: { fontSize: tokens.text.lg, lineHeight: tokens.leading.lg, fontWeight: "600" },
+	heading: { fontSize: tokens.text.lg, lineHeight: tokens.leading.lg },
 	camera: { aspectRatio: 1, borderRadius: tokens.radius.lg, overflow: "hidden" },
 	status: { flexDirection: "row", alignItems: "center", gap: tokens.space[2] },
 	message: { flex: 1, fontSize: tokens.text.base, lineHeight: tokens.leading.base },
 });
 
-// The camera view that reads one QR code. A person controls when the system
-// asks for camera access and can open the system settings after a refusal.
 export function QrScanner({ onScan, onCancel }: QrScannerProps) {
 	const [permission, requestPermission] = useCameraPermissions();
 	const palette = usePalette();
-	const reduceMotion = useReduceMotion();
 	// The camera reports a code on every frame that shows it. The first report
 	// ends the scan, so the screen probes the server once.
 	const scanned = useRef(false);
@@ -37,7 +34,7 @@ export function QrScanner({ onScan, onCancel }: QrScannerProps) {
 			</Text>
 			{permission === null ? (
 				<View style={styles.status}>
-					{!reduceMotion && <ActivityIndicator color={palette.accent} />}
+					<Spinner />
 					<Text accessibilityLiveRegion="polite" style={[styles.message, { color: palette.fgMuted }]}>
 						Checking camera access…
 					</Text>

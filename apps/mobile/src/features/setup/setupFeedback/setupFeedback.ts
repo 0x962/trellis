@@ -1,4 +1,4 @@
-import type { ProbeResult } from "../../lib/server";
+import type { ProbeResult } from "../../../lib/server";
 
 export type SetupFeedback = {
 	tone: "neutral" | "danger" | "success";
