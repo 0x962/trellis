@@ -1,8 +1,9 @@
 import { useMutation } from "@tanstack/react-query";
 import { type Epic, type EpicCreateInput, EpicCreateInputSchema, type EpicSummary, type Project } from "@trellis/api";
-import { Button, Input, Sheet, SheetBody, SheetFooter, Textarea } from "@trellis/ui";
+import { Button, FormStatus, Input, Sheet, SheetBody, SheetFooter, Textarea } from "@trellis/ui";
 import { useRef, useState } from "react";
 import { useApp } from "../../../lib/appContext";
+import { errorMessage } from "../../../lib/conflict";
 
 export type EpicSheetProps = {
 	project: Project;
@@ -13,6 +14,8 @@ export type EpicSheetProps = {
 	onSaved?: (epic: Epic) => void;
 };
 
+export const epicFormValidationProps = { noValidate: true } as const;
+
 // The form of an epic: the name and the plan as markdown. A create and an
 // edit share it. The server derives the slug from the name. The waves of
 // the epic are edited on the Overview of the epic page.
@@ -21,6 +24,7 @@ export function EpicSheet({ project, epic, onClose, onSaved }: EpicSheetProps) {
 	const nameRef = useRef<HTMLInputElement>(null);
 	const [name, setName] = useState(epic?.name ?? "");
 	const [description, setDescription] = useState(epic?.description ?? "");
+	const [showErrors, setShowErrors] = useState(false);
 	const input = EpicCreateInputSchema.safeParse({ project: project.key, name, description });
 	const save = useMutation({
 		mutationFn: (fields: EpicCreateInput) =>
@@ -38,6 +42,8 @@ export function EpicSheet({ project, epic, onClose, onSaved }: EpicSheetProps) {
 	});
 	const pending = save.isPending;
 	const dirty = epic !== undefined && (name !== epic.name || description !== epic.description);
+	const nameError =
+		showErrors && !input.success ? input.error.issues.find((issue) => issue.path[0] === "name")?.message : undefined;
 
 	return (
 		<Sheet
@@ -48,9 +54,11 @@ export function EpicSheet({ project, epic, onClose, onSaved }: EpicSheetProps) {
 			onOpenChange={(open) => !open && !pending && onClose()}
 		>
 			<form
+				{...epicFormValidationProps}
 				className="flex min-h-full flex-col"
 				onSubmit={(event) => {
 					event.preventDefault();
+					setShowErrors(true);
 					if (input.success && !pending) save.mutate(input.data);
 				}}
 			>
@@ -66,7 +74,11 @@ export function EpicSheet({ project, epic, onClose, onSaved }: EpicSheetProps) {
 						autoComplete="off"
 						disabled={pending}
 						value={name}
-						onChange={(event) => setName(event.target.value)}
+						error={nameError}
+						onChange={(event) => {
+							save.reset();
+							setName(event.target.value);
+						}}
 						className="pointer-coarse:h-11"
 					/>
 					<Textarea
@@ -74,14 +86,16 @@ export function EpicSheet({ project, epic, onClose, onSaved }: EpicSheetProps) {
 						rows={16}
 						disabled={pending}
 						value={description}
-						onChange={(event) => setDescription(event.target.value)}
+						onChange={(event) => {
+							save.reset();
+							setDescription(event.target.value);
+						}}
 						placeholder="The plan, in markdown. A bare ticket identifier such as OP-29 links to its ticket."
 					/>
-					{save.isError && (
-						<p role="alert" className="text-sm text-danger">
-							Could not save the epic. {save.error.message}
-						</p>
-					)}
+					<FormStatus
+						status={pending ? "saving" : save.isError ? "error" : "idle"}
+						message={save.isError ? `The epic did not save. ${errorMessage(save.error)}` : undefined}
+					/>
 				</SheetBody>
 				<SheetFooter>
 					<Button type="button" variant="quiet" disabled={pending} onClick={onClose}>
@@ -90,7 +104,7 @@ export function EpicSheet({ project, epic, onClose, onSaved }: EpicSheetProps) {
 					<Button
 						type="submit"
 						variant="primary"
-						disabled={!input.success || pending || (epic !== undefined && !dirty)}
+						disabled={pending || (epic !== undefined && !dirty)}
 						aria-busy={pending}
 					>
 						{epic === undefined ? "Create epic" : "Save changes"}
