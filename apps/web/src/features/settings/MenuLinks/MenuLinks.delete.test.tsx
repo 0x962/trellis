@@ -79,7 +79,7 @@ mock.module("@trellis/ui", () => ({
 		onClick?: () => void;
 		ref?: Ref<HTMLButtonElement>;
 	}) => {
-		useImperativeHandle(ref, () => ({ focus: () => (focusedControl = label) }) as HTMLButtonElement);
+		useImperativeHandle(ref, () => ({ focus: () => (focusedControl = label) }) as unknown as HTMLButtonElement);
 		return <button type="button" aria-label={label} disabled={disabled} onClick={onClick} />;
 	},
 	Input: ({
