@@ -1,10 +1,10 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useArgs } from "storybook/preview-api";
-import { expect, userEvent, within } from "storybook/test";
+import { expect, userEvent, waitFor, within } from "storybook/test";
 import { ReviewPage } from "../../features/reviews/ReviewPage/ReviewPage";
 import { flowHistoryResponses } from "./fixtures/flowHistory";
 import { failure, pending, ticket } from "./fixtures/project";
-import { pullRequest, reviewOverview, reviewResponses, reviewStatus } from "./fixtures/review";
+import { pullRequest, reviewOverview, reviewResponses, reviewStatus, reviewThread } from "./fixtures/review";
 import { pageFrame } from "./pageFrame";
 
 const meta = {
@@ -22,6 +22,79 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Overview: Story = {};
+export const OpenFinding: Story = {
+	play: async ({ canvasElement }) => {
+		const canvas = within(canvasElement);
+		const finding = await canvas.findByRole("button", {
+			name: /Keep the title readable when the value contains only spaces/,
+		});
+		finding.focus();
+		await userEvent.keyboard("{Enter}");
+		await expect(await canvas.findByRole("tab", { name: "Diff", selected: true })).toBeVisible();
+		await expect(await canvas.findByRole("article", { name: "Thread by Storybook" })).toBeVisible();
+		await waitFor(() => expect(canvas.getByRole("article", { name: "Thread by Storybook" })).toHaveFocus());
+		await expect(await canvas.findByRole("textbox", { name: "Reply" })).toBeVisible();
+	},
+};
+export const OpenFindingNarrow: Story = {
+	...OpenFinding,
+	globals: { viewport: { value: "narrow", isRotated: false } },
+};
+export const OverviewError: Story = {
+	parameters: { trellis: { responses: { "reviews.overview": failure } } },
+	play: async ({ canvasElement }) => {
+		const canvas = within(canvasElement);
+		await expect(await canvas.findByRole("alert")).toHaveTextContent("The overview did not load");
+		await expect(canvas.queryByText("The overview is loading.")).not.toBeInTheDocument();
+		await expect(canvas.getByRole("button", { name: "Retry overview" })).toBeVisible();
+	},
+};
+let repliedThread = reviewThread;
+export const ReplySaved: Story = {
+	beforeEach: () => {
+		repliedThread = structuredClone(reviewThread);
+	},
+	parameters: {
+		trellis: {
+			responses: {
+				"reviews.list": () => ({ items: [repliedThread], total: 1, open: 1 }),
+				"reviews.reply": ({ body }: { body: string }) => {
+					repliedThread = {
+						...repliedThread,
+						replies: [...repliedThread.replies, { ...reviewThread, id: "reply-303", body }],
+					};
+				},
+			},
+		},
+	},
+	play: async (context) => {
+		await OpenFinding.play!(context);
+		const canvas = within(context.canvasElement);
+		await userEvent.type(canvas.getByRole("textbox", { name: "Reply" }), "The reply stays with this line.");
+		await userEvent.click(canvas.getByRole("button", { name: "Post reply" }));
+		await expect(await canvas.findByText("The reply stays with this line.")).toBeVisible();
+		await expect(canvas.getByRole("textbox", { name: "Reply" })).toHaveValue("");
+	},
+};
+export const ReplyFailed: Story = {
+	parameters: {
+		trellis: {
+			responses: {
+				"reviews.reply": () => {
+					throw new Error("The reply did not save. Try again.");
+				},
+			},
+		},
+	},
+	play: async (context) => {
+		await OpenFinding.play!(context);
+		const canvas = within(context.canvasElement);
+		await userEvent.type(canvas.getByRole("textbox", { name: "Reply" }), "Keep this reply draft.");
+		await userEvent.click(canvas.getByRole("button", { name: "Post reply" }));
+		await expect(await canvas.findByRole("alert")).toHaveTextContent("The reply did not save. Try again.");
+		await expect(canvas.getByRole("textbox", { name: "Reply" })).toHaveValue("Keep this reply draft.");
+	},
+};
 export const SwitchTabs: Story = {
 	parameters: { trellis: { responses: flowHistoryResponses } },
 	play: async ({ canvasElement }) => {

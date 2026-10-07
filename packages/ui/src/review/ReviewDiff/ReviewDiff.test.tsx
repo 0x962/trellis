@@ -3,6 +3,32 @@ import { renderToStaticMarkup } from "react-dom/server";
 import type { DiffFileGroup } from "./diffGroups";
 import { ReviewDiff } from "./ReviewDiff";
 
+test("a selected finding reveals a viewed file and retains its Viewed checkbox", () => {
+	const viewed = new Set(["changed.ts"]);
+	const renderViewed = (revealedFile?: string) =>
+		renderToStaticMarkup(
+			<ReviewDiff
+				patch={patch}
+				revisionId="r"
+				threads={[]}
+				mode="split"
+				theme="light"
+				renderThread={() => null}
+				onSelect={() => {}}
+				onFiles={() => {}}
+				viewed={viewed}
+				revealedFile={revealedFile}
+				onViewed={() => {}}
+			/>,
+		);
+	expect(renderViewed()).not.toContain("<code>new text</code>");
+	const html = renderViewed("changed.ts");
+	expect(html).toContain("<code>new text</code>");
+	expect(html).toContain('data-file-path="changed.ts" data-viewed="true"');
+	expect(viewed.has("changed.ts")).toBe(true);
+	expect(renderViewed()).not.toContain("<code>new text</code>");
+});
+
 const patch = `diff --git a/changed.ts b/changed.ts
 --- a/changed.ts
 +++ b/changed.ts

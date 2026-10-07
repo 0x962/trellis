@@ -1,6 +1,6 @@
 import { ArrowsClockwise } from "@phosphor-icons/react";
 import type { PullRequestEvidence, PullRequestSummary, ReviewRevision, ReviewThread } from "@trellis/api";
-import { IconButton, Skeleton, Tooltip } from "@trellis/ui";
+import { FailureState, IconButton, Skeleton, Tooltip } from "@trellis/ui";
 import { type DiffAnchor, threadDiffLine } from "@trellis/ui/review";
 import { ChangeSummary } from "../../../ChangeSummary";
 import { EvidenceDocument } from "../../../EvidenceDocument";
@@ -25,19 +25,21 @@ export function ReviewOverview({
 	evidence: PullRequestEvidence | null;
 	threads: ReviewThread[];
 	revision: ReviewRevision | null;
-	onOpen: (path: string, anchor: DiffAnchor | null) => void;
+	onOpen: (path: string, anchor: DiffAnchor | null, threadId: string) => void;
 }) {
 	return (
 		<div className="review-blocks">
-			{error && (
-				<div role="alert" className="review-error">
-					Overview: {error.message}
-					<Tooltip content="Retry overview">
-						<IconButton label="Retry overview" icon={<ArrowsClockwise />} onClick={onRetry} />
-					</Tooltip>
-				</div>
-			)}
-			{!ready ? (
+			{error ? (
+				<FailureState
+					title="The overview did not load"
+					detail={error.message}
+					action={
+						<Tooltip content="Retry overview">
+							<IconButton label="Retry overview" icon={<ArrowsClockwise />} onClick={onRetry} />
+						</Tooltip>
+					}
+				/>
+			) : !ready ? (
 				<section aria-busy="true">
 					<span className="sr-only" role="status">
 						The overview is loading.
@@ -56,6 +58,7 @@ export function ReviewOverview({
 							onOpen(
 								line === null ? thread.path : "",
 								line === null ? null : { path: thread.path, side: thread.side, line, startLine: line },
+								thread.id,
 							);
 						}}
 					/>

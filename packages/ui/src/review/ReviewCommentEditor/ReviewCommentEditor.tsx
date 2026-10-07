@@ -1,5 +1,5 @@
 import { GitDiff } from "@phosphor-icons/react";
-import { type ReactNode, useRef, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import { Button } from "../../primitives/Button";
 import { IconButton } from "../../primitives/IconButton";
 import { Tabs } from "../../primitives/Tabs";
@@ -56,6 +56,14 @@ export function ReviewCommentEditor({
 }: Props) {
 	const [tab, setTab] = useState("write");
 	const textarea = useRef<HTMLTextAreaElement>(null);
+	const form = useRef<HTMLFormElement>(null);
+	useEffect(() => {
+		const frame = requestAnimationFrame(() => {
+			textarea.current?.focus({ preventScroll: true });
+			form.current!.scrollIntoView({ block: "nearest", inline: "nearest" });
+		});
+		return () => cancelAnimationFrame(frame);
+	}, []);
 	const suggest = () => {
 		if (!suggestionText) return;
 		const node = textarea.current;
@@ -74,6 +82,7 @@ export function ReviewCommentEditor({
 	const suggestLabel = suggestionText ? "Suggest a change" : (suggestionUnavailable ?? "Suggest a change");
 	return (
 		<form
+			ref={form}
 			className="review-thread review-comment-editor"
 			aria-label="Add review comment"
 			onSubmit={(event) => {
@@ -109,7 +118,6 @@ export function ReviewCommentEditor({
 									label="Comment"
 									hideLabel
 									rows={4}
-									autoFocus
 									placeholder="Leave a comment…"
 									value={body}
 									onChange={(event) => onChange(event.target.value)}

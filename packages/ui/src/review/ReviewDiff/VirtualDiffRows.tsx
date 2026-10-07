@@ -51,6 +51,7 @@ const anchorMatches = (row: ReviewRow, anchor: DiffAnchor) => {
 };
 
 export function VirtualDiffRows({
+	active,
 	rows,
 	mode,
 	theme,
@@ -58,6 +59,7 @@ export function VirtualDiffRows({
 	selectedAnchor,
 	renderRow,
 }: {
+	active: boolean;
 	rows: ReviewRow[];
 	mode: "split" | "unified";
 	theme: "light" | "dark" | "system";
@@ -84,13 +86,12 @@ export function VirtualDiffRows({
 	);
 	const viewportRef = useRef<HTMLElement>(null);
 	const virtual = useVirtualRows(viewportRef, sizes);
-	// Opening a comment composer rebuilds every row. Only a move to another
-	// file scrolls the list, so the reviewer keeps the place they scrolled to.
-	const scrolledTo = useRef<string | undefined>(undefined);
+	// A composer rebuilds the rows. The selected anchor keeps its identity,
+	// so row updates preserve the scroll position until another selection.
+	const scrolledTo = useRef<DiffAnchor | string | undefined>(undefined);
 	useEffect(() => {
-		const target = selectedAnchor
-			? `${selectedAnchor.path}:${selectedAnchor.side}:${selectedAnchor.line}`
-			: selectedFile;
+		if (!active) return;
+		const target = selectedAnchor ?? selectedFile;
 		if (target === scrolledTo.current) return;
 		scrolledTo.current = target;
 		const anchored = selectedAnchor ? rows.findIndex((row) => anchorMatches(row, selectedAnchor)) : -1;
@@ -100,7 +101,7 @@ export function VirtualDiffRows({
 		const path = selectedAnchor?.path ?? selectedFile;
 		const index = anchored >= 0 ? anchored : rows.findIndex((row) => row.kind === "file" && row.file.name === path);
 		if (index >= 0) virtual.scrollToIndex(index);
-	}, [rows, selectedFile, selectedAnchor, virtual.scrollToIndex]);
+	}, [active, rows, selectedFile, selectedAnchor, virtual.scrollToIndex]);
 	return createElement(
 		"diffs-container",
 		{

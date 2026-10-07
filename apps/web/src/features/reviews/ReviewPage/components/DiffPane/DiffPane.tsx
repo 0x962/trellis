@@ -23,6 +23,8 @@ export type DiffPaneProps = {
 	// The diff list scrolls to this path.
 	selectedFile: string;
 	selectedAnchor: DiffAnchor | null;
+	selectedThread: string | null;
+	active: boolean;
 	renderThread: (id: string, place: ThreadPlacement) => ReactNode;
 	// The changed files of the revision, as the patch reports them. The page
 	// gives them to `FileRiskGroups`.
@@ -47,6 +49,8 @@ export function DiffPane({
 	threads,
 	selectedFile,
 	selectedAnchor,
+	selectedThread,
+	active,
 	renderThread,
 	onFiles,
 	groups,
@@ -55,6 +59,15 @@ export function DiffPane({
 }: DiffPaneProps) {
 	const { client, orpc, queryClient } = useApp();
 	const { resolved: theme } = useTheme();
+	const windowRef = useRef<HTMLDivElement>(null);
+	useEffect(() => {
+		if (!active || !selectedThread) return;
+		const frame = requestAnimationFrame(() => {
+			windowRef.current!.scrollIntoView({ block: "start", inline: "nearest" });
+			windowRef.current!.querySelector<HTMLElement>(`[id="thread-${selectedThread}"]`)?.focus({ preventScroll: true });
+		});
+		return () => cancelAnimationFrame(frame);
+	}, [active, selectedThread]);
 	const [mode, setMode] = useState<"split" | "unified">(() =>
 		localStorage.getItem("trellis.review.mode") === "split" ? "split" : "unified",
 	);
@@ -100,7 +113,7 @@ export function DiffPane({
 		[onFiles],
 	);
 	return (
-		<div className="review-diff-window">
+		<div ref={windowRef} className="review-diff-window">
 			<DiffToolbar
 				mode={mode}
 				onMode={(value) => {
@@ -109,6 +122,7 @@ export function DiffPane({
 				}}
 			/>
 			<ReviewDiff
+				active={active}
 				patch={revision.patch}
 				loadFile={loadFile}
 				revisionId={revision.id}
@@ -117,6 +131,7 @@ export function DiffPane({
 				theme={theme}
 				selectedFile={selectedFile}
 				selectedAnchor={selectedAnchor}
+				revealedFile={selectedThread ? selectedFile : undefined}
 				renderThread={renderThread}
 				composer={composer?.anchor ?? null}
 				renderComposer={() =>

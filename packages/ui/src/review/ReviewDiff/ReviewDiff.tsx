@@ -1,17 +1,12 @@
-import { ArrowLineDown, ArrowLineUp, ArrowsInLineVertical, ArrowsOutLineVertical } from "@phosphor-icons/react";
-import { type ReactElement, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { GroupHeader } from "../../domain/GroupHeader";
-import { useMediaQuery } from "../../hooks/useMediaQuery";
-import { Checkbox } from "../../primitives/Checkbox";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { EmptyState } from "../../primitives/EmptyState";
-import { IconButton } from "../../primitives/IconButton";
-import { Tooltip } from "../../primitives/Tooltip";
-import { fileCountLabel } from "../FileRiskGroups";
-import { placeThreads, type ThreadPlacement } from "./carryThreads";
+import { placeThreads } from "./carryThreads";
+import { ReviewRowHeader } from "./components/ReviewRowHeader";
 import { DiffLine } from "./DiffLine";
 import { type DiffFileGroup, groupHeaders, groupRank, groupReasons } from "./diffGroups";
 import { loadReviewFileContents } from "./loadReviewFileContents";
 import { parseReviewFiles, type ReviewFile } from "./parseReviewFiles";
+import type { ReviewDiffProps } from "./reviewDiffProps";
 import {
 	anchorLines,
 	buildReviewRows,
@@ -33,38 +28,6 @@ export type DiffThread = DiffAnchor & {
 	// an earlier revision. The diff searches the file on screen for this text
 	// to find the lines again.
 	anchorLines?: string[] | null;
-};
-
-type Props = {
-	patch: string;
-	revisionId: string;
-	threads: DiffThread[];
-	mode: "split" | "unified";
-	theme: "light" | "dark" | "system";
-	selectedFile?: string;
-	selectedAnchor?: DiffAnchor | null;
-	filter?: string;
-	// `place` says where the diff draws the thread: on the line it names, on
-	// the line its text moved to, or at the top of its file as outdated.
-	renderThread: (id: string, place: ThreadPlacement) => ReactNode;
-	composer?: DiffAnchor | null;
-	renderComposer?: () => ReactNode;
-	// `lines` is the text of the selected lines, for a suggestion, or null
-	// when the view does not show every line of the range.
-	onSelect: (anchor: DiffAnchor, lines: string[] | null) => void;
-	loadFile?: (path: string, side: "old" | "new") => Promise<string>;
-	onFiles: (files: ReviewDiffFile[]) => void;
-	// The risk groups of the file tree. They set the order the diff draws its
-	// files in, they give the band that stands above the first file of each
-	// group, and they give the words that say why a file sits in its group. A
-	// path no group names keeps its place in the patch, after every path a
-	// group names. An empty list keeps the patch order and draws no band.
-	groups?: readonly DiffFileGroup[];
-	// The paths the person marked read. A read file shows its header alone.
-	viewed?: ReadonlySet<string>;
-	// Marks a file read or unread. The header draws the Viewed box only when
-	// the caller keeps this state.
-	onViewed?: (path: string, viewed: boolean) => void;
 };
 
 // What `onFiles` reports about one changed file of the revision.
@@ -90,24 +53,10 @@ const orderedAnchor = (start: DiffAnchor, end: DiffAnchor): DiffAnchor => ({
 	line: Math.max(start.line, end.line),
 });
 
-// A file that Git did not rename carries the same path on both sides, and the
-// arrow would then print that one path twice.
-const fileLabel = (file: ReviewFile) =>
-	file.prevName !== undefined && file.prevName !== file.name ? `${file.prevName} → ${file.name}` : file.name;
-
-// The words of a row that sits between two hunks: the hunk specs of the
-// patch, and how many lines the gap above the hunk still hides. The row
-// after the last hunk has no specs, and it has no count until the file
-// contents load.
-const hunkLabel = (specs: string | null, gap: GapControls | null) => {
-	const hidden = gap?.hidden ?? null;
-	const count = hidden === null ? null : `${hidden} hidden ${hidden === 1 ? "line" : "lines"}`;
-	return [specs, count].filter((part) => part !== null).join(" · ");
-};
-
 const nothingViewed: ReadonlySet<string> = new Set();
 
 export function ReviewDiff({
+	active = true,
 	patch,
 	revisionId,
 	threads,
@@ -115,6 +64,7 @@ export function ReviewDiff({
 	theme,
 	selectedFile,
 	selectedAnchor = null,
+	revealedFile,
 	filter = "",
 	renderThread,
 	composer = null,
@@ -125,8 +75,7 @@ export function ReviewDiff({
 	groups = noGroups,
 	viewed = nothingViewed,
 	onViewed,
-}: Props) {
-	const phone = useMediaQuery("(max-width: 767px)");
+}: ReviewDiffProps) {
 	const files = useMemo(() => parseReviewFiles(patch), [patch]);
 	const metadata = useMemo(
 		() =>
@@ -164,9 +113,10 @@ export function ReviewDiff({
 		() => placeThreads(shown, expanded, threads, revisionId),
 		[shown, expanded, threads, revisionId],
 	);
+	const collapsed = useMemo(() => new Set([...viewed].filter((path) => path !== revealedFile)), [viewed, revealedFile]);
 	const rows = useMemo(
-		() => buildReviewRows(shown, mode, threads, places, composer, expanded, loadFile !== undefined, viewed, headers),
-		[shown, mode, threads, places, composer, expanded, loadFile, viewed, headers],
+		() => buildReviewRows(shown, mode, threads, places, composer, expanded, loadFile !== undefined, collapsed, headers),
+		[shown, mode, threads, places, composer, expanded, loadFile, collapsed, headers],
 	);
 	const selection = useRef<DiffAnchor | undefined>(undefined);
 	const pointer = useRef<DiffAnchor | undefined>(undefined);
@@ -246,68 +196,18 @@ export function ReviewDiff({
 		</div>
 	);
 	const renderRow = (row: ReviewRow) => {
-		// The file tree beside the diff draws the same four groups with the same
-		// component, so both panes of the review look alike.
-		if (row.kind === "group")
+		if (row.kind === "group" || row.kind === "file" || row.kind === "hunk")
 			return (
-				<GroupHeader
-					group={row.header.key}
-					label={row.header.label}
-					count={fileCountLabel(row.header.count)}
-					collapsible={false}
-					phone={phone}
+				<ReviewRowHeader
+					row={row}
+					expanded={expanded}
+					viewed={viewed}
+					reasons={reasons}
+					onViewed={onViewed}
+					toggleFile={loadFile ? toggleFile : undefined}
+					expandGap={expandGap}
 				/>
 			);
-		if (row.kind === "file") {
-			const isExpanded = expanded.get(row.file.name)?.full === true;
-			const isViewed = viewed.has(row.file.name);
-			const why = reasons.get(row.file.name);
-			return (
-				<header className="review-diff-file-header" data-file-path={row.file.name} data-viewed={isViewed}>
-					<span className="review-diff-file-name">{fileLabel(row.file)}</span>
-					{/* The file tree puts the same words in the hover text of its row,
-					    which a touch screen never opens. */}
-					{why && <span className="review-diff-file-reasons">{why.join(" · ")}</span>}
-					<div className="review-diff-file-controls">
-						{onViewed && (
-							<Checkbox
-								label="Viewed"
-								checked={isViewed}
-								onCheckedChange={(next) => onViewed(row.file.name, next)}
-								className="review-diff-viewed"
-							/>
-						)}
-						{loadFile && row.file.hunks.length > 0 && !isViewed ? (
-							<Tooltip content={isExpanded ? "Show patch only" : "Show full file"}>
-								<IconButton
-									label={isExpanded ? "Show patch only" : "Show full file"}
-									icon={isExpanded ? <ArrowsInLineVertical /> : <ArrowsOutLineVertical />}
-									onClick={() => void toggleFile(row.file)}
-								/>
-							</Tooltip>
-						) : null}
-					</div>
-				</header>
-			);
-		}
-		if (row.kind === "hunk") {
-			const gap = row.gap;
-			const control = (target: GapControls, direction: "down" | "up" | "all", label: string, icon: ReactElement) => (
-				<Tooltip content={label}>
-					<IconButton size="xs" label={label} icon={icon} onClick={() => void expandGap(row.file, target, direction)} />
-				</Tooltip>
-			);
-			return (
-				<div className="review-diff-hunk-header">
-					<span className="review-diff-hunk-controls">
-						{gap?.up ? control(gap, "up", "Expand up", <ArrowLineUp />) : null}
-						{gap?.down ? control(gap, "down", "Expand down", <ArrowLineDown />) : null}
-						{gap?.all ? control(gap, "all", "Expand all", <ArrowsOutLineVertical />) : null}
-					</span>
-					<span>{hunkLabel(row.specs, gap)}</span>
-				</div>
-			);
-		}
 		if (row.kind === "annotation") return <>{row.annotations.map(annotation)}</>;
 		if (row.kind === "notice") return <p className="review-diff-notice">{row.text}</p>;
 		if (row.kind === "end") return <div className="review-diff-file-end" />;
@@ -368,6 +268,7 @@ export function ReviewDiff({
 		);
 	return (
 		<VirtualDiffRows
+			active={active}
 			rows={rows}
 			mode={mode}
 			theme={theme}

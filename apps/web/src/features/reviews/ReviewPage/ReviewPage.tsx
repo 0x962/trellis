@@ -64,6 +64,8 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 	const phone = useMediaQuery("(max-width: 767px)");
 	const [pickedPath, setPickedPath] = useState("");
 	const [pickedAnchor, setPickedAnchor] = useState<DiffAnchor | null>(null);
+	const [pickedThread, setPickedThread] = useState<string | null>(null);
+	const [filesOpen, setFilesOpen] = useState(false);
 	const [batch, setBatch] = useState<ReadonlySet<string>>(() => new Set());
 	const [applying, setApplying] = useState<string[] | null>(null);
 	// The diff shows every thread of the pull request, whichever revision it
@@ -169,9 +171,11 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 									evidence={overview.data?.evidence ?? null}
 									threads={allThreads}
 									revision={revision}
-									onOpen={(path, anchor) => {
+									onOpen={(path, anchor, threadId) => {
 										setPickedPath(path);
 										setPickedAnchor(anchor);
+										setPickedThread(threadId);
+										setFilesOpen(true);
 										onTabChange("diff");
 									}}
 								/>
@@ -198,7 +202,7 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 							value: "diff",
 							label: "Diff",
 							content: (
-								<FilesDisclosure phone={phone} count={changedFiles.length}>
+								<FilesDisclosure phone={phone} count={changedFiles.length} open={filesOpen} onOpenChange={setFilesOpen}>
 									<div className="review-panes">
 										<aside className="review-tree-pane" aria-label="The changed files">
 											{revision === null ? (
@@ -211,6 +215,7 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 													selected={selectedPath}
 													onSelect={(path) => {
 														setPickedPath(path);
+														if (path !== selectedPath) setPickedThread(null);
 														// The tree reports the file of the anchor back as a
 														// choice of its own. A choice of another file drops
 														// the anchor; the echo of this one keeps it.
@@ -229,11 +234,16 @@ export function ReviewPage({ pr, parent, syncHash = true, tab, onTabChange }: Re
 													threads={allThreads}
 													selectedFile={selectedPath}
 													selectedAnchor={pickedAnchor}
+													selectedThread={pickedThread}
+													active={tab === "diff"}
 													renderThread={renderThread}
 													onFiles={setChangedFiles}
 													groups={groups}
 													read={read}
-													onRead={setRead}
+													onRead={(path, next) => {
+														setPickedThread(null);
+														setRead(path, next);
+													}}
 												/>
 											)}
 										</div>
