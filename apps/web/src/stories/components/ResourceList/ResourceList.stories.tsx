@@ -17,6 +17,7 @@ const meta = {
 		],
 		onOpen: () => {},
 		onNewDocument: () => {},
+		onRetry: () => {},
 	},
 	parameters: {
 		docs: {
@@ -61,6 +62,21 @@ export const ErrorState: Story = { args: { rows: [], error: "The resources do no
 export const Selected: Story = { args: { selectedId: "doc" } };
 export const Creating: Story = { args: { newDocumentPending: true } };
 export const ReadOnly: Story = { args: { onNewDocument: undefined } };
+export const Groups: Story = {
+	play: async ({ canvasElement }) => {
+		const canvas = within(canvasElement);
+		for (const name of ["Links", "Images", "Files"]) {
+			const header = canvas.getByRole("button", { name });
+			await expect(header).toHaveAttribute("aria-expanded", "false");
+			await userEvent.click(header);
+			await expect(header).toHaveAttribute("aria-expanded", "true");
+			for (const other of ["Documents", "Links", "Images", "Files"].filter((group) => group !== name)) {
+				await expect(canvas.getByRole("button", { name: other })).toHaveAttribute("aria-expanded", "false");
+			}
+		}
+		await expect(canvas.getByRole("button", { name: "checks.txt" })).toBeVisible();
+	},
+};
 export const CreateDocument: Story = {
 	args: { rows: [] },
 	play: async ({ canvasElement }) => {

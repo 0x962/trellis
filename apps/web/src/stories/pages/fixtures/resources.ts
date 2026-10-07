@@ -73,6 +73,21 @@ export const resources: Resource[] = [
 	},
 ];
 
+export const denseResources: Resource[] = [
+	...Array.from({ length: 35 }, (_, index) => ({
+		...documentResource,
+		id: id(900 + index),
+		name: `Document ${index + 1}: resource acceptance checks and verification records`,
+	})),
+	...resources.slice(1).flatMap((resource, group) =>
+		Array.from({ length: 5 }, (_, index) => ({
+			...resource,
+			id: id(950 + group * 5 + index),
+			name: `${resource.name} ${index + 1}`,
+		})),
+	),
+];
+
 export const resourceThread: ResourceCommentThread = {
 	id: id(820),
 	resourceId: documentResource.id,
