@@ -112,3 +112,52 @@ test("accepts a queued delivery", () => {
 	};
 	expect(validateRequest(value) === value).toBe(true);
 });
+
+test("validates large observer deliveries under the Node runtime", async () => {
+	const validator = new URL("./validateRequest.ts", import.meta.url).href;
+	const child = Bun.spawn(
+		[
+			"node",
+			"--input-type=module",
+			"-e",
+			`import assert from "node:assert/strict";
+import { validateRequest } from ${JSON.stringify(validator)};
+const prompt = "context ".repeat(2 * 1024 * 1024);
+const envelope = "\\u001b[200~trellis-message:message\\n" + prompt + "\\u001b[201~\\r";
+for (const method of ["input", "deliver", "queueInput"]) {
+	for (const suffix of ["", "x", "xx"]) {
+		const bytes = Buffer.from(envelope + suffix);
+		const request = {
+			id: "request", version: ${RUNTIME_PROTOCOL_VERSION}, method,
+			params: { id: "attempt", messageId: "message", data: bytes.toString("base64") },
+		};
+		assert.equal(validateRequest(request), request);
+		assert.deepEqual(Buffer.from(request.params.data, "base64"), bytes);
+		request.params.data = request.params.data.slice(0, -4) + "!AAA";
+		assert.throws(() => validateRequest(request), /Input must be base64 bytes/);
+	}
+}`,
+		],
+		{ stdout: "pipe", stderr: "pipe" },
+	);
+	const [exitCode, stderr] = await Promise.all([child.exited, new Response(child.stderr).text()]);
+	expect(stderr).toBe("");
+	expect(exitCode).toBe(0);
+});
+
+test("rejects malformed base64 for every input method", () => {
+	for (const method of ["input", "deliver", "queueInput"] as const) {
+		const value = {
+			id: "request",
+			version: RUNTIME_PROTOCOL_VERSION,
+			method,
+			params: { id: "attempt", messageId: "message", data: "" },
+		};
+		for (const data of ["", "AA==", "AAA=", "AAAA", "+/09"])
+			expect(validateRequest({ ...value, params: { ...value.params, data } }).method).toBe(method);
+		for (const data of ["A", "AA", "AAA", "A===", "====", "=AAA", "AA=A", "AAA\n", "AAAA\n", " AA=", "AA-_", "文AAA"])
+			expect(() => validateRequest({ ...value, params: { ...value.params, data } })).toThrow(
+				"Input must be base64 bytes",
+			);
+	}
+});

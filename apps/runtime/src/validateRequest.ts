@@ -2,6 +2,12 @@ import { MAX_TERMINAL_DIMENSION, RUNTIME_PROTOCOL_VERSION, type RuntimeRequest }
 
 import { validateHarnessEvent } from "./validateHarnessEvent.ts";
 
+function isBase64(value: string): boolean {
+	if (value.length % 4 !== 0) return false;
+	const padding = value.endsWith("==") ? 2 : value.endsWith("=") ? 1 : 0;
+	return !/[^A-Za-z0-9+/]/.test(value.slice(0, value.length - padding));
+}
+
 export function validateRequest(value: unknown): RuntimeRequest {
 	const request = value as RuntimeRequest;
 	if (!request || typeof request.id !== "string" || request.id.length > 128)
@@ -146,11 +152,7 @@ export function validateRequest(value: unknown): RuntimeRequest {
 				(typeof params.messageId !== "string" || !/^[a-zA-Z0-9_-]{1,128}$/.test(params.messageId))
 			)
 				throw new Error("Message identifier is required");
-			if (
-				typeof params.data !== "string" ||
-				!/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(params.data)
-			)
-				throw new Error("Input must be base64 bytes");
+			if (typeof params.data !== "string" || !isBase64(params.data)) throw new Error("Input must be base64 bytes");
 			break;
 		case "resize":
 			for (const key of ["cols", "rows"])
