@@ -1,1 +1,0 @@
-export { inspectPackage } from "./inspectPackage";

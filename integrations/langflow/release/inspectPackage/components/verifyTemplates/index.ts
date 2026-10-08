@@ -1,1 +1,0 @@
-export { verifyTemplates } from "./verifyTemplates";

@@ -1,4 +1,3 @@
-import type { FlowPublicationV1 } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { check, foreignKey, integer, jsonb, pgTable, text, unique } from "drizzle-orm/pg-core";
 import { langflowDocumentRevisions } from "./revisions.ts";
@@ -11,7 +10,7 @@ export const langflowDocumentPublications = pgTable(
 		revision: integer().notNull(),
 		documentHash: text("document_hash").notNull(),
 		componentManifestHash: text("component_manifest_hash").notNull(),
-		publication: jsonb().$type<FlowPublicationV1>().notNull(),
+		publication: jsonb().notNull(),
 	},
 	(t) => [
 		unique("langflow_publication_revision").on(t.flowId, t.revision),

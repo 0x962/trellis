@@ -1,1 +1,0 @@
-export { readNativeOutput } from "./readNativeOutput";

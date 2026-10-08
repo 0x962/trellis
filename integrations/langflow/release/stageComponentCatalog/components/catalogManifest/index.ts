@@ -1,1 +1,0 @@
-export { CatalogManifestSchema } from "./catalogManifest";

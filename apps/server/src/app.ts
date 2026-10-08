@@ -12,8 +12,6 @@ import { hostAuth } from "./auth/auth.ts";
 import type { Config } from "./config.ts";
 import { API_VERSION } from "./context.ts";
 import type { Runtime, ServiceTransport } from "./db/transport.ts";
-import { type DocumentActionRuntime, documentActions } from "./documentActions";
-import { type EditorGatewayConfiguration, editorGateway } from "./editorGateway";
 import type { Bus } from "./events/bus.ts";
 import type { GhAccess } from "./ghState.ts";
 import { isAllowedHost } from "./hostCheck.ts";
@@ -25,7 +23,6 @@ import { docsRoutes } from "./routes/docs.ts";
 import { type Clock, createEventsRoute, realClock } from "./routes/events.ts";
 import { exportRoute } from "./routes/export.ts";
 import { filesRoute } from "./routes/files.ts";
-import { langflowNativeReservations, type NativeReservationTransport } from "./routes/langflow-native-reservations";
 import { pageArchiveRoute } from "./routes/pageArchive/pageArchive.ts";
 import { pageContentRoute } from "./routes/pageRender/pageContent.ts";
 import { pageFrameRoute } from "./routes/pageRender/pageRender.ts";
@@ -45,10 +42,6 @@ export type AppOptions = {
 	bus: Bus;
 	runtime: Runtime;
 	clock?: Clock;
-	editor?: EditorGatewayConfiguration;
-	nativeReservations?: NativeReservationTransport;
-	groupDeadlines?: (request: Request) => Promise<Response>;
-	documentActionRuntime?: DocumentActionRuntime;
 	// The folder picker `system.chooseDirectory` opens. A test gives its own,
 	// so no suite waits on a dialog nobody can answer.
 	chooseDirectory?: () => Promise<string | null>;
@@ -115,16 +108,10 @@ export const createApp = ({
 	bus,
 	runtime,
 	clock = realClock,
-	editor,
-	nativeReservations,
-	groupDeadlines,
-	documentActionRuntime,
 	chooseDirectory: chooseFolder = chooseDirectory,
 	gh = { read: async () => runtime.ghStatus(), check: () => checkGh(runtime.gh, new Date()) },
 }: AppOptions) => {
 	const app = new Hono();
-	const actions = documentActions({ home: config.home, transport, runtime: documentActionRuntime });
-	const editorSessions = editor === undefined ? undefined : editorGateway(config, transport, editor);
 	// The database timing of each procedure request, by its request. The
 	// request log line reads it. A streaming batch writes its line when its
 	// headers go out, so that line counts only the calls done by then.
@@ -182,14 +169,6 @@ export const createApp = ({
 	app.get(`${PAGE_RENDER_PREFIX}/:leaseId/*`, pageContentRoute({ config, transport, log }));
 	app.get(`${PAGE_ARCHIVE_PREFIX}/:grantId`, pageArchiveRoute({ config, transport, log }));
 
-	if (editorSessions)
-		app.all("/api/trellis-editor/v1/*", (c) => {
-			const timing = createDbTiming();
-			timings.set(c.req.raw, timing);
-			return editorSessions.fetch(c.req.raw, { reqId: c.get("requestId"), timing });
-		});
-	if (nativeReservations) app.route("/", langflowNativeReservations(nativeReservations));
-	if (groupDeadlines) app.post("/api/langflow-private/v1/group-deadlines", (c) => groupDeadlines(c.req.raw));
 	app.use(hostAuth(config.authToken));
 	const corsMiddleware = cors({ origin: (origin) => (DEV_ORIGINS.includes(origin) ? origin : null) });
 	app.use((c, next) => (c.req.header("upgrade")?.toLowerCase() === "websocket" ? next() : corsMiddleware(c, next)));
@@ -219,8 +198,6 @@ export const createApp = ({
 		timings.set(c.req.raw, timing);
 		return {
 			headers: c.req.raw.headers,
-			editorGateway: editorSessions,
-			documentActions: actions,
 			reqId: c.get("requestId"),
 			transport,
 			actor: null,
@@ -283,7 +260,7 @@ export const createApp = ({
 		);
 	});
 
-	return { app, bye: events.bye, stopDocumentActions: actions.stop };
+	return { app, bye: events.bye };
 };
 
 export type App = ReturnType<typeof createApp>["app"];

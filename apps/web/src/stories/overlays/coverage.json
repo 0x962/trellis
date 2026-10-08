@@ -165,15 +165,15 @@
 	{
 		"source": "apps/web/src/features/flows/FlowEditor/components/FlowWorkspace/FlowWorkspace.tsx",
 		"export": "FlowWorkspace",
-		"stories": ["Pages/Flow editor/LegacyCanvas"],
+		"stories": ["Pages/Flow editor/Canvas"],
 		"states": ["closed-trigger"],
-		"notes": "The legacy canvas mounts FlowWorkspace and its draft picker. Overlays/FlowDrafts covers the picker states."
+		"notes": "The canvas mounts FlowWorkspace and its draft picker. Overlays/FlowDrafts covers the picker states."
 	},
 	{
 		"source": "apps/web/src/features/flows/FlowEditor/components/FlowWorkspaceContent/FlowWorkspaceContent.tsx",
 		"export": "FlowWorkspaceContent",
-		"stories": ["Pages/Flow editor/LegacyCanvas"],
+		"stories": ["Pages/Flow editor/Canvas"],
 		"states": ["closed-trigger"],
-		"notes": "The legacy canvas mounts FlowWorkspaceContent. Flow settings opens its sheet; draft reload opens its discard confirmation."
+		"notes": "The canvas mounts FlowWorkspaceContent. Flow settings opens its sheet; draft reload opens its discard confirmation."
 	}
 ]

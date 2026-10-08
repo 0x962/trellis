@@ -1,9 +1,6 @@
-import type { FlowPublicationStateV1 } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { check, foreignKey, integer, jsonb, pgTable, primaryKey, text } from "drizzle-orm/pg-core";
 import { langflowDocumentRevisions } from "./revisions.ts";
-
-export type UnpublishedDocumentState = Exclude<FlowPublicationStateV1, { state: "published" }>;
 
 export const langflowDocumentPublicationStates = pgTable(
 	"langflow_document_publication_states",
@@ -11,7 +8,7 @@ export const langflowDocumentPublicationStates = pgTable(
 		flowId: text("flow_id").notNull(),
 		revision: integer().notNull(),
 		version: integer().notNull(),
-		state: jsonb().$type<UnpublishedDocumentState>().notNull(),
+		state: jsonb().notNull(),
 	},
 	(t) => [
 		primaryKey({ columns: [t.flowId, t.revision] }),

@@ -1,1 +1,0 @@
-export { readTrustedNativePolicies } from "./readTrustedNativePolicies";

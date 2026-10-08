@@ -4,12 +4,6 @@ import { useBroadcastStore } from "../../../features/agents/BroadcastDialog/broa
 import { paletteOpener, useCommandStore } from "../../../features/command/commandStore";
 import { useConfirmStore } from "../../../features/command/confirmStore";
 import { useComposerStore } from "../../../features/composer/composerStore";
-import {
-	lastFocusedRun,
-	runExpansionByDiff,
-	runListOffsets,
-	runTreeStates,
-} from "../../../features/reviews/FlowRuns/runViewState/runViewState";
 import { useStatusPaneWidth } from "../../../features/sessions/SessionConversation/components/AgentStatusUpdates/components/useStatusPaneWidth/useStatusPaneWidth";
 import { useSessionComposerStore } from "../../../features/sessions/sessionComposerStore";
 import { useSlashMenuStore } from "../../../features/ticket/Description/components/LazyEditor/components/SlashMenu/SlashMenu";
@@ -23,10 +17,6 @@ import { useUiStore } from "../../../stores/uiStore";
 
 export const resetStoryState = (actor: string | null = "Storybook") => {
 	toast.dismiss();
-	runExpansionByDiff.clear();
-	runTreeStates.clear();
-	runListOffsets.clear();
-	lastFocusedRun.id = null;
 	for (const storage of [localStorage, sessionStorage]) {
 		for (const key of Object.keys(storage)) {
 			if (key.startsWith("trellis")) storage.removeItem(key);

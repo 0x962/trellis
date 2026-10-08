@@ -1,1 +1,0 @@
-export { readDocumentActionReceipt } from "./readDocumentActionReceipt";

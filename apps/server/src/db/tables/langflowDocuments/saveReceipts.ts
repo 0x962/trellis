@@ -1,4 +1,3 @@
-import type { FlowDocumentV1 } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { check, foreignKey, integer, jsonb, pgTable, primaryKey, text, uuid } from "drizzle-orm/pg-core";
 import { bytes } from "./bytes.ts";
@@ -12,7 +11,7 @@ export const langflowDocumentSaveReceipts = pgTable(
 		requestBytes: bytes("request_bytes").notNull(),
 		requestHash: text("request_hash").notNull(),
 		revision: integer().notNull(),
-		receipt: jsonb().$type<FlowDocumentV1>().notNull(),
+		receipt: jsonb().notNull(),
 	},
 	(t) => [
 		primaryKey({ columns: [t.flowId, t.requestId] }),

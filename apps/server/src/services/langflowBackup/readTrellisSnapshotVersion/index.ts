@@ -1,1 +1,0 @@
-export { readTrellisSnapshotVersion } from "./readTrellisSnapshotVersion";

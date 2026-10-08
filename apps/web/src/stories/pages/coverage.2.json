@@ -3,35 +3,28 @@
 		"source": "apps/web/src/routes/ai.flows.tsx",
 		"export": "Route",
 		"stories": [
-			"Pages/Flows/MixedEnginesAndPublication",
+			"Pages/Flows/Populated",
 			"Pages/Flows/Empty",
 			"Pages/Flows/EmptyCreateAction",
 			"Pages/Flows/Loading",
 			"Pages/Flows/RequestError",
 			"Pages/Flows/Narrow",
-			"Pages/Flows/FilteredEmpty",
 			"Pages/Flows/LongContent",
 			"Pages/Flows/DenseCards",
 			"Pages/Flows/CardHover",
-			"Pages/Flows/CardFocus",
-			"Pages/Flows/SearchAndClear"
+			"Pages/Flows/CardFocus"
 		],
 		"states": [
-			"legacy",
-			"Langflow",
-			"pending publication",
-			"published",
+			"populated",
 			"empty",
 			"empty action",
 			"loading",
 			"error",
 			"narrow",
-			"filtered empty",
 			"long content",
 			"dense cards",
 			"hover",
-			"focus",
-			"search and clear"
+			"focus"
 		],
 		"notes": ""
 	},
@@ -39,37 +32,30 @@
 		"source": "apps/web/src/routes/ai.flows_.$slug.tsx",
 		"export": "Route",
 		"stories": [
-			"Pages/Flow editor/LegacyCanvas",
+			"Pages/Flow editor/Canvas",
 			"Pages/Flow editor/EmptyCanvas",
 			"Pages/Flow editor/Loading",
 			"Pages/Flow editor/RequestError",
-			"Pages/Flow editor/EditorHostUnavailable",
-			"Pages/Flow editor/EditorHostLoading",
 			"Pages/Flow editor/Narrow",
-			"Pages/Flow editor/LegacyLoading",
-			"Pages/Flow editor/LegacyRequestError",
-			"Pages/Flow editor/LegacyMissing",
-			"Pages/Flow editor/EditorHostError",
+			"Pages/Flow editor/Missing",
 			"Pages/Flow editor/InvalidNodes",
 			"Pages/Flow editor/DenseLongGraph",
-			"Pages/Flow editor/ConnectionLossUndo"
+			"Pages/Flow editor/ConnectionLossUndo",
+			"Pages/Flow editor/KeyboardDeleteRequiresConfirmation"
 		],
 		"states": [
-			"legacy canvas",
+			"canvas",
 			"empty canvas",
 			"loading",
 			"error",
-			"unavailable host",
 			"narrow",
-			"legacy loading",
-			"legacy error",
 			"missing flow",
-			"host error",
 			"invalid nodes",
 			"dense long graph",
-			"connection loss undo"
+			"connection loss undo",
+			"keyboard delete confirmation"
 		],
-		"notes": "Langflow host states use a synthetic unavailable host. The stories load no external editor."
+		"notes": "The canvas and request states use flows.get responses."
 	},
 	{
 		"source": "apps/web/src/routes/usage.tsx",

@@ -146,45 +146,5 @@
 		],
 		"states": ["open", "closed-trigger", "selected", "pending", "error", "success"],
 		"notes": "Stories mount the production component with synthetic props and API responses."
-	},
-	{
-		"source": "apps/web/src/features/reviews/FlowRuns/components/FlowActionDialog/FlowActionDialog.tsx",
-		"export": "FlowActionDialog",
-		"stories": [
-			"Overlays/StartFlowDialog/Open",
-			"Overlays/StartFlowDialog/Selected",
-			"Overlays/StartFlowDialog/Empty",
-			"Overlays/StartFlowDialog/Loading",
-			"Overlays/StartFlowDialog/Disabled",
-			"Overlays/StartFlowDialog/AdmissionPending",
-			"Overlays/StartFlowDialog/RequestError",
-			"Overlays/StartFlowDialog/Pending",
-			"Overlays/StartFlowDialog/Success",
-			"Overlays/StartFlowDialog/UnknownResult",
-			"Overlays/StartFlowDialog/Repeat",
-			"Overlays/StartFlowDialog/Unpublished",
-			"Overlays/StartFlowDialog/Published",
-			"Overlays/StartFlowDialog/DocumentLoading",
-			"Overlays/StartFlowDialog/DocumentError",
-			"Overlays/StartFlowDialog/VersionConflict",
-			"Overlays/StartFlowDialog/HeadConflict",
-			"Overlays/StartFlowDialog/PreflightError"
-		],
-		"states": ["open", "selected", "empty", "loading", "disabled", "pending", "error", "success", "default"],
-		"notes": "The parent story mounts this production child or its owning hook."
-	},
-	{
-		"source": "apps/web/src/features/reviews/FlowRuns/components/FlowRun/components/FlowCancelDialog/FlowCancelDialog.tsx",
-		"export": "FlowCancelDialog",
-		"stories": [
-			"Overlays/FlowRunActions/CancelOpen",
-			"Overlays/FlowRunActions/CancelDisabled",
-			"Overlays/FlowRunActions/CancelPending",
-			"Overlays/FlowRunActions/CancelError",
-			"Overlays/FlowRunActions/CancelSuccess",
-			"Overlays/FlowRunActions/StopPending"
-		],
-		"states": ["open", "disabled", "pending", "error", "success"],
-		"notes": "Stories mount the production component with synthetic props and API responses."
 	}
 ]

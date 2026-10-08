@@ -1,7 +1,7 @@
 import { BatchLinkPlugin } from "@orpc/client/plugins";
 import { createTanstackQueryUtils } from "@orpc/tanstack-query";
 import { notifyManager, QueryClient } from "@tanstack/react-query";
-import { createTrellisClient, type FetchLike, type TrellisClientContext } from "@trellis/api";
+import { createTrellisClient, type FetchLike } from "@trellis/api";
 import { actorHeader } from "./actor";
 import { queryRetryDelay } from "./queryRetry";
 
@@ -31,7 +31,6 @@ export const createQueryClient = () =>
 
 // Ticket details and status options start outside the batch, so slower reads cannot delay these controls.
 const unbatched = new Set([
-	"flowDocumentsV1.editorSession",
 	"tickets.get",
 	"statuses.list",
 	"reviews.refresh",
@@ -55,12 +54,10 @@ export const createOrpc = (options: OrpcOptions = {}) => {
 	const baseUrl = options.baseUrl ?? window.location.origin;
 	const client = createTrellisClient(baseUrl, actorHeader, fetch, {
 		plugins: [
-			new BatchLinkPlugin<TrellisClientContext>({
+			new BatchLinkPlugin({
 				groups: [{ condition: () => true, context: {} }],
 				mode: "streaming",
-				exclude: ({ path, context }) =>
-					unbatched.has(path.join(".")) ||
-					(path.join(".") === "flowDocumentsV1.save" && context.editorChannel !== undefined),
+				exclude: ({ path }) => unbatched.has(path.join(".")),
 			}),
 		],
 	});

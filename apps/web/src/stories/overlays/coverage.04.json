@@ -1,19 +1,5 @@
 [
 	{
-		"source": "apps/web/src/features/flows/LangflowEditor/components/DocumentDraftDialog/DocumentDraftDialog.tsx",
-		"export": "DocumentDraftDialog",
-		"stories": [
-			"Overlays/FlowDrafts/BrowserOpen",
-			"Overlays/FlowDrafts/BrowserEmpty",
-			"Overlays/FlowDrafts/BrowserPending",
-			"Overlays/FlowDrafts/BrowserDisabled",
-			"Overlays/FlowDrafts/BrowserError",
-			"Overlays/FlowDrafts/DiscardConfirmation"
-		],
-		"states": ["open", "empty", "pending", "disabled", "error", "default"],
-		"notes": "Stories mount the production component with synthetic props and API responses."
-	},
-	{
 		"source": "apps/web/src/features/notes/NotesSettings/components/NoteSheet/NoteSheet.tsx",
 		"export": "NoteSheet",
 		"stories": [

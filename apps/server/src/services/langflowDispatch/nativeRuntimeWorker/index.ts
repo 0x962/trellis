@@ -1,1 +1,0 @@
-export { nativeRuntimeWorker } from "./nativeRuntimeWorker";

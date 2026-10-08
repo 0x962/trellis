@@ -1,1 +1,0 @@
-export { activateConversion } from "./activateConversion";

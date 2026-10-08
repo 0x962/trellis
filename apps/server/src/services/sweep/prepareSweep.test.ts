@@ -1,18 +1,22 @@
 import { afterEach, expect, test } from "bun:test";
-import { mkdir, mkdtemp, rm, stat, utimes } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, stat, utimes, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { PGlite } from "@electric-sql/pglite";
 import { sql } from "drizzle-orm";
+import { drizzle } from "drizzle-orm/pglite";
 import { workspaceOperation } from "../../agents/native/workspaceOperation";
-import { reserveNative } from "../../db/queries/langflowExecution";
-import { ids, now, receiptFixture } from "../../db/queries/langflowExecution/fixtures/fixture";
-import { handle, nativeRequest } from "../../db/queries/langflowExecution/fixtures/native";
+import * as schema from "../../db/schema";
 import type { Tx } from "../../db/tx";
-import { readLaunchSnapshot, withNativeSnapshotRetention } from "../langflowNative";
-import { writeLaunchSnapshot } from "../langflowNative/launchSnapshot";
-import { withAttemptOperation } from "../langflowStops/withAttemptOperation";
 import { ATTEMPT_MIN_AGE_MS } from "./prepareSweep";
 import { sweepAttempts } from "./sweepAttempts";
+
+const now = new Date("2026-10-01T00:00:00Z");
+const retainedId = "00000000-0000-4000-8000-000000000001";
+const withRetention = <T>(home: string, action: () => Promise<T>) =>
+	workspaceOperation(join(home, "harness-attempts"), action);
+const withAttempt = <T>(home: string, id: string, action: () => Promise<T>) =>
+	workspaceOperation(join(home, "harness-attempts", id), action);
 
 const cleanups: (() => Promise<unknown>)[] = [];
 afterEach(async () => {
@@ -20,7 +24,8 @@ afterEach(async () => {
 });
 
 async function fixture() {
-	const { db, authority } = await receiptFixture();
+	const db = drizzle(new PGlite(), { schema });
+	await db.$client.exec("CREATE TABLE langflow_native_handles(attempt_id text PRIMARY KEY)");
 	await db.$client.exec("CREATE TABLE agent_runs(id text PRIMARY KEY, terminal_id text)");
 	const home = await mkdtemp(join(tmpdir(), "trellis-sweep-retention-"));
 	cleanups.push(
@@ -36,15 +41,15 @@ async function fixture() {
 	const addAttempt = async (attemptId: string, bytes = "snapshot") => {
 		const directory = join(home, "harness-attempts", attemptId);
 		await mkdir(directory, { recursive: true, mode: 0o700 });
-		const digest = await writeLaunchSnapshot(home, attemptId, bytes);
+		await writeFile(join(directory, "launch.json"), bytes);
 		const old = new Date(now.getTime() - ATTEMPT_MIN_AGE_MS - 1);
 		await utimes(directory, old, old);
-		return { id: attemptId, modifiedAt: old.getTime(), digest };
+		return { id: attemptId, modifiedAt: old.getTime() };
 	};
-	return { db, authority, home, ctx, addAttempt };
+	return { db, home, ctx, addAttempt };
 }
 
-test("keeps a validated snapshot until its reader releases retention", async () => {
+test("keeps attempt files until their reader releases retention", async () => {
 	const f = await fixture();
 	const attempt = await f.addAttempt(crypto.randomUUID(), "private snapshot");
 	let release!: () => void;
@@ -55,8 +60,10 @@ test("keeps a validated snapshot until its reader releases retention", async () 
 	const released = new Promise<void>((resolve) => {
 		release = resolve;
 	});
-	const reader = withNativeSnapshotRetention(f.home, async () => {
-		expect(await readLaunchSnapshot(f.home, attempt.id, attempt.digest)).toBe("private snapshot");
+	const reader = withRetention(f.home, async () => {
+		expect(await readFile(join(f.home, "harness-attempts", attempt.id, "launch.json"), "utf8")).toBe(
+			"private snapshot",
+		);
 		read();
 		await released;
 	});
@@ -81,10 +88,10 @@ test("takes retention before the attempt lock and rechecks the current terminal"
 	const lockRelease = new Promise<void>((resolve) => {
 		release = resolve;
 	});
-	const currentWrite = withAttemptOperation(f.home, attempt.id, async () => {
+	const currentWrite = withAttempt(f.home, attempt.id, async () => {
 		locked();
 		await lockRelease;
-		await f.db.execute(sql`INSERT INTO agent_runs (id, terminal_id) VALUES (${ids.execution}, ${attempt.id})`);
+		await f.db.execute(sql`INSERT INTO agent_runs (id, terminal_id) VALUES (${"run"}, ${attempt.id})`);
 	});
 	await lockHeld;
 	let referencesRead!: () => void;
@@ -104,7 +111,7 @@ test("takes retention before the attempt lock and rechecks the current terminal"
 		ATTEMPT_MIN_AGE_MS,
 	);
 	let laterRetentionRan = false;
-	const laterRetention = withNativeSnapshotRetention(f.home, async () => {
+	const laterRetention = withRetention(f.home, async () => {
 		laterRetentionRan = true;
 	});
 	await Promise.resolve();
@@ -120,16 +127,8 @@ test("takes retention before the attempt lock and rechecks the current terminal"
 
 test("keeps each retained reservation and removes an unreferenced attempt", async () => {
 	const f = await fixture();
-	await f.db.transaction((tx) =>
-		reserveNative(tx, {
-			requestBytes: JSON.stringify(nativeRequest),
-			taskKey: "retained-task",
-			handle,
-			authority: f.authority,
-			now,
-		}),
-	);
-	const retained = await f.addAttempt(handle.attemptId);
+	await f.db.execute(sql`INSERT INTO langflow_native_handles VALUES (${retainedId})`);
+	const retained = await f.addAttempt(retainedId);
 	const unreferenced = await f.addAttempt(crypto.randomUUID());
 	expect(await sweepAttempts(f.ctx, [retained, unreferenced], ATTEMPT_MIN_AGE_MS)).toBe(1);
 	expect((await stat(join(f.home, "harness-attempts", retained.id))).isDirectory()).toBe(true);
@@ -140,7 +139,7 @@ test("releases snapshot retention after the callback fails", async () => {
 	const f = await fixture();
 	const attempt = await f.addAttempt(crypto.randomUUID());
 	await expect(
-		withNativeSnapshotRetention(f.home, async () => {
+		withRetention(f.home, async () => {
 			throw new Error("snapshot_failed");
 		}),
 	).rejects.toThrow("snapshot_failed");
@@ -154,7 +153,7 @@ test("releases snapshot retention after the callback fails", async () => {
 
 test("keeps a native reservation created after the initial reference read", async () => {
 	const f = await fixture();
-	const attempt = await f.addAttempt(handle.attemptId);
+	const attempt = await f.addAttempt(retainedId);
 	let initialRead = true;
 	const removed = await sweepAttempts(
 		{
@@ -163,15 +162,7 @@ test("keeps a native reservation created after the initial reference read", asyn
 				const result = await f.ctx.newTx(action);
 				if (initialRead) {
 					initialRead = false;
-					await f.ctx.newTx((tx) =>
-						reserveNative(tx, {
-							requestBytes: JSON.stringify(nativeRequest),
-							taskKey: "late-reservation",
-							handle,
-							authority: f.authority,
-							now,
-						}),
-					);
+					await f.ctx.newTx((tx) => tx.execute(sql`INSERT INTO langflow_native_handles VALUES (${retainedId})`));
 				}
 				return result;
 			},

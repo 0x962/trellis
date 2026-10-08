@@ -1,1 +1,0 @@
-export { ReceiptObjectStore } from "./objectStore";
