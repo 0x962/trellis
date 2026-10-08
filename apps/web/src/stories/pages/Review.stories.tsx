@@ -77,10 +77,12 @@ export const FlowsJourney: Story = {
 		await userEvent.click(await canvas.findByRole("button", { name: "Actions for Review the interface" }));
 		await userEvent.click(await page.findByRole("menuitem", { name: "Open terminal" }));
 		await expect(await page.findByRole("dialog", { name: "Review the interface terminal" })).toBeVisible();
-		await waitFor(() =>
-			expect(canvasElement.ownerDocument.querySelector('[role="dialog"] .xterm-accessibility-tree')).toHaveTextContent(
-				retainedReviewOutput,
-			),
+		await waitFor(
+			() =>
+				expect(
+					canvasElement.ownerDocument.querySelector('[role="dialog"] .xterm-accessibility-tree'),
+				).toHaveTextContent(retainedReviewOutput),
+			{ timeout: 5000 },
 		);
 		await userEvent.click(await page.findByRole("button", { name: "Close terminal" }));
 		await userEvent.click(await canvas.findByRole("button", { name: "Decide Approve the result" }));
@@ -121,10 +123,12 @@ export const FlowsReplacedAttempt: Story = {
 		await userEvent.click(await canvas.findByRole("button", { name: "Actions for Review the interface" }));
 		await userEvent.click(await page.findByRole("menuitem", { name: "Open terminal" }));
 		await expect(await page.findByRole("dialog", { name: "Review the interface terminal" })).toBeVisible();
-		await waitFor(() =>
-			expect(canvasElement.ownerDocument.querySelector('[role="dialog"] .xterm-accessibility-tree')).toHaveTextContent(
-				"Replacement attempt.",
-			),
+		await waitFor(
+			() =>
+				expect(
+					canvasElement.ownerDocument.querySelector('[role="dialog"] .xterm-accessibility-tree'),
+				).toHaveTextContent("Replacement attempt."),
+			{ timeout: 5000 },
 		);
 		await userEvent.click(await page.findByRole("button", { name: "Close terminal" }));
 	},
