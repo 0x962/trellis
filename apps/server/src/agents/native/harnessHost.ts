@@ -3,6 +3,7 @@ import { join } from "node:path";
 import type { HarnessPreset } from "@trellis/api";
 import type { JobsLog } from "../../jobs.ts";
 import { HarnessHost } from "../harnessHost/harnessHost.ts";
+import { nativeObservationTimeoutMs } from "../nativeObservationTimeout/index.ts";
 import { nativeClient } from "./connection.ts";
 import { agentWorkspacesRoot } from "./workspace.ts";
 
@@ -19,7 +20,7 @@ export const nativeHost = (
 		env,
 		bun: process.execPath,
 		log,
-		observationTimeoutMs: 60000,
+		observationTimeoutMs: nativeObservationTimeoutMs,
 		// A launch that reports work for five minutes without a provider
 		// session and an acknowledged prompt fails. The run then carries the
 		// reason, and the person reads it beside the session.

@@ -125,6 +125,8 @@ Ticket, flow, and session agents use native permission bypass settings.
 The first prompt contains only the saved run instruction.
 Claude hooks, the OpenCode plugin, and the Pi extension report provider identity, prompt receipts, tools, results, and errors.
 Codex runs one private app-server per attempt. Its native terminal and Trellis event client connect to that engine.
+The Codex socket deadline and the native host observation wait share a 60-second budget.
+Engine exit or a stop signal closes the socket watcher and cancels its timer.
 The Codex adapter maps native thread, turn, tool, result, and error events into the runtime journal.
 The bridge streams engine diagnostics to a private `codex-engine.log` beside the attempt launch file.
 These diagnostics stay outside the terminal screen. Structured log entries still report compaction progress.
