@@ -1,1 +1,1 @@
-export { type SetupFeedback, setupFeedback } from "./setupFeedback";
+export { type SetupFeedback, setupFeedback, setupNameError, setupNameNote } from "./setupFeedback";
