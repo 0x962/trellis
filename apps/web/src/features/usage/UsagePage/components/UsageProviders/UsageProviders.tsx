@@ -7,21 +7,26 @@ import {
 	ConfirmDialog,
 	EmptyState,
 	FailureState,
+	FilterBar,
 	IconButton,
+	Input,
 	SectionHeader,
 	Skeleton,
 	Tooltip,
 } from "@trellis/ui";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
 import { accountError } from "../UsageAccounts/accountError";
 import { UsageProviderForm } from "./components/UsageProviderForm";
 import { UsageProviderRow } from "./components/UsageProviderRow";
 import { VirtualUsageProviderRows } from "./components/VirtualUsageProviderRows";
+import { filterProviders } from "./providerSearch";
 
 export function UsageProviders() {
 	const { client, orpc, queryClient } = useApp();
 	const list = useQuery({ ...orpc.providers.list.queryOptions({ input: {} }), refetchInterval: 30_000 });
+	const [query, setQuery] = useState("");
+	const filtered = useMemo(() => filterProviders(list.data ?? [], query), [list.data, query]);
 	const [add, setAdd] = useState(false);
 	const [edit, setEdit] = useState<Provider | null>(null);
 	const [remove, setRemove] = useState<Provider | null>(null);
@@ -89,6 +94,18 @@ export function UsageProviders() {
 			<p className="-mt-1 max-w-prose text-xs text-fg-faint text-pretty">
 				Add the model gateways that Trellis can call.
 			</p>
+			<FilterBar>
+				<Input
+					type="search"
+					label="Search providers"
+					hideLabel
+					placeholder="Search providers…"
+					value={query}
+					onChange={(event) => setQuery(event.target.value)}
+					disabled={list.isPending || list.isError}
+					className="w-48 max-md:w-32"
+				/>
+			</FilterBar>
 			{list.isPending ? (
 				<div role="status" aria-label="Load providers" className="status-group">
 					<span className="sr-only">Load providers</span>
@@ -111,9 +128,15 @@ export function UsageProviders() {
 				/>
 			) : list.data.length === 0 ? (
 				<EmptyState title="No providers" description="Add a provider so Trellis can call a model gateway." />
+			) : filtered.length === 0 ? (
+				<EmptyState
+					role="status"
+					title="No matching providers"
+					description="Change or clear the search to see other providers."
+				/>
 			) : (
 				<VirtualUsageProviderRows
-					providers={list.data}
+					providers={filtered}
 					renderRow={(provider, onActiveChange) => (
 						<UsageProviderRow
 							key={provider.id}
