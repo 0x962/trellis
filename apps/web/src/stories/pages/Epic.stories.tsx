@@ -5,7 +5,7 @@ import { EpicPage } from "../../features/epics/EpicPage";
 import { documentHeadingNames, documentMarkdown, documentWithContents } from "./fixtures/document";
 import { emptyCounts, epic, waves } from "./fixtures/epic";
 import { archivedProject, failure, pending, project } from "./fixtures/project";
-import { documentResource, resources, resourceThread } from "./fixtures/resources";
+import { denseResources, documentResource, resources, resourceThread } from "./fixtures/resources";
 import { projectResponses, ticketCounts, ticketPage } from "./fixtures/responses";
 import { pageFrame } from "./pageFrame";
 
@@ -91,6 +91,25 @@ export const LongTitleNarrow: Story = {
 	},
 };
 export const Resources: Story = { args: { search: { tab: "resources" } } };
+export const DenseResources: Story = {
+	args: { search: { tab: "resources" } },
+	parameters: { trellis: { responses: { "resources.list": denseResources } } },
+	play: async ({ canvasElement }) => {
+		const canvas = within(canvasElement);
+		const navigation = within(await canvas.findByRole("navigation", { name: "Resources" }));
+		for (const name of ["Documents", "Links", "Images", "Files"]) {
+			await expect(await navigation.findByRole("button", { name })).toBeVisible();
+			await userEvent.click(navigation.getByRole("button", { name }));
+			await expect(navigation.queryAllByRole("button", { expanded: true })).toHaveLength(name === "Documents" ? 0 : 1);
+		}
+		await expect(navigation.getByRole("button", { name: "Files" })).toHaveAttribute("aria-expanded", "true");
+		await expect(
+			navigation.getByRole("button", {
+				name: "Acceptance checks.txt: resource acceptance checks and verification records 1",
+			}),
+		).toBeVisible();
+	},
+};
 export const ResourceDocument: Story = {
 	args: { search: { tab: "resources" } },
 	globals: { viewport: { value: "desktop", isRotated: false } },
