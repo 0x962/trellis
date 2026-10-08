@@ -103,7 +103,7 @@ export function PageCommentThreads({
 		<section aria-label="Comments" className="flex flex-col gap-2">
 			<SectionHeader
 				title="Comments"
-				level={3}
+				level={2}
 				actions={
 					resolvedCount > 0 ? (
 						<Tooltip content={showResolved ? "Hide resolved threads" : `Show ${resolvedCount} resolved`}>
@@ -164,7 +164,7 @@ export function PageCommentThreads({
 						anchorAction={
 							<button
 								type="button"
-								className="block w-full text-left text-xs text-fg-muted"
+								className="flex min-h-7 w-full items-center text-left text-xs text-fg-muted max-md:min-h-11"
 								onClick={() => onSelect(thread.id)}
 							>
 								{anchor}

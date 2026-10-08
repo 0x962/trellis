@@ -26,6 +26,7 @@ import { usePageActions } from "../../usePageActions";
 import { PageHistory } from "../PageHistory";
 import { PageShare } from "../PageShare";
 import { PageWatcher } from "../PageWatcher";
+import { pageHistoryLabel, pageShareLabel, pageVersionStatus } from "./pageVersionText";
 
 export function PageDetailView({
 	page,
@@ -55,6 +56,8 @@ export function PageDetailView({
 	const { mutation, rename } = usePageActions(page, disconnected, project.archivedAt !== null);
 	const deleted = page.deletedAt !== null;
 	const blocked = disconnected || project.archivedAt !== null || mutation.isPending;
+	const historyLabel = pageHistoryLabel(page.requestedVersion.number, page.latestVersion);
+	const shareLabel = pageShareLabel(historical);
 	useEffect(() => {
 		if (!inSheet) document.title = `${page.title} · trellis`;
 	}, [inSheet, page.title]);
@@ -75,10 +78,10 @@ export function PageDetailView({
 							</Tooltip>
 						)}
 						{!phone && (
-							<Tooltip content="Share Page">
+							<Tooltip content={shareLabel}>
 								<TopbarActionButton
 									ref={shareTrigger}
-									label="Share Page"
+									label={shareLabel}
 									icon={<ShareNetwork />}
 									onClick={() => setPanel("share")}
 								/>
@@ -98,7 +101,7 @@ export function PageDetailView({
 												onSelect: () => mutation.mutate("pin"),
 											},
 											{
-												label: "Share Page",
+												label: shareLabel,
 												icon: <ShareNetwork />,
 												onSelect: () => setPanel("share"),
 											},
@@ -111,7 +114,7 @@ export function PageDetailView({
 									onSelect: () => setEditing(true),
 								},
 								{
-									label: "Version history",
+									label: historyLabel,
 									icon: <ClockCounterClockwise />,
 									disabled: deleted,
 									onSelect: () => setPanel("history"),
@@ -166,10 +169,7 @@ export function PageDetailView({
 					</p>
 				)}
 				<div className="flex flex-wrap items-center gap-3 border-b border-border px-5 py-2 text-sm text-fg-muted">
-					<Badge>
-						Version {page.requestedVersion.number}
-						{historical ? ", read-only" : ""}
-					</Badge>
+					<Badge>{pageVersionStatus(page.requestedVersion.number, page.latestVersion, historical)}</Badge>
 					<span>{page.requestedVersion.actor.displayName ?? page.requestedVersion.actor.name}</span>
 					<PageWatcher page={page} disabled={blocked || deleted || historical} />
 					<span className="tabular">
