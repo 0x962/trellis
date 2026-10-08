@@ -66,6 +66,14 @@ const render = (
 	);
 
 describe("PhoneRow on the epic table", () => {
+	test("gives the row two direct grid cells and keeps the ticket link", () => {
+		const html = render(ticket(), "epic");
+
+		expect(html.match(/role="gridcell"/g)).toHaveLength(2);
+		expect(html).toContain('<div role="gridcell" class="absolute inset-0 z-0"><a href="/t/OP-35"');
+		expect(html).toContain('aria-label="Open OP-35"');
+	});
+
 	test("keeps the ID, the title and the actor, and leaves the priority mark out", () => {
 		const html = render(ticket(), "epic");
 
