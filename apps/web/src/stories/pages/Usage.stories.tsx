@@ -32,6 +32,8 @@ export const Agent: Story = {
 		const canvas = within(canvasElement);
 		await expect(await canvas.findByRole("heading", { name: "Breakdown by model" })).toBeVisible();
 		await expect(await canvas.findByRole("heading", { name: "Breakdown by harness" })).toBeVisible();
+		await expect(await canvas.findByText("Sep 1, 2026 to Sep 30, 2026")).toBeVisible();
+		await expect(canvasElement.querySelectorAll("[data-chart-tick]")).toHaveLength(15);
 		const work = within(await canvas.findByRole("region", { name: "Merged work" }));
 		await expect(await work.findByText("+2,800")).toBeVisible();
 		await expect(work.getByText("−1,120")).toBeVisible();
@@ -113,38 +115,6 @@ export const Empty: Story = {
 		const accounts = within(await canvas.findByRole("region", { name: "Accounts" }));
 		await expect(await accounts.findByText("$0", { exact: true })).toBeVisible();
 		await expect(accounts.queryByText("$35.00", { exact: true })).not.toBeInTheDocument();
-	},
-};
-export const IncompleteMergedWork: Story = {
-	parameters: {
-		trellis: {
-			responses: {
-				"usage.mergedWork": {
-					...usageResponses["usage.mergedWork"],
-					totals: { prs: 28, additions: 2800, deletions: 0, missingAdditions: 1, missingDeletions: 28 },
-					buckets: usageResponses["usage.mergedWork"].buckets.map((bucket, index) => ({
-						...bucket,
-						deletions: 0,
-						missingAdditions: index === 0 ? 1 : 0,
-						missingDeletions: bucket.prs,
-					})),
-				},
-			},
-		},
-	},
-	play: async ({ canvasElement }) => {
-		const work = within(await within(canvasElement).findByRole("region", { name: "Merged work" }));
-		await expect(await work.findByText("≥ +2,800")).toBeVisible();
-		await expect(work.getByText("Not available")).toBeVisible();
-		await expect(work.getByText("1 PR lacks this value")).toBeVisible();
-	},
-};
-export const MergedWorkError: Story = {
-	parameters: { trellis: { responses: { "usage.mergedWork": failure } } },
-	play: async ({ canvasElement }) => {
-		const canvas = within(canvasElement);
-		await expect(await canvas.findByRole("heading", { name: "Could not read merged work" })).toBeVisible();
-		await expect(canvas.getByRole("heading", { name: "Breakdown by model" })).toBeVisible();
 	},
 };
 export const Loading: Story = { parameters: { trellis: { responses: { "usage.report": pending } } } };

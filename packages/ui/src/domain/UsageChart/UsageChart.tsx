@@ -1,6 +1,7 @@
 import { type KeyboardEvent, type MouseEvent, useId, useMemo, useState } from "react";
 import { cx } from "../../utils/cx";
 import { type ChartTone, chartFillClass, chartToneClass } from "../chartTones";
+import { niceMax } from "./components/niceMax";
 import { UsageChartSelectionMarker } from "./components/UsageChartSelectionMarker";
 import { isUsageChartSelectKey, nextUsageChartFocusIndex } from "./nextUsageChartFocusIndex";
 
@@ -36,14 +37,11 @@ export type UsageChartProps = {
 // The gridlines, top first, as the share of the top value each one marks.
 const GRID_LINES = [1, 0.75, 0.5, 0.25, 0] as const;
 
-// A round number at or above `max`, so the top gridline prints a short
-// figure such as 50 instead of 47.3.
-const niceMax = (max: number) => {
-	if (max <= 0) return 1;
-	const power = 10 ** Math.floor(Math.log10(max));
-	const unit = max / power;
-	const step = unit <= 1 ? 1 : unit <= 2 ? 2 : unit <= 2.5 ? 2.5 : unit <= 4 ? 4 : unit <= 5 ? 5 : 10;
-	return step * power;
+const tickIndexes = (count: number) => {
+	const target = count <= 7 ? 4 : count <= 31 ? 5 : 7;
+	const tickCount = Math.min(count, target);
+	if (tickCount <= 1) return count === 0 ? [] : [0];
+	return Array.from({ length: tickCount }, (_, index) => Math.round((index * (count - 1)) / (tickCount - 1)));
 };
 
 export function UsageChart({
@@ -88,7 +86,7 @@ export function UsageChart({
 	const focusDay = focusIndex < 0 ? null : days[focusIndex]!;
 	const hoverIndex = hoverDay === null ? -1 : (dayIndexByDay.get(hoverDay) ?? -1);
 	const captionIndex = hoverIndex >= 0 ? hoverIndex : hasFocus ? focusIndex : selectedIndex;
-	const ticks = count >= 3 ? [0, Math.floor(count / 2), count - 1] : days.map((_, index) => index);
+	const ticks = tickIndexes(count);
 	// Gaps keep bars for adjacent days distinct.
 	const slot = 100 / Math.max(1, count);
 	const barWidth = slot * (appearance === "overview" ? 0.45 : 0.7);
@@ -101,6 +99,12 @@ export function UsageChart({
 		return Math.min(count - 1, Math.max(0, Math.floor(((event.clientX - bounds.left) / bounds.width) * count)));
 	};
 	const handleKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
+		if (event.key === "Escape" && selectedDay !== null) {
+			event.preventDefault();
+			event.stopPropagation();
+			onSelectDay(null);
+			return;
+		}
 		if (isUsageChartSelectKey(event.key)) {
 			event.preventDefault();
 			toggleDaySelection(focusIndex);
@@ -120,8 +124,8 @@ export function UsageChart({
 	return (
 		<figure className={cx("flex min-w-0 flex-col gap-2", className)}>
 			<span id={instructionsId} className="sr-only">
-				Use Left and Right to inspect days. Use Home and End to move to the first or last day. Press Enter or Space to
-				select or clear a day.
+				Use Left and Right to inspect chart points. Use Home and End to move to the first or last point. Press Enter or
+				Space to select or clear a point. Press Escape to clear the selected point.
 			</span>
 			<div className="flex min-w-0 gap-2">
 				<div
@@ -247,7 +251,10 @@ export function UsageChart({
 							aria-pressed={selectedDay === focusDay}
 							onPointerMove={(event) => setHoverDay(days[indexAtPointer(event)]!)}
 							onPointerLeave={() => setHoverDay(null)}
-							onFocus={() => setHasFocus(true)}
+							onFocus={() => {
+								setHasFocus(true);
+								if (selectedIndex >= 0) setCursor({ day: selectedDay, index: selectedIndex });
+							}}
 							onBlur={() => setHasFocus(false)}
 							onKeyDown={handleKeyDown}
 							onClick={(event) => toggleDaySelection(event.detail === 0 ? focusIndex : indexAtPointer(event))}
@@ -260,31 +267,45 @@ export function UsageChart({
 				{ticks.map((index, position) => (
 					<span
 						key={index}
+						data-chart-tick={days[index]}
 						className={cx(
 							"flex-1",
 							position === 0 ? "text-left" : position === ticks.length - 1 ? "text-right" : "text-center",
+							position !== 0 &&
+								position !== ticks.length - 1 &&
+								position !== Math.floor(ticks.length / 2) &&
+								"max-sm:hidden",
 						)}
 					>
 						{formatDay(days[index]!)}
 					</span>
 				))}
 			</div>
-			<figcaption role="status" className="flex min-h-5 flex-wrap items-center gap-x-4 gap-y-1 pl-14 text-sm">
-				{captionIndex >= 0 && (
-					<span className="font-medium text-fg tabular">
-						{formatDay(days[captionIndex]!)} · {format(dayTotal(captionIndex))}
-					</span>
+			<figcaption
+				className={cx(
+					"flex flex-wrap items-center gap-x-4 gap-y-1 pl-14 text-sm",
+					appearance === "overview" ? "min-h-16" : "min-h-5",
 				)}
-				{series.map((row) => (
-					<span key={row.key} className="inline-flex min-w-0 items-center gap-1.5 text-fg-muted">
-						<span
-							aria-hidden="true"
-							className={cx("inline-block size-2 shrink-0 rounded-hairline bg-current", chartToneClass[row.tone])}
-						/>
-						<span className="truncate">{row.label}</span>
-						{captionIndex >= 0 && <span className="text-fg tabular">{format(row.values[captionIndex] ?? 0)}</span>}
-					</span>
-				))}
+			>
+				<div role="status" aria-atomic="true" className="font-medium text-fg tabular">
+					{captionIndex >= 0 && (
+						<>
+							{formatDay(days[captionIndex]!)} · {format(dayTotal(captionIndex))}
+						</>
+					)}
+				</div>
+				<div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+					{series.map((row) => (
+						<span key={row.key} className="inline-flex min-w-0 items-center gap-1.5 text-fg-muted">
+							<span
+								aria-hidden="true"
+								className={cx("inline-block size-2 shrink-0 rounded-hairline bg-current", chartToneClass[row.tone])}
+							/>
+							<span className="truncate">{row.label}</span>
+							{captionIndex >= 0 && <span className="text-fg tabular">{format(row.values[captionIndex] ?? 0)}</span>}
+						</span>
+					))}
+				</div>
 			</figcaption>
 		</figure>
 	);
