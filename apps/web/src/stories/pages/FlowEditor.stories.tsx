@@ -106,8 +106,19 @@ export const ZoomScaledTargets: Story = {
 			expect(zoom).toBeGreaterThan(1);
 		});
 		await waitFor(checkTargets);
-		await userEvent.click(canvas.getByRole("button", { name: "Fit the flow in view" }));
+		const center = canvas.getByRole("button", { name: "Center the flow at 100% zoom" });
+		await userEvent.hover(center);
+		await expect(await within(canvasElement.ownerDocument.body).findByRole("tooltip")).toHaveTextContent(
+			"Center the flow at 100% zoom",
+		);
+		await userEvent.click(center);
 		await waitFor(() => expect(canvas.getByRole("button", { name: "Zoom out" })).toBeDisabled());
+		await waitFor(() =>
+			expect(
+				getComputedStyle(canvasElement.querySelector(".react-flow__handle")!).getPropertyValue("--flow-zoom"),
+			).toBe("1"),
+		);
+		await userEvent.unhover(center);
 		await waitFor(checkTargets);
 	},
 };

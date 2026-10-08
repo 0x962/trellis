@@ -12,7 +12,7 @@ export function CanvasControls({ onCleanUp, canCleanUp }: CanvasControlsProps) {
 		{ label: "Zoom in", icon: <Plus />, onClick: () => void rf.zoomIn(), disabled: zoom >= 2 },
 		{ label: "Zoom out", icon: <Minus />, onClick: () => void rf.zoomOut(), disabled: zoom <= 1 },
 		{
-			label: "Fit the flow in view",
+			label: "Center the flow at 100% zoom",
 			icon: <CornersOut />,
 			onClick: () => void rf.fitView({ minZoom: 1, maxZoom: 1 }),
 			disabled: false,
