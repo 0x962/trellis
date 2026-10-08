@@ -19,7 +19,9 @@ export function TitleMenuButton({ label, wrap = false, className, ...rest }: Tit
 			{...rest}
 			className={cx(
 				"flex max-w-full min-w-0 items-center gap-1 rounded-md px-1.5 text-left transition-colors duration-hover hover:bg-band focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2 data-[popup-open]:bg-band",
-				wrap ? "h-auto min-h-11 justify-start" : "h-7 max-md:h-11 pointer-coarse:h-11",
+				wrap
+					? "h-auto min-h-11 justify-start"
+					: "h-7 max-md:h-11 pointer-coarse:h-11 max-md:min-w-11 pointer-coarse:min-w-11",
 				className,
 			)}
 		>
