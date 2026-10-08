@@ -11,6 +11,7 @@ export { ComposerProperty } from "./domain/ComposerProperty";
 export { ComposerTitle } from "./domain/ComposerTitle";
 export { type ChartTone, otherTone, rankedTones } from "./domain/chartTones";
 export { DisplayPopover, type DisplayPopoverProps, type DisplaySortField } from "./domain/DisplayPopover";
+export { DocumentLayout, type DocumentLayoutProps } from "./domain/DocumentLayout";
 export { DoneWash, type DoneWashProps, doneWashMs, waveFillMs } from "./domain/DoneWash";
 export { type FailureRecovery, FailureState, type FailureStateProps } from "./domain/FailureState";
 export { FilterBar } from "./domain/FilterBar";
@@ -53,6 +54,7 @@ export {
 	type MachinePressureProps,
 	type MachinePressureReadingView,
 } from "./domain/MachinePressure";
+export { MachineRuns } from "./domain/MachineRuns";
 export {
 	MergeConflictMark,
 	type MergeConflictMarkProps,
@@ -182,6 +184,7 @@ export { Kbd, type KbdProps } from "./primitives/Kbd";
 export { Menu, type MenuGroup, type MenuItem, type MenuProps } from "./primitives/Menu";
 export { OutputBlock, type OutputBlockProps } from "./primitives/OutputBlock";
 export { Pagination } from "./primitives/Pagination";
+export { Panel, type PanelProps } from "./primitives/Panel";
 export { PickerButton } from "./primitives/PickerButton";
 export { Popover, type PopoverProps } from "./primitives/Popover";
 export { PropertyRow, type PropertyRowProps } from "./primitives/PropertyRow";

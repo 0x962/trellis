@@ -122,7 +122,7 @@ export type UsageReport = z.infer<typeof UsageReportSchema>;
 
 // The range as a query string carries digits, so the input accepts the
 // number and its text form.
-const UsageDaysInputSchema = z.union([
+export const UsageDaysInputSchema = z.union([
 	UsageDaysSchema,
 	z.enum(["7", "30", "90"]).transform((value) => Number(value) as UsageDays),
 ]);
@@ -200,3 +200,23 @@ export const UsageRankingSchema = z.object({
 	selectedRank: z.number().int().nullable(),
 });
 export type UsageRanking = z.infer<typeof UsageRankingSchema>;
+
+export const UsageMergedWorkInputSchema = z.strictObject({
+	days: UsageDaysInputSchema,
+	computedAt: IsoDateTimeSchema,
+});
+export type UsageMergedWorkInput = z.infer<typeof UsageMergedWorkInputSchema>;
+
+const UsageMergedCountsSchema = z.object({
+	prs: z.number().int().nonnegative(),
+	additions: z.number().int().nonnegative(),
+	deletions: z.number().int().nonnegative(),
+	missingAdditions: z.number().int().nonnegative(),
+	missingDeletions: z.number().int().nonnegative(),
+});
+export const UsageMergedWorkSchema = z.object({
+	computedAt: IsoDateTimeSchema,
+	buckets: z.array(UsageMergedCountsSchema.extend({ day: z.string() })),
+	totals: UsageMergedCountsSchema,
+});
+export type UsageMergedWork = z.infer<typeof UsageMergedWorkSchema>;

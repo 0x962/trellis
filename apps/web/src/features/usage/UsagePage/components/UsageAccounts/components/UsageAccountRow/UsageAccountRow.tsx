@@ -13,38 +13,22 @@ import type { HarnessAccount, UsageAccount, UsageGroupRow, UsageMetric } from "@
 import {
 	Button,
 	CodeText,
-	Dialog,
 	IconButton,
 	Menu,
 	PropertyRow,
 	ProviderIcon,
 	QuotaWindows,
 	SettingsListRow,
+	Sheet,
+	SheetBody,
 	Skeleton,
 	Tooltip,
 } from "@trellis/ui";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { copyText } from "../../../../../../../lib/clipboard";
 import { formatMetric, formatShare, formatUsd, harnessLabel, harnessProvider } from "../../../../../formatUsage";
 
-type QuotaStatus = UsageAccount["quota"]["status"];
-
-const quotaStatusLabel: Record<QuotaStatus, string> = {
-	ok: "Quota available",
-	unlimited: "Unlimited",
-	metered: "Metered billing",
-	signed_out: "Sign in required",
-	stale: "Quota refresh pending",
-	expired: "Sign-in expired",
-	unavailable: "Quota unavailable",
-};
-
-export const accountQuotaSummary = (account: UsageAccount) => {
-	if (account.quota.status !== "ok") return quotaStatusLabel[account.quota.status];
-	if (account.quota.windows.length === 0) return quotaStatusLabel.ok;
-	const mostUsed = Math.max(...account.quota.windows.map((window) => window.usedPercent));
-	return `${Math.round(mostUsed)}% used`;
-};
+import { accountQuotaSummary } from "../../accountQuotaSummary";
 
 export function UsageAccountRow({
 	account,
@@ -54,6 +38,7 @@ export function UsageAccountRow({
 	metric,
 	total,
 	pending,
+	reportAvailable = true,
 	busy,
 	refreshing,
 	onDefault,
@@ -69,6 +54,7 @@ export function UsageAccountRow({
 	metric: UsageMetric;
 	total: number;
 	pending: boolean;
+	reportAvailable?: boolean;
 	busy: boolean;
 	refreshing: boolean;
 	onDefault: () => void;
@@ -81,6 +67,7 @@ export function UsageAccountRow({
 	const [details, setDetails] = useState(false);
 	const value = row?.[metric] ?? 0;
 	const sharedValue = shared?.[metric] ?? 0;
+	const share = reportAvailable ? formatShare(value, total) : "";
 	const provider = harnessProvider[account.harness];
 	const quotaDetail =
 		account.quota.creditsBalance !== null
@@ -88,12 +75,15 @@ export function UsageAccountRow({
 			: account.quota.extraUsage
 				? `${formatUsd(account.quota.extraUsage.usedCents / 100)} of ${formatUsd(account.quota.extraUsage.limitCents / 100)} extra usage`
 				: null;
-	const description = `${harnessLabel[account.harness]} · ${accountQuotaSummary(account)}`;
+	const quotaSummary = useMemo(() => accountQuotaSummary(account), [account]);
+	const description = `${harnessLabel[account.harness]} · ${quotaSummary}`;
 	return (
 		<>
 			<SettingsListRow
-				label={`${account.name}${account.isDefault ? " · Default" : ""}`}
+				label={account.name}
+				badge={account.isDefault ? "Default" : undefined}
 				description={description}
+				wrapDescription
 				icon={
 					provider ? (
 						<ProviderIcon provider={provider} decorative className="text-fg-muted" />
@@ -112,15 +102,13 @@ export function UsageAccountRow({
 							<Skeleton width="w-14" height="h-4" className="col-span-2 justify-self-end sm:mr-1" />
 						) : (
 							<span className="col-span-2 justify-self-end text-sm font-medium text-fg tabular sm:mr-1">
-								{formatMetric(metric, value)}
-								<span className="ml-1 hidden text-xs font-normal text-fg-faint sm:inline">
-									{formatShare(value, total)}
-								</span>
+								{reportAvailable ? formatMetric(metric, value) : "Not available"}
+								{share && <span className="ml-1 hidden text-xs font-normal text-fg-faint sm:inline">{share}</span>}
 							</span>
 						)}
-						<Tooltip content="Refresh">
+						<Tooltip content="Refresh all account quotas">
 							<IconButton
-								label={`Refresh quota for ${account.name}`}
+								label="Refresh all account quotas"
 								processing={refreshing}
 								onClick={onRefresh}
 								icon={<ArrowClockwise />}
@@ -166,7 +154,7 @@ export function UsageAccountRow({
 					</div>
 				}
 			/>
-			<Dialog
+			<Sheet
 				open={details}
 				onOpenChange={(open) => {
 					setDetails(open);
@@ -174,77 +162,83 @@ export function UsageAccountRow({
 				}}
 				title={`Edit details for ${account.name}`}
 				description="Review the account profile. Rename the account to change its display name."
+				titleClassName="text-md font-medium"
 			>
-				<dl className="flex flex-col">
-					<PropertyRow label="Harness">{harnessLabel[account.harness]}</PropertyRow>
-					<PropertyRow label="Default">{account.isDefault ? "Yes" : "No"}</PropertyRow>
-					{account.quota.email && <PropertyRow label="Identity">{account.quota.email}</PropertyRow>}
-					{account.quota.plan && <PropertyRow label="Plan">{account.quota.plan}</PropertyRow>}
-					<PropertyRow label="Quota" align="start">
-						<span className="flex min-w-0 flex-1 flex-col gap-2">
-							<span>{accountQuotaSummary(account)}</span>
-							{account.quota.status === "ok" && <QuotaWindows name={account.name} windows={account.quota.windows} />}
-							{quotaDetail && <span className="text-sm text-fg-muted tabular">{quotaDetail}</span>}
-						</span>
-					</PropertyRow>
-					{shared && sharedValue > 0 && (
-						<PropertyRow label="Shared usage" align="start">
-							<span className="text-sm text-fg-muted text-pretty">
-								{formatMetric(metric, sharedValue)} belongs to a transcript directory shared with{" "}
-								{account.sharedWith.join(", ")}.
+				<SheetBody>
+					<dl className="flex flex-col">
+						<PropertyRow label="Harness">{harnessLabel[account.harness]}</PropertyRow>
+						<PropertyRow label="Default">{account.isDefault ? "Yes" : "No"}</PropertyRow>
+						{account.quota.email && <PropertyRow label="Identity">{account.quota.email}</PropertyRow>}
+						{account.quota.plan && <PropertyRow label="Plan">{account.quota.plan}</PropertyRow>}
+						<PropertyRow label="Quota" align="start">
+							<span className="flex min-w-0 flex-1 flex-col gap-2">
+								<span>{quotaSummary}</span>
+								{account.quota.status === "ok" && <QuotaWindows name={account.name} windows={account.quota.windows} />}
+								{quotaDetail && <span className="text-sm text-fg-muted tabular">{quotaDetail}</span>}
 							</span>
 						</PropertyRow>
-					)}
-					<PropertyRow label="Profile" align="start">
-						<CodeText className="break-all text-sm text-fg-muted">{account.profilePath}</CodeText>
-					</PropertyRow>
-				</dl>
-				<div className="flex justify-end gap-2">
-					{managed && (
-						<Button
-							onClick={() => {
-								setDetails(false);
-								onRename();
-							}}
-						>
-							Rename account
+						{shared && sharedValue > 0 && (
+							<PropertyRow label="Shared usage" align="start">
+								<span className="text-sm text-fg-muted text-pretty">
+									{formatMetric(metric, sharedValue)} belongs to a transcript directory shared with{" "}
+									{account.sharedWith.join(", ")}.
+								</span>
+							</PropertyRow>
+						)}
+						<PropertyRow label="Profile" align="start">
+							<CodeText className="break-all text-sm text-fg-muted">{account.profilePath}</CodeText>
+						</PropertyRow>
+					</dl>
+					<div className="flex justify-end gap-2">
+						{managed && (
+							<Button
+								onClick={() => {
+									setDetails(false);
+									onRename();
+								}}
+							>
+								Rename account
+							</Button>
+						)}
+						<Button variant="primary" onClick={() => setDetails(false)}>
+							Done
 						</Button>
-					)}
-					<Button variant="primary" onClick={() => setDetails(false)}>
-						Done
-					</Button>
-				</div>
-			</Dialog>
-			<Dialog
+					</div>
+				</SheetBody>
+			</Sheet>
+			<Sheet
 				open={login}
 				onOpenChange={(open) => {
 					setLogin(open);
 					onActiveChange?.(open);
 				}}
 				title={`Sign in to ${account.name}`}
-				description="Run this command on the Trellis host. Complete the CLI sign-in, then refresh this account."
+				description="Run this command on the Trellis host. Complete the CLI sign-in, then refresh all account quotas."
+				titleClassName="text-md font-medium"
 			>
-				<div className="flex min-w-0 items-start gap-2">
-					<code className="min-w-0 flex-1 whitespace-pre-wrap break-all text-sm">{account.loginCommand}</code>
-					<Tooltip content="Copy command">
-						<IconButton
-							label="Copy login command"
-							onClick={() => void copyText(account.loginCommand!, "Login command copied")}
-							icon={<Copy />}
-						/>
-					</Tooltip>
-				</div>
-				<div className="flex justify-end">
-					<Button
-						onClick={() => {
-							setLogin(false);
-							onRefresh();
-						}}
-					>
-						Done
-					</Button>
-				</div>
-			</Dialog>
+				<SheetBody>
+					<div className="flex min-w-0 items-start gap-2">
+						<code className="min-w-0 flex-1 whitespace-pre-wrap break-all text-sm">{account.loginCommand}</code>
+						<Tooltip content="Copy command">
+							<IconButton
+								label="Copy login command"
+								onClick={() => void copyText(account.loginCommand!, "Login command copied")}
+								icon={<Copy />}
+							/>
+						</Tooltip>
+					</div>
+					<div className="flex justify-end">
+						<Button
+							onClick={() => {
+								setLogin(false);
+								onRefresh();
+							}}
+						>
+							Refresh all quotas
+						</Button>
+					</div>
+				</SheetBody>
+			</Sheet>
 		</>
 	);
 }

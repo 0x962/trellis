@@ -1,0 +1,219 @@
+[
+	{
+		"source": "packages/ui/src/domain/ProviderCard/ProviderCard.tsx",
+		"export": "ProviderCard",
+		"stories": [
+			"Components/ProviderCard/InteractiveStates",
+			"Components/ProviderCard/Unchecked",
+			"Components/ProviderCard/Accepted",
+			"Components/ProviderCard/Balance",
+			"Components/ProviderCard/Checking",
+			"Components/ProviderCard/Refused",
+			"Components/ProviderCard/Forbidden",
+			"Components/ProviderCard/ErrorState",
+			"Components/ProviderCard/Disabled",
+			"Components/ProviderCard/Busy",
+			"Components/ProviderCard/EmptyModels",
+			"Components/ProviderCard/OneModel",
+			"Components/ProviderCard/Compatible",
+			"Components/ProviderCard/Compact",
+			"Components/ProviderCard/CompactChecking",
+			"Components/ProviderCard/CompactError",
+			"Components/ProviderCard/CompactAccepted",
+			"Components/ProviderCard/CompactRefused",
+			"Components/ProviderCard/ActionsOpen",
+			"Components/ProviderCard/LongContent",
+			"Components/ProviderCard/CheckKey",
+			"Components/ProviderCard/EditProvider",
+			"Components/ProviderCard/RemoveProvider"
+		],
+		"states": [
+			"interactive states",
+			"unchecked",
+			"accepted",
+			"balance",
+			"checking",
+			"refused",
+			"forbidden",
+			"error",
+			"disabled",
+			"busy",
+			"empty models",
+			"one model",
+			"compatible",
+			"compact",
+			"compact checking",
+			"compact error",
+			"compact accepted",
+			"compact refused",
+			"actions open",
+			"long content",
+			"local add dialog",
+			"local edit dialog",
+			"local remove confirmation",
+			"check key",
+			"edit provider",
+			"remove provider"
+		],
+		"notes": "Edit, check, toggle, and remove update a local provider. InteractiveStates also shows the gallery of provider states and the Add form."
+	},
+	{
+		"source": "packages/ui/src/domain/ProviderForm/ProviderForm.tsx",
+		"export": "ProviderForm",
+		"stories": [
+			"Components/ProviderForm/Default",
+			"Components/ProviderForm/Empty",
+			"Components/ProviderForm/Edit",
+			"Components/ProviderForm/EditWithoutKeySuffix",
+			"Components/ProviderForm/Busy",
+			"Components/ProviderForm/ErrorState",
+			"Components/ProviderForm/KeyError",
+			"Components/ProviderForm/RequestError",
+			"Components/ProviderForm/DisabledProvider",
+			"Components/ProviderForm/Compatible",
+			"Components/ProviderForm/AddressError",
+			"Components/ProviderForm/FillEmpty"
+		],
+		"states": [
+			"default",
+			"empty",
+			"edit",
+			"edit without key suffix",
+			"busy",
+			"error",
+			"key error",
+			"request error",
+			"disabled provider",
+			"compatible",
+			"address error",
+			"local validation and submit"
+		],
+		"notes": "Enter a name and an API key to enable the local submit action. Edit mode keeps the stored key when its field is blank. FillEmpty verifies validation and closes the form without a request."
+	},
+	{
+		"source": "packages/ui/src/domain/ProviderIcon/ProviderIcon.tsx",
+		"export": "ProviderIcon",
+		"stories": [
+			"Components/ProviderIcon/Default",
+			"Components/ProviderIcon/Anthropic",
+			"Components/ProviderIcon/Google",
+			"Components/ProviderIcon/MetaProvider",
+			"Components/ProviderIcon/Vercel",
+			"Components/ProviderIcon/Compatible",
+			"Components/ProviderIcon/Decorative",
+			"Components/ProviderIcon/Large"
+		],
+		"states": ["default", "anthropic", "google", "meta provider", "vercel", "compatible", "decorative", "large"],
+		"notes": "The story renders the public component with local fixture data. Global controls set the theme and viewport."
+	},
+	{
+		"source": "packages/ui/src/domain/ProviderForm/components/ProviderModelsPicker/ProviderModelsPicker.tsx",
+		"export": "ProviderModelsPicker",
+		"stories": [
+			"Components/ProviderModelsPicker/Default",
+			"Components/ProviderModelsPicker/Empty",
+			"Components/ProviderModelsPicker/Loading",
+			"Components/ProviderModelsPicker/Disabled",
+			"Components/ProviderModelsPicker/ErrorState",
+			"Components/ProviderModelsPicker/TypedOnly",
+			"Components/ProviderModelsPicker/Stale",
+			"Components/ProviderModelsPicker/ManySelected",
+			"Components/ProviderModelsPicker/RefreshModels"
+		],
+		"states": [
+			"default",
+			"empty",
+			"loading",
+			"disabled",
+			"error",
+			"typed only",
+			"stale",
+			"many selected",
+			"refresh stale models"
+		],
+		"notes": "Open the picker to search or type a model identifier. Enter selects it. Remove updates the selection. Refresh replaces stale fixture data."
+	},
+	{
+		"source": "packages/ui/src/domain/QuotaWindows/QuotaWindows.tsx",
+		"export": "QuotaWindows",
+		"stories": [
+			"Components/QuotaWindows/Default",
+			"Components/QuotaWindows/Empty",
+			"Components/QuotaWindows/Warning",
+			"Components/QuotaWindows/Exhausted",
+			"Components/QuotaWindows/Zero"
+		],
+		"states": ["default", "empty", "warning", "exhausted", "zero"],
+		"notes": "The story renders the public component with local fixture data. Global controls set the theme and viewport."
+	},
+	{
+		"source": "packages/ui/src/domain/RankedBars/RankedBars.tsx",
+		"export": "RankedBars",
+		"stories": [
+			"Components/RankedBars/Default",
+			"Components/RankedBars/Empty",
+			"Components/RankedBars/Selected",
+			"Components/RankedBars/Overflow"
+		],
+		"states": ["default", "empty", "selected", "overflow"],
+		"notes": "The story renders the public component with local fixture data. Global controls set the theme and viewport."
+	},
+	{
+		"source": "packages/ui/src/domain/ResourceList/ResourceList.tsx",
+		"export": "ResourceList",
+		"stories": [
+			"Components/ResourceList/Default",
+			"Components/ResourceList/Empty",
+			"Components/ResourceList/Loading",
+			"Components/ResourceList/ErrorState",
+			"Components/ResourceList/Selected",
+			"Components/ResourceList/Creating",
+			"Components/ResourceList/ReadOnly",
+			"Components/ResourceList/CreateDocument"
+		],
+		"states": ["default", "empty", "loading", "error", "selected", "creating", "read only", "create local document"],
+		"notes": "Select a resource to mark it active. New document adds and selects a local draft. ResourceList renders ResourceRow for all four resource kinds."
+	},
+	{
+		"source": "packages/ui/src/domain/ResourceList/components/ResourceRow/ResourceRow.tsx",
+		"export": "ResourceRow",
+		"stories": [
+			"Components/ResourceList/Default",
+			"Components/ResourceList/Empty",
+			"Components/ResourceList/Loading",
+			"Components/ResourceList/ErrorState",
+			"Components/ResourceList/Selected",
+			"Components/ResourceList/Creating",
+			"Components/ResourceList/ReadOnly",
+			"Components/ResourceList/CreateDocument"
+		],
+		"states": ["default", "empty", "loading", "error", "selected", "creating", "read only", "create local document"],
+		"notes": "ResourceList renders each row. The stories cover all four resource kinds, selection, the plan icon, evidence details, and hover or focus marks."
+	},
+	{
+		"source": "packages/ui/src/domain/ReviewStateIcon/ReviewStateIcon.tsx",
+		"export": "ReviewStateIcon",
+		"stories": [
+			"Components/ReviewStateIcon/Default",
+			"Components/ReviewStateIcon/Required",
+			"Components/ReviewStateIcon/Approved",
+			"Components/ReviewStateIcon/ChangesRequested",
+			"Components/ReviewStateIcon/NotReady",
+			"Components/ReviewStateIcon/NoTooltip"
+		],
+		"states": ["default", "required", "approved", "changes requested", "not ready", "no tooltip"],
+		"notes": "The story renders the public component with local fixture data. Global controls set the theme and viewport."
+	},
+	{
+		"source": "packages/ui/src/domain/ReviewStatusSummary/ReviewStatusSummary.tsx",
+		"export": "ReviewStatusSummary",
+		"stories": [
+			"Components/ReviewStatusSummary/Default",
+			"Components/ReviewStatusSummary/Empty",
+			"Components/ReviewStatusSummary/AllStates",
+			"Components/ReviewStatusSummary/Overflow"
+		],
+		"states": ["default", "empty", "all states", "overflow"],
+		"notes": "Hover or focus the overflow count to inspect every pull request status."
+	}
+]

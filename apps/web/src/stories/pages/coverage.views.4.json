@@ -1,0 +1,122 @@
+[
+	{
+		"source": "apps/web/src/features/search/SearchResults/SearchResults.tsx",
+		"export": "SearchResults",
+		"stories": [
+			"Pages/Search/Results",
+			"Pages/Search/Initial",
+			"Pages/Search/Empty",
+			"Pages/Search/PriorityFilter",
+			"Pages/Search/Loading",
+			"Pages/Search/RequestError",
+			"Pages/Search/Narrow",
+			"Pages/Search/SearchAndClear",
+			"Pages/Search/LoadMore",
+			"Pages/Search/LoadMoreError"
+		],
+		"states": [
+			"tickets",
+			"projects",
+			"Pages",
+			"empty",
+			"priority filter",
+			"narrow",
+			"search and clear",
+			"pagination",
+			"pagination error"
+		],
+		"notes": ""
+	},
+	{
+		"source": "apps/web/src/features/attachments/AttachmentGrid/AttachmentGrid.tsx",
+		"export": "AttachmentGrid",
+		"stories": [
+			"Pages/Ticket/Populated",
+			"Pages/Ticket/Attachments",
+			"Pages/Ticket/AttachmentPreview",
+			"Pages/Ticket/LinkedPullRequest",
+			"Pages/Ticket/EmptySections",
+			"Pages/Ticket/Loading",
+			"Pages/Ticket/RequestError",
+			"Pages/Ticket/Narrow",
+			"Pages/Ticket/LongContent",
+			"Pages/Ticket/Completed",
+			"Pages/Ticket/Archived"
+		],
+		"states": ["populated", "empty", "image preview", "file row", "narrow"],
+		"notes": "The image fixture reuses the bundled gallery artwork. The text file uses a local data URL."
+	},
+	{
+		"source": "apps/web/src/features/epics/EpicPage/components/EpicResources/EpicResources.tsx",
+		"export": "EpicResources",
+		"stories": [
+			"Pages/Epic/Resources",
+			"Pages/Epic/ResourceDocument",
+			"Pages/Epic/ResourceDocumentNarrow",
+			"Pages/Epic/ResourcesLoading",
+			"Pages/Epic/ResourcesError",
+			"Pages/Epic/SwitchTabs",
+			"Pages/Epic/ResourceDocumentContents",
+			"Pages/Epic/ResourceDocumentReadOnly",
+			"Pages/Epic/PlanContents"
+		],
+		"states": [
+			"plan",
+			"document",
+			"resource list",
+			"comments",
+			"loading",
+			"error",
+			"narrow",
+			"tab changes",
+			"automatic contents",
+			"contents navigation",
+			"heading edits",
+			"read-only document"
+		],
+		"notes": "The Resources tab renders the complete epic plan or resource document. SwitchTabs visits Resources before it returns to Overview."
+	},
+	{
+		"source": "apps/web/src/features/epics/ResourceList/components/ImageSheet/ImageSheet.tsx",
+		"export": "ImageSheet",
+		"stories": ["Pages/Resource image/Open", "Pages/Resource image/Narrow", "Pages/Resource image/Closed"],
+		"states": ["open", "narrow", "closed"],
+		"notes": ""
+	},
+	{
+		"source": "apps/web/src/features/pages/PageComments/PageComments.tsx",
+		"export": "PageComments",
+		"stories": [
+			"Pages/Page detail/Populated",
+			"Pages/Page detail/EmptyComments",
+			"Pages/Page detail/Loading",
+			"Pages/Page detail/RequestError",
+			"Pages/Page detail/Missing",
+			"Pages/Page detail/Refused",
+			"Pages/Page detail/ContentLoading",
+			"Pages/Page detail/ContentError",
+			"Pages/Page detail/CommentsError",
+			"Pages/Page detail/Historical",
+			"Pages/Page detail/Deleted",
+			"Pages/Page detail/ArchivedProject",
+			"Pages/Page detail/Offline",
+			"Pages/Page detail/Narrow",
+			"Pages/Page detail/NarrowComments"
+		],
+		"states": ["thread", "empty", "error", "read only", "narrow comments sheet"],
+		"notes": ""
+	},
+	{
+		"source": "apps/web/src/features/setup/NameStep/NameStep.tsx",
+		"export": "NameStep",
+		"stories": [
+			"Pages/Setup/Name",
+			"Pages/Setup/BlankName",
+			"Pages/Setup/Project",
+			"Pages/Setup/ExistingProjects",
+			"Pages/Setup/Narrow"
+		],
+		"states": ["name", "blank name", "narrow"],
+		"notes": ""
+	}
+]

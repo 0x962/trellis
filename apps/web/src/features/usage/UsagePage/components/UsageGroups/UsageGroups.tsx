@@ -1,10 +1,7 @@
-import { ArrowSquareOut } from "@phosphor-icons/react";
-import { Link } from "@tanstack/react-router";
 import type { UsageGroupBy, UsageGroupRow, UsageMetric } from "@trellis/api";
-import { IconButton, ProviderIcon, RankedBars, SectionHeader, Tooltip } from "@trellis/ui";
+import { Panel, RankedBars, SectionHeader } from "@trellis/ui";
 import { type ReactNode, useMemo } from "react";
-import { TicketLink } from "../../../../shell/TicketLink";
-import { formatMetric, harnessProvider, modelProvider, rowTone } from "../../../formatUsage";
+import { formatMetric } from "../../../formatUsage";
 
 export type UsageGroupsProps = {
 	group: UsageGroupBy;
@@ -13,58 +10,11 @@ export type UsageGroupsProps = {
 	total: number;
 	maxValue: number;
 	count: number;
-	start: number;
 	pages: ReactNode;
-	// The days of the range, for the sparkline of each row.
-	days: readonly string[];
 	selectedRow: string | null;
 	onSelectRow: (key: string | null) => void;
 };
 
-// The link at the end of a row: a ticket row opens the ticket, a project
-// row opens the board.
-function RowLink({ row }: { row: UsageGroupRow }) {
-	if (row.href?.startsWith("/t/")) {
-		const identifier = row.href.slice(3);
-		return (
-			<Tooltip content={`Open ${identifier}`}>
-				<IconButton
-					label={`Open ${identifier}`}
-					icon={<ArrowSquareOut />}
-					nativeButton={false}
-					render={<TicketLink identifier={identifier} />}
-				/>
-			</Tooltip>
-		);
-	}
-	if (row.href?.startsWith("/p/")) {
-		return (
-			<Tooltip content={`Open ${row.label}`}>
-				<IconButton
-					label={`Open ${row.label}`}
-					icon={<ArrowSquareOut />}
-					render={<Link to="/p/$" params={{ _splat: row.href.slice(3) }} />}
-				/>
-			</Tooltip>
-		);
-	}
-	return null;
-}
-
-// The company mark of a model or harness row.
-function rowIcon(group: UsageGroupBy, row: UsageGroupRow) {
-	const provider =
-		group === "model"
-			? modelProvider(row.label)
-			: group === "harness" && row.harness
-				? harnessProvider[row.harness]
-				: null;
-	return provider ? <ProviderIcon provider={provider} /> : undefined;
-}
-
-// The range sliced one way at a time, as ranked bars. The bar of a row is
-// its share of the largest row, the sparkline is its days, and a pressed
-// row is the selected slice that the chart and the session list follow.
 export function UsageGroups({
 	group,
 	rows,
@@ -72,43 +22,50 @@ export function UsageGroups({
 	total,
 	maxValue,
 	count,
-	start,
 	pages,
-	days,
 	selectedRow,
 	onSelectRow,
 }: UsageGroupsProps) {
-	const label = group === "kind" ? "agent kind" : group;
+	const groupNames: Record<UsageGroupBy, [string, string]> = {
+		ticket: ["ticket", "tickets"],
+		agent: ["agent", "agents"],
+		project: ["project", "projects"],
+		kind: ["run kind", "run kinds"],
+		account: ["account", "accounts"],
+		model: ["model", "models"],
+		harness: ["harness", "harnesses"],
+	};
+	const [name, plural] = groupNames[group];
 	const rankedRows = useMemo(
 		() =>
-			rows.map((row, rank) => {
-				const valuesByDay = new Map(row.days.map((slice) => [slice.day, slice[metric]]));
-				return {
-					key: row.key,
-					label: row.label,
-					icon: rowIcon(group, row),
-					detail: row.detail ?? undefined,
-					value: row[metric],
-					valueLabel: `${row.approximate && metric === "usd" ? "~" : ""}${formatMetric(metric, row[metric])}`,
-					share: total > 0 ? row[metric] / total : 0,
-					tone: rowTone(row, start + rank, group),
-					spark: days.map((day) => valuesByDay.get(day) ?? 0),
-					action: <RowLink row={row} />,
-				};
-			}),
-		[days, group, metric, rows, total, start],
+			rows.map((row) => ({
+				key: row.key,
+				label: row.label,
+				detail: row.detail ?? undefined,
+				value: row[metric],
+				valueLabel: `${row.approximate && metric === "usd" ? "~" : ""}${formatMetric(metric, row[metric])}`,
+				share: total > 0 ? row[metric] / total : 0,
+				tone: "usage" as const,
+			})),
+		[rows, metric, total],
 	);
 	return (
-		<section aria-label="Breakdown" className="flex flex-col gap-3">
-			<SectionHeader title={`Breakdown by ${label}`} count={count} />
+		<Panel aria-label={`Breakdown by ${name}`} className="flex min-w-0 flex-col gap-4 px-6 pt-5 pb-4 max-sm:px-4">
+			<SectionHeader
+				title={`Breakdown by ${name}`}
+				level={3}
+				appearance="overview"
+				actions={`${count} ${count === 1 ? name : plural}`}
+			/>
 			<RankedBars
-				label={`By ${label}`}
+				label={`By ${name}`}
+				appearance="overview"
 				rows={rankedRows}
 				maxValue={maxValue}
 				selected={selectedRow}
 				onSelect={onSelectRow}
 			/>
 			{pages}
-		</section>
+		</Panel>
 	);
 }

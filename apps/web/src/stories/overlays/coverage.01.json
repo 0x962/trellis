@@ -1,0 +1,188 @@
+[
+	{
+		"source": "apps/web/src/features/agents/AgentRunDetails/AgentRunDetails.tsx",
+		"export": "AgentRunDetails",
+		"stories": [
+			"Overlays/AgentRunDetails/ClosedTrigger",
+			"Overlays/AgentRunDetails/Open",
+			"Overlays/AgentRunDetails/ReadOnly",
+			"Overlays/AgentRunDetails/Loading",
+			"Overlays/AgentRunDetails/Disabled",
+			"Overlays/AgentRunDetails/Pending",
+			"Overlays/AgentRunDetails/RequestError",
+			"Overlays/AgentRunDetails/Success"
+		],
+		"states": ["closed-trigger", "open", "read-only", "loading", "disabled", "pending", "error", "success"],
+		"notes": "The fixture has an assigned agent without a terminal. The stories exercise assignment confirmation without a runtime socket."
+	},
+	{
+		"source": "apps/web/src/features/agents/AssignAgent/AssignAgent.tsx",
+		"export": "AssignAgent",
+		"stories": [
+			"Overlays/Assignment/ClosedTrigger",
+			"Overlays/Assignment/Open",
+			"Overlays/Assignment/Disabled",
+			"Overlays/Assignment/Compact",
+			"Overlays/Assignment/Loading",
+			"Overlays/Assignment/Pending",
+			"Overlays/Assignment/RequestError",
+			"Overlays/Assignment/Success"
+		],
+		"states": ["closed-trigger", "open", "disabled", "default", "loading", "pending", "error", "success"],
+		"notes": "Stories mount the production component with synthetic props and API responses."
+	},
+	{
+		"source": "apps/web/src/features/agents/AssignAgent/components/AssignAgentDialog/AssignAgentDialog.tsx",
+		"export": "AssignAgentDialog",
+		"stories": [
+			"Overlays/Assignment/DialogOpen",
+			"Overlays/Assignment/DialogSelected",
+			"Overlays/Assignment/DialogDisabled",
+			"Overlays/Assignment/DialogEmptyAccounts"
+		],
+		"states": ["open", "selected", "disabled", "empty"],
+		"notes": "Stories mount the production component with synthetic props and API responses."
+	},
+	{
+		"source": "apps/web/src/features/agents/BroadcastDialog/BroadcastDialog.tsx",
+		"export": "BroadcastDialog",
+		"stories": [
+			"Overlays/BroadcastDialog/Open",
+			"Overlays/BroadcastDialog/ClosedTrigger",
+			"Overlays/BroadcastDialog/EpicScope",
+			"Overlays/BroadcastDialog/Empty",
+			"Overlays/BroadcastDialog/Loading",
+			"Overlays/BroadcastDialog/CountsError",
+			"Overlays/BroadcastDialog/Disabled",
+			"Overlays/BroadcastDialog/Selected",
+			"Overlays/BroadcastDialog/Pending",
+			"Overlays/BroadcastDialog/RequestError",
+			"Overlays/BroadcastDialog/Success",
+			"Overlays/BroadcastDialog/PartialSuccess"
+		],
+		"states": [
+			"open",
+			"closed-trigger",
+			"default",
+			"empty",
+			"loading",
+			"error",
+			"disabled",
+			"selected",
+			"pending",
+			"success"
+		],
+		"notes": "Stories mount the production component with synthetic props and API responses."
+	},
+	{
+		"source": "apps/web/src/features/agents/LaunchFields/LaunchFields.tsx",
+		"export": "LaunchFields",
+		"stories": [
+			"Overlays/Assignment/LaunchControls",
+			"Overlays/Assignment/LaunchControlsDisabled",
+			"Overlays/Assignment/LaunchControlsDefault",
+			"Overlays/Assignment/ChangeLaunchHarness"
+		],
+		"states": ["default", "disabled", "interaction"],
+		"notes": "Local state retains the harness, model, and effort. ChangeLaunchHarness asserts the model control after a harness choice and its removal for the inherited harness."
+	},
+	{
+		"source": "apps/web/src/features/agents/ModelPicker/ModelPicker.tsx",
+		"export": "ModelPicker",
+		"stories": [
+			"Overlays/ModelPicker/ClosedTrigger",
+			"Overlays/ModelPicker/Open",
+			"Overlays/ModelPicker/Disabled",
+			"Overlays/ModelPicker/Selected",
+			"Overlays/ModelPicker/Codex",
+			"Overlays/ModelPicker/OpenCode",
+			"Overlays/ModelPicker/Pi",
+			"Overlays/ModelPicker/Muse",
+			"Overlays/ModelPicker/EmptySearch",
+			"Overlays/ModelPicker/ChangeSelection"
+		],
+		"states": ["closed-trigger", "open", "disabled", "selected", "default", "empty", "interaction"],
+		"notes": "Local state retains the selected model. ChangeSelection asserts an explicit model choice, the trigger text, and the current option after the picker reopens."
+	},
+	{
+		"source": "apps/web/src/features/agents/TicketAgent/TicketAgent.tsx",
+		"export": "TicketAgent",
+		"stories": [
+			"Overlays/TicketActions/AgentAssigned",
+			"Overlays/TicketActions/AgentEmpty",
+			"Overlays/TicketActions/AgentLoading",
+			"Overlays/TicketActions/AgentError",
+			"Overlays/TicketActions/AgentDisabled",
+			"Overlays/TicketActions/UnassignConfirmation",
+			"Overlays/TicketActions/UnassignPending"
+		],
+		"states": ["default", "empty", "loading", "error", "disabled", "pending"],
+		"notes": "Stories mount the production component with synthetic props and API responses."
+	},
+	{
+		"source": "apps/web/src/features/attachments/AttachmentGrid/components/AttachmentActions/AttachmentActions.tsx",
+		"export": "AttachmentActions",
+		"stories": [
+			"Overlays/TicketActions/AttachmentClosed",
+			"Overlays/TicketActions/AttachmentOpen",
+			"Overlays/TicketActions/AttachmentDelete"
+		],
+		"states": ["closed-trigger", "open", "default"],
+		"notes": "Stories mount the production component with synthetic props and API responses."
+	},
+	{
+		"source": "apps/web/src/features/attachments/DropTarget/DropTarget.tsx",
+		"export": "DropTarget",
+		"stories": ["Overlays/AttachmentControls/DropClosed", "Overlays/AttachmentControls/DropOpen"],
+		"states": ["closed-trigger", "open"],
+		"notes": "Stories mount the production component with synthetic props and API responses."
+	},
+	{
+		"source": "apps/web/src/features/attachments/UploadProgress/UploadProgress.tsx",
+		"export": "UploadProgress",
+		"stories": [
+			"Overlays/AttachmentControls/Pending",
+			"Overlays/AttachmentControls/Uploading",
+			"Overlays/AttachmentControls/Complete",
+			"Overlays/AttachmentControls/HiddenName",
+			"Overlays/AttachmentControls/RetryError",
+			"Overlays/AttachmentControls/ArchivedError"
+		],
+		"states": ["pending", "default", "success", "error"],
+		"notes": "Stories mount the production component with synthetic props and API responses."
+	},
+	{
+		"source": "apps/web/src/features/board/components/StatusChoice/StatusChoice.tsx",
+		"export": "StatusChoice",
+		"stories": ["Overlays/SettingsMenus/BoardStatusOpen", "Overlays/SettingsMenus/BoardStatusEmpty"],
+		"states": ["open", "empty"],
+		"notes": "Stories mount the production component with synthetic props and API responses."
+	},
+	{
+		"source": "apps/web/src/features/command/CommandPalette/CommandPalette.tsx",
+		"export": "CommandPalette",
+		"stories": [
+			"Overlays/CommandPalette/Open",
+			"Overlays/CommandPalette/ClosedTrigger",
+			"Overlays/CommandPalette/TicketContext",
+			"Overlays/CommandPalette/Selected",
+			"Overlays/CommandPalette/Projects",
+			"Overlays/CommandPalette/Search",
+			"Overlays/CommandPalette/SearchEmpty",
+			"Overlays/CommandPalette/SearchLoading",
+			"Overlays/CommandPalette/SearchError",
+			"Overlays/CommandPalette/Status",
+			"Overlays/CommandPalette/Priority",
+			"Overlays/CommandPalette/Parent",
+			"Overlays/CommandPalette/Labels",
+			"Overlays/CommandPalette/Epic",
+			"Overlays/CommandPalette/Wave",
+			"Overlays/CommandPalette/Group",
+			"Overlays/CommandPalette/Sort",
+			"Overlays/CommandPalette/DeleteConfirmation",
+			"Overlays/CommandPalette/BulkDeleteConfirmation"
+		],
+		"states": ["open", "closed-trigger", "default", "selected", "empty", "loading", "error"],
+		"notes": "Search failure and loading retain the search view. Delete stories mount the production confirmation flows."
+	}
+]

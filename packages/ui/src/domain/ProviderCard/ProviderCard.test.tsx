@@ -70,6 +70,50 @@ describe("ProviderCard", () => {
 		expect(html).toContain("The check failed.");
 		expect(html).not.toContain("Key accepted");
 	});
+	test.each([
+		["The provider refused the key.", "The provider refused the key", "Select Edit to replace the key."],
+		[
+			"The provider refused the request.",
+			"The provider refused the request",
+			"Check the key and the plan at the provider. Then select Check.",
+		],
+		[
+			"Trellis cannot reach gateway.example.test.",
+			"Trellis could not check the provider key",
+			"Trellis cannot reach gateway.example.test. Select Check to try again.",
+		],
+	])("shows the compact failure and recovery for %s", (detail, title, recovery) => {
+		const html = markup({ variant: "compact", check: { ok: false, balance: null, detail } });
+		expect(html).toContain(detail === "The provider refused the key." ? "Key refused ·" : "Key check failed ·");
+		expect(html).toContain('role="alert"');
+		expect(html).toContain(title);
+		expect(html).toContain(recovery);
+		expect(html).toContain('class="status-row-message"');
+		expect(html).toContain('aria-expanded="false"');
+		expect(html).not.toContain("aria-controls=");
+		expect(html).toContain('aria-label="Check Vercel"');
+	});
+	test("keeps compact request details when a refresh fails after success", () => {
+		const html = markup({
+			variant: "compact",
+			check: { ok: true, balance: "12.50", detail: null },
+			error: "The gateway is unavailable.",
+		});
+		expect(html).toContain("The gateway is unavailable.");
+		expect(html).toContain("Select Check to try again.");
+		expect(html).toContain("<details");
+		expect(html).not.toContain("Key accepted");
+	});
+	test("keeps the failure visible while the compact check runs", () => {
+		const html = markup({
+			variant: "compact",
+			checking: true,
+			check: { ok: false, balance: null, detail: "The provider refused the key." },
+		});
+		expect(html).toContain("The provider refused the key");
+		expect(html).toContain("Trellis is trying again.");
+		expect(html).toContain('aria-busy="true"');
+	});
 	test("shows the compact status and named row actions", () => {
 		const html = markup({ variant: "compact", check: { ok: true, balance: "12.50", detail: null } });
 		expect(html).toContain("Vercel · On");
@@ -77,5 +121,6 @@ describe("ProviderCard", () => {
 		expect(html).toContain('aria-label="Check Vercel"');
 		expect(html).toContain('aria-label="Actions for Vercel"');
 		expect(html).not.toContain("Key ••••1234");
+		expect(html).not.toContain('role="alert"');
 	});
 });

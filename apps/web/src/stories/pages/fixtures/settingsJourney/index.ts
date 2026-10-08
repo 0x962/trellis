@@ -1,0 +1,1 @@
+export { settingsJourney } from "./settingsJourney";

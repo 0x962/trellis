@@ -38,7 +38,7 @@ export function Topbar({ children, actions }: TopbarProps) {
 	const collapsed = useUiStore((state) => state.sidebarCollapsed);
 	const sheet = usePageSheet();
 	const heading = (
-		<div className="flex min-w-0 flex-1 items-center gap-2 max-md:[&_h1]:truncate max-md:[&_h1]:text-md max-md:[&_h1]:font-semibold">
+		<div className="flex min-w-0 flex-1 items-center gap-2 max-md:[&_h1]:truncate max-md:[&_h1]:text-md max-md:[&_h1]:font-semibold max-[theme(--container-xs)]:basis-full">
 			{children}
 		</div>
 	);
@@ -62,7 +62,7 @@ export function Topbar({ children, actions }: TopbarProps) {
 	return (
 		<header
 			data-page-topbar=""
-			className="relative flex h-13 shrink-0 items-center gap-1.5 border-x border-transparent px-5 max-md:px-2"
+			className="relative flex h-13 shrink-0 items-center gap-1.5 border-x border-transparent px-5 max-md:px-2 max-[theme(--container-xs)]:h-auto max-[theme(--container-xs)]:min-h-13 max-[theme(--container-xs)]:flex-wrap max-[theme(--container-xs)]:py-1"
 		>
 			{!phone && collapsed && (
 				<Tooltip content="Expand sidebar">

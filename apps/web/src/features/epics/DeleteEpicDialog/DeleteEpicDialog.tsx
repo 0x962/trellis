@@ -34,6 +34,8 @@ export function DeleteEpicDialog({ epic, open, onOpenChange, onDeleted }: Delete
 		epic.counts.total === 0
 			? `${epic.name} holds no tickets. You cannot undo a delete.`
 			: `The ${ticketCount(epic.counts.total)} of ${epic.name} stay and leave the epic. You cannot undo a delete.`;
+	const close = () => !remove.isPending && onOpenChange(false);
+	const confirm = () => !remove.isPending && remove.mutate();
 
 	return (
 		<ConfirmDialog
@@ -43,8 +45,8 @@ export function DeleteEpicDialog({ epic, open, onOpenChange, onDeleted }: Delete
 			confirmLabel="Delete epic"
 			danger
 			processing={remove.isPending}
-			onCancel={() => onOpenChange(false)}
-			onConfirm={() => remove.mutate()}
+			onCancel={close}
+			onConfirm={confirm}
 		/>
 	);
 }

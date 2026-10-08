@@ -1,0 +1,119 @@
+[
+	{
+		"source": "packages/ui/src/primitives/Spinner/Spinner.tsx",
+		"export": "Spinner",
+		"stories": ["Components/Spinner/Default", "Components/Spinner/Large"],
+		"states": ["default", "large"],
+		"notes": "The story renders the public component with local fixture data. Global controls set the theme and viewport."
+	},
+	{
+		"source": "packages/ui/src/primitives/StatTile/StatTile.tsx",
+		"export": "StatTile",
+		"stories": [
+			"Components/StatTile/Default",
+			"Components/StatTile/Framed",
+			"Components/StatTile/Unavailable",
+			"Components/StatTile/Danger",
+			"Components/StatTile/LongContent"
+		],
+		"states": ["default", "framed", "unavailable", "danger", "long content"],
+		"notes": "The story renders the public component with local fixture data. Global controls set the theme and viewport."
+	},
+	{
+		"source": "packages/ui/src/primitives/Switch/Switch.tsx",
+		"export": "Switch",
+		"stories": [
+			"Components/Switch/Default",
+			"Components/Switch/Checked",
+			"Components/Switch/Disabled",
+			"Components/Switch/DisabledChecked"
+		],
+		"states": ["default", "checked", "disabled", "disabled checked"],
+		"notes": "Click the control or press Space to change its value."
+	},
+	{
+		"source": "packages/ui/src/primitives/Tabs/Tabs.tsx",
+		"export": "Tabs",
+		"stories": [
+			"Components/Tabs/Default",
+			"Components/Tabs/SecondSelected",
+			"Components/Tabs/DisabledTab",
+			"Components/Tabs/KeepMounted"
+		],
+		"states": ["default", "second selected", "disabled tab", "keep mounted"],
+		"notes": "Tabs renders TabsRoot, TabsList, and TabsTab. Arrow keys skip disabled tabs. Home and End select the first and last tabs."
+	},
+	{
+		"source": "packages/ui/src/primitives/Tabs/Tabs.tsx",
+		"export": "TabsList",
+		"stories": [
+			"Components/Tabs/Default",
+			"Components/Tabs/SecondSelected",
+			"Components/Tabs/DisabledTab",
+			"Components/Tabs/KeepMounted"
+		],
+		"states": ["default", "second selected", "disabled tab", "keep mounted"],
+		"notes": "Tabs composes TabsRoot, TabsList, and TabsTab. Select tabs with the pointer or arrow keys."
+	},
+	{
+		"source": "packages/ui/src/primitives/Tabs/Tabs.tsx",
+		"export": "TabsRoot",
+		"stories": [
+			"Components/Tabs/Default",
+			"Components/Tabs/SecondSelected",
+			"Components/Tabs/DisabledTab",
+			"Components/Tabs/KeepMounted"
+		],
+		"states": ["default", "second selected", "disabled tab", "keep mounted"],
+		"notes": "Tabs composes TabsRoot, TabsList, and TabsTab. Select tabs with the pointer or arrow keys."
+	},
+	{
+		"source": "packages/ui/src/primitives/Tabs/Tabs.tsx",
+		"export": "TabsTab",
+		"stories": [
+			"Components/Tabs/Default",
+			"Components/Tabs/SecondSelected",
+			"Components/Tabs/DisabledTab",
+			"Components/Tabs/KeepMounted"
+		],
+		"states": ["default", "second selected", "disabled tab", "keep mounted"],
+		"notes": "Tabs composes TabsRoot, TabsList, and TabsTab. The disabled tab remains unavailable."
+	},
+	{
+		"source": "packages/ui/src/primitives/Textarea/Textarea.tsx",
+		"export": "Textarea",
+		"stories": [
+			"Components/Textarea/Default",
+			"Components/Textarea/Empty",
+			"Components/Textarea/ErrorState",
+			"Components/Textarea/Disabled",
+			"Components/Textarea/ReadOnly",
+			"Components/Textarea/HiddenLabel",
+			"Components/Textarea/LongContent",
+			"Components/Textarea/Composer"
+		],
+		"states": ["default", "empty", "error", "disabled", "read only", "hidden label", "long content", "composer"],
+		"notes": "The story renders the public component with local fixture data. Global controls set the theme and viewport."
+	},
+	{
+		"source": "packages/ui/src/primitives/Toast/Toast.tsx",
+		"export": "Toaster",
+		"stories": ["Components/Toaster/InteractiveStates", "Components/Toaster/Top"],
+		"states": ["interactive states", "top"],
+		"notes": "Use each action to show a plain, success, error, or command toast. The command toast expands its local text. Toasts clear when the story closes."
+	},
+	{
+		"source": "packages/ui/src/primitives/Tooltip/Tooltip.tsx",
+		"export": "Tooltip",
+		"stories": [
+			"Components/Tooltip/Default",
+			"Components/Tooltip/Open",
+			"Components/Tooltip/Description",
+			"Components/Tooltip/Bottom",
+			"Components/Tooltip/Left",
+			"Components/Tooltip/Right"
+		],
+		"states": ["default", "open", "description", "bottom", "left", "right"],
+		"notes": "Hover or focus the action to open the tooltip. Escape closes it."
+	}
+]

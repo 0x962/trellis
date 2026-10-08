@@ -1,0 +1,179 @@
+[
+	{
+		"source": "apps/web/src/features/agents/ComposerAgentPicker/ComposerAgentPicker.tsx",
+		"export": "ComposerAgentPicker",
+		"stories": [
+			"Overlays/ComposerAgentPicker/ClosedTrigger",
+			"Overlays/ComposerAgentPicker/Open",
+			"Overlays/ComposerAgentPicker/Selected",
+			"Overlays/ComposerAgentPicker/Disabled",
+			"Overlays/ComposerAgentPicker/AccountsLoading",
+			"Overlays/ComposerAgentPicker/EmptyAccounts",
+			"Overlays/ComposerAgentPicker/RequiredAgent",
+			"Overlays/ComposerAgentPicker/Custom",
+			"Overlays/ComposerAgentPicker/SearchEmpty",
+			"Overlays/ComposerAgentPicker/ChangeModel",
+			"Overlays/ComposerAgentPicker/ChangeAccount",
+			"Overlays/ComposerAgentPicker/ChangeEffort",
+			"Overlays/ComposerAgentPicker/ClearSelection"
+		],
+		"states": ["closed-trigger", "open", "selected", "disabled", "loading", "empty", "selection-change"],
+		"notes": "The real picker retains the model, effort, and account. Play actions verify each change and removal of the selected agent."
+	},
+	{
+		"source": "apps/web/src/features/composer/ComposerHeader/ComposerHeader.tsx",
+		"export": "ComposerHeader",
+		"stories": [
+			"Overlays/CreateTicketDialog/ProjectPicker",
+			"Overlays/CreateTicketDialog/Pending",
+			"Overlays/NewSessionDialog/ProjectPicker",
+			"Overlays/NewSessionDialog/ChangeProject"
+		],
+		"states": ["open", "disabled", "selection-change"],
+		"notes": "Both dialog hosts render the shared header. The session story selects a project, then selects No project."
+	},
+	{
+		"source": "apps/web/src/features/sessions/NewSessionDialog/components/SessionAgentPicker/SessionAgentPicker.tsx",
+		"export": "SessionAgentPicker",
+		"stories": [
+			"Overlays/NewSessionDialog/AgentPicker",
+			"Overlays/NewSessionDialog/ChangeAgent",
+			"Overlays/NewSessionDialog/Pending"
+		],
+		"states": ["open", "selection-change", "disabled"],
+		"notes": "NewSessionHost mounts this picker through NewSessionDialog. ChangeAgent selects Codex and verifies the trigger."
+	},
+	{
+		"source": "apps/web/src/features/sidebar/Sidebar/components/MobileSidebar/MobileSidebar.tsx",
+		"export": "MobileSidebar",
+		"stories": ["Pages/Navigation/MobileSidebar"],
+		"states": ["open"],
+		"notes": "The navigation story sets mobileSidebarOpen and mounts the real sidebar sheet at the phone viewport."
+	},
+	{
+		"source": "apps/web/src/features/table/BulkBar/BulkBar.tsx",
+		"export": "BulkBar",
+		"stories": ["Pages/Project/TableSelection", "Pages/Project/BoardSelection"],
+		"states": ["closed-trigger", "selected"],
+		"notes": "Both selection stories render Bulk actions. Its Status, Priority, Labels, Set parent, Set epic, and Set wave controls use the picker stories in this catalog."
+	},
+	{
+		"source": "apps/web/src/features/table/Row/components/StatusCell/StatusCell.tsx",
+		"export": "StatusCell",
+		"stories": ["Pages/Project/Table"],
+		"states": ["closed-trigger"],
+		"notes": "TicketTable renders this row control. Open Status: Todo in a populated row. The matching Overlays picker stories cover its list states."
+	},
+	{
+		"source": "apps/web/src/features/table/Row/components/PriorityCell/PriorityCell.tsx",
+		"export": "PriorityCell",
+		"stories": ["Pages/Project/Table"],
+		"states": ["closed-trigger"],
+		"notes": "TicketTable renders this row control. Open Change priority in a populated row. The matching Overlays picker stories cover its list states."
+	},
+	{
+		"source": "apps/web/src/features/table/Row/components/LabelsCell/LabelsCell.tsx",
+		"export": "LabelsCell",
+		"stories": ["Pages/Project/Table"],
+		"states": ["closed-trigger"],
+		"notes": "TicketTable renders this row control. Open Labels in a populated row. The matching Overlays picker stories cover its list states."
+	},
+	{
+		"source": "apps/web/src/features/ticket/PropertiesRail/components/DependenciesRow/DependenciesRow.tsx",
+		"export": "DependenciesRow",
+		"stories": ["Pages/Ticket/Populated", "Pages/Ticket/Narrow"],
+		"states": ["closed-trigger", "selected"],
+		"notes": "TicketPage renders this control through PropertiesRail. The row buttons open the real ticket, label, status, priority, epic, and wave pickers."
+	},
+	{
+		"source": "apps/web/src/features/ticket/PropertiesRail/components/LabelsRow/LabelsRow.tsx",
+		"export": "LabelsRow",
+		"stories": ["Pages/Ticket/Populated", "Pages/Ticket/Narrow"],
+		"states": ["closed-trigger", "selected"],
+		"notes": "TicketPage renders this control through PropertiesRail. The row buttons open the real ticket, label, status, priority, epic, and wave pickers."
+	},
+	{
+		"source": "apps/web/src/features/ticket/PropertiesRail/components/PickerRows/PickerRows.tsx",
+		"export": "PickerRows",
+		"stories": ["Pages/Ticket/Populated", "Pages/Ticket/Narrow"],
+		"states": ["closed-trigger", "selected"],
+		"notes": "TicketPage renders this control through PropertiesRail. The row buttons open the real ticket, label, status, priority, epic, and wave pickers."
+	},
+	{
+		"source": "apps/web/src/features/ticket/PropertiesRail/components/WaveRow/WaveRow.tsx",
+		"export": "WaveRow",
+		"stories": ["Pages/Ticket/Populated", "Pages/Ticket/Narrow"],
+		"states": ["closed-trigger", "selected"],
+		"notes": "TicketPage renders this control through PropertiesRail. The row buttons open the real ticket, label, status, priority, epic, and wave pickers."
+	},
+	{
+		"source": "apps/web/src/features/usage/UsagePage/components/AgentUsage/AgentUsage.tsx",
+		"export": "AgentUsage",
+		"stories": ["Pages/Usage/Agent", "Pages/Usage/TokensByModel"],
+		"states": ["closed-trigger", "selected"],
+		"notes": "The Usage page mounts Metric and Group by selects. TokensByModel supplies their selected route values."
+	},
+	{
+		"source": "apps/web/src/features/table/WaveStart/components/WaveLaunchFields/WaveLaunchFields.tsx",
+		"export": "WaveLaunchFields",
+		"stories": ["Overlays/WaveStartDialog/Open", "Overlays/WaveStartDialog/Pending"],
+		"states": ["closed-trigger", "disabled"],
+		"notes": "WaveStartForm renders the shared AgentLaunchPicker with the real launch fields. The pending story disables the fields."
+	},
+	{
+		"source": "apps/web/src/features/board/components/BoardLabels/BoardLabels.tsx",
+		"export": "BoardLabels",
+		"stories": ["Pages/Project/Board"],
+		"states": ["keyboard-trigger"],
+		"notes": "In the Board story, focus a card and press L. Board mounts BoardLabels for that card; Overlays/LabelPicker covers the shared list states."
+	},
+	{
+		"source": "apps/web/src/features/table/Row/components/HiddenPickers/HiddenPickers.tsx",
+		"export": "HiddenPickers",
+		"stories": ["Pages/Project/Table"],
+		"states": ["keyboard-trigger"],
+		"notes": "Focus a table row, then use its parent, epic, or hidden-column shortcut. Row mounts HiddenPickers with the selected field and ticket."
+	},
+	{
+		"source": "apps/web/src/features/shell/Topbar/Topbar.tsx",
+		"export": "TopbarActionMenu",
+		"stories": ["Overlays/TicketActions/Open", "Overlays/EpicActions/Open"],
+		"states": ["open"],
+		"notes": "The ticket MoreMenu and epic EpicTopbarActions use TopbarActionMenu for their open action lists."
+	},
+	{
+		"source": "apps/web/src/features/epics/EpicPage/components/EpicResources/components/CommentedDocument/CommentedDocument.tsx",
+		"export": "CommentedDocument",
+		"stories": ["Pages/Epic/ResourceDocumentNarrow"],
+		"states": ["closed-trigger"],
+		"notes": "The narrow document story mounts CommentedDocument. Its Comments button opens the resource comment sheet."
+	},
+	{
+		"source": "apps/web/src/features/pages/PageComments/components/LeasedPageViewer/LeasedPageViewer.tsx",
+		"export": "LeasedPageViewer",
+		"stories": ["Pages/Page detail/Populated"],
+		"states": ["closed"],
+		"notes": "PageComments mounts the leased viewer and its Open this link confirmation. A link request from the embedded Page opens the confirmation."
+	},
+	{
+		"source": "apps/web/src/features/pages/PageDetail/components/PageDetailView/PageDetailView.tsx",
+		"export": "PageDetailView",
+		"stories": ["Pages/Page detail/Populated", "Pages/Page detail/Deleted"],
+		"states": ["closed-trigger", "deleted"],
+		"notes": "PageDetail renders Page actions and the delete confirmation. The deleted story renders the Restore Page action."
+	},
+	{
+		"source": "apps/web/src/features/flows/FlowEditor/components/FlowWorkspace/FlowWorkspace.tsx",
+		"export": "FlowWorkspace",
+		"stories": ["Pages/Flow editor/Canvas"],
+		"states": ["closed-trigger"],
+		"notes": "The canvas mounts FlowWorkspace and its draft picker. Overlays/FlowDrafts covers the picker states."
+	},
+	{
+		"source": "apps/web/src/features/flows/FlowEditor/components/FlowWorkspaceContent/FlowWorkspaceContent.tsx",
+		"export": "FlowWorkspaceContent",
+		"stories": ["Pages/Flow editor/Canvas"],
+		"states": ["closed-trigger"],
+		"notes": "The canvas mounts FlowWorkspaceContent. Flow settings opens its sheet; draft reload opens its discard confirmation."
+	}
+]

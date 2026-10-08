@@ -3,6 +3,14 @@ import { stringifySearchObject } from "../../lib/searchParams";
 import { parseSearch, serializeSearch, stripDefaults, toListQuery, viewOf } from "./grammar";
 
 describe("parseSearch", () => {
+	test("uses creation order for the default list query and canonical URL", () => {
+		const view = parseSearch({});
+		expect(view.sort).toBe("-createdAt");
+		expect(toListQuery(view).sort).toBe("-createdAt");
+		expect(serializeSearch(view)).toBe("");
+		expect(serializeSearch(parseSearch({ sort: "-updatedAt" }))).toBe("sort=-updatedAt");
+	});
+
 	test("reads the queued pull request filter", () => {
 		expect(parseSearch({ pr: "queued" }).pr).toBe("queued");
 		expect(serializeSearch(viewOf({ pr: "queued" }))).toBe("pr=queued");

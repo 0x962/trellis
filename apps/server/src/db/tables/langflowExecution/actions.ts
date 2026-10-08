@@ -1,16 +1,15 @@
 import { sql } from "drizzle-orm";
 import { bigint, check, jsonb, pgTable, text, timestamp, unique } from "drizzle-orm/pg-core";
-import type { DispatchPermit } from "../../../langflowHost/dispatchGate";
 
 export const langflowActionReceipts = pgTable(
 	"langflow_action_receipts",
 	{
 		permitId: text("permit_id").primaryKey(),
 		effectId: text("effect_id").notNull(),
-		permit: jsonb().$type<DispatchPermit>().notNull(),
+		permit: jsonb().notNull(),
 		requestBytes: text("request_bytes").notNull(),
 		requestDigest: text("request_digest").notNull(),
-		outcome: text().$type<"completed" | "refused">().notNull().default("completed"),
+		outcome: text().notNull().default("completed"),
 		executionId: text("execution_id"),
 		viewRevision: bigint("view_revision", { mode: "number" }),
 		errorCode: text("error_code"),

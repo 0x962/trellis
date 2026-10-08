@@ -9,7 +9,7 @@ import {
 } from "@trellis/api";
 import { type SQL, sql } from "drizzle-orm";
 import { localReviewState, submissionByPerson, submissionHeadSha } from "./pullRequestRows.ts";
-import { flowAnsweredSql, flowReviewExecutionsSql, hasEvidenceSql, hasExplanationSql } from "./reviewReady.ts";
+import { flowAnsweredSql, hasEvidenceSql, hasExplanationSql } from "./reviewReady.ts";
 import { ciRank, prStateRank, reviewStateRank } from "./support.ts";
 
 // `ticketPrJoin` reads links for the caller's ticket alias `t`. It adds the PR badge and `prRows`.
@@ -174,20 +174,21 @@ const ticketPrJoinFor = (pullRequestCondition: SQL) => sql`
 				SELECT
 					execution.id,
 					execution.created_at,
-					execution.name,
-					execution.status,
+					execution.doc->'flow'->>'name' AS name,
+					execution.state->>'status' AS status,
 					(
 						-- --author can replace the actor name of a review thread. Its session
 						-- still matches agent_runs.session_id. One execution can use the same
 						-- run for two task keys, so count each thread one time.
 						SELECT count(DISTINCT thread.id)::int
-						FROM agent_runs run
+						FROM flow_execution_tasks task
+						JOIN agent_runs run ON run.id = task.run_id
 						JOIN review_threads thread
 							ON thread.pr_id = p.id
 							AND thread.document->>'session' = run.session_id
-						WHERE run.id = ANY(execution.agent_run_ids)
+						WHERE task.execution_id = execution.id
 					) AS findings
-				FROM (${flowReviewExecutionsSql}) execution
+				FROM flow_executions execution
 				WHERE execution.ticket_id = t.id
 				ORDER BY execution.created_at DESC, execution.id DESC
 				LIMIT 5

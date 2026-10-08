@@ -29,7 +29,8 @@ Each page supplies its data and available actions. It does not choose new contro
 | Sort field and direction | `DisplayPopover` | `packages/ui/src/domain/DisplayPopover/DisplayPopover.tsx` |
 | Table display preferences | Web `DisplayPopover` with the shared popover | `apps/web/src/features/table/DisplayPopover/DisplayPopover.tsx` |
 | Collapsible data groups | `GroupHeader` | `packages/ui/src/domain/GroupHeader/GroupHeader.tsx` |
-| Ticket detail sections | `SectionHeader` | `packages/ui/src/primitives/SectionHeader/SectionHeader.tsx` |
+| Section headings | `SectionHeader` | `packages/ui/src/primitives/SectionHeader/SectionHeader.tsx` |
+| Static panels | `Panel` | `packages/ui/src/primitives/Panel/Panel.tsx` |
 | Property label and value | `PropertyRow` | `packages/ui/src/primitives/PropertyRow/PropertyRow.tsx` |
 | Ticket table rows | `Row`, with `columns` and `rowHeights` | `apps/web/src/features/table/Row/Row.tsx` |
 | Ticket identity and state | `TicketId`, `PriorityIcon`, `StatusIcon` | `packages/ui/src/domain/` |
@@ -50,6 +51,7 @@ Each page supplies its data and available actions. It does not choose new contro
 | Flow run header | `FlowRunSummary` | `packages/ui/src/domain/FlowRunSummary/FlowRunSummary.tsx` |
 | Flow run steps | `FlowRunTree` | `packages/ui/src/domain/FlowRunTree/FlowRunTree.tsx` |
 | Anything that failed | `FailureState` | `packages/ui/src/domain/FailureState/FailureState.tsx` |
+| A document with its contents | `DocumentLayout` | `packages/ui/src/domain/DocumentLayout/DocumentLayout.tsx` |
 
 ## Form fields and type
 
@@ -131,6 +133,16 @@ The product keeps two shapes. What the control changes picks the shape, not the 
 
 A document of the Resources tab of an epic keeps its own shape. Its title and its body save while the person types, so it is no in-place edit of one value.
 
+`DocumentLayout` places Contents to the right of the document.
+Below the `--container-3xl` width, the circular Contents action opens a popover.
+The popover uses `--popover-max-height` and the available screen height.
+The comments pane uses its own space beside that region.
+The list follows headings at all six levels as the person edits the document.
+Each row scrolls the document to its heading. Duplicate names keep separate targets.
+Long names wrap, and an empty heading reads Untitled heading.
+The virtual list measures wrapped rows and keeps the focused heading mounted.
+Arrow keys, Home, End, and Tab reach headings outside the visible rows.
+
 ## Project-owned HTML Pages
 
 The project Pages list uses `PageRow`, the shared filter controls, and keyset pagination.
@@ -153,6 +165,7 @@ The [Pages guide](pages.md) lists the release checks for phone widths, zoom, key
 ## Pages in a sheet
 
 `Sheet` owns the appearance of every slideout, including forms and pages.
+Its `description` prop shows the introductory text and supplies the accessible description.
 It uses `rounded-xl` on the exposed corners and the `shadow-page-sheet` token.
 The corners face left for a right sheet and right for a left sheet.
 The sheet clips its content to these corners.
@@ -174,6 +187,10 @@ This URL opens the sheet over the home page when a link arrives from outside the
 It replaces the URL with the home route, so closing the sheet leaves a page to use.
 The table's Enter, Space, and O keys open the same sheet.
 Markdown links and resolved ticket record links also open the sheet over the current page.
+Page links inside a session open the complete Page viewer in a sheet above that session.
+The session keeps its content, and the background route stays in place.
+Version history and comment-version links update the Page sheet.
+Close returns to the session. On desktop, external links use the browser sheet above the Page.
 The review sheet takes the wide width, so it covers the ticket sheet under it.
 Escape, the back gesture and a click beside the sheets close the top sheet only.
 
@@ -228,7 +245,9 @@ If the anchor ticket leaves the view, the next Shift click starts a new range.
 
 ## Group headers
 
-Use `GroupHeader` for groups of data rows. Use `SectionHeader` for sections in ticket details and settings.
+Use `GroupHeader` for groups of data rows and controlled disclosure regions. Use `SectionHeader` for section headings. Its `level` sets the heading depth. The `overview` and `prominent` appearances set the title size independently of that depth.
+
+Use `Panel` for a static frame around summary data or charts. The caller supplies the content and padding.
 The data header has a rounded inset band, a collapse chevron, a label, and a muted count.
 The band starts 12 px inside a desktop list and 8 px inside a phone list.
 Keep the label aligned with the rows by reducing the padding inside the band.
@@ -305,7 +324,9 @@ The words carry no blame, no apology and no exclamation mark. Red marks one thin
 
 The Agent Usage tab puts Providers directly under Accounts.
 `ProviderCard` is the second card shape on the page. It shows the key status, balance, and selected models.
-`ProviderForm` uses the account dialog shape for Add and Edit. Edit leaves the key blank and preserves it until a person enters a replacement.
+Account details, sign-in instructions, account forms, and `ProviderForm` use the shared `Sheet` and `SheetBody`.
+The slideout opens from the right and keeps Usage behind it.
+Edit leaves the key blank and preserves it until a person enters a replacement.
 The model control uses `Popover`, `PickerButton`, `Command.Virtual`, and `Chip`. It accepts an identifier outside the catalog. Selected models use the shared virtual row hook in a scrollable viewport. Arrow keys, Home, End, Page Up, and Page Down reach remove buttons throughout the selection.
 The remove action uses `ConfirmDialog`. Provider changes show in place without a toast or a card animation.
 
@@ -349,7 +370,10 @@ The property row holds status, priority, agent, placement, and labels.
 More properties holds the parent picker and Discard draft.
 The agent picker searches the supported models of each harness. Its account and effort fields use the current harness.
 Create and assign saves the ticket, uploads its attachments, and starts the selected agent.
-No agent changes the action to Create ticket.
+Assign agent selects whether the primary action starts the selected agent.
+When Assign agent is off, Create saves the ticket and uploads its attachments without an assignment.
+No agent also changes the action to Create.
+The browser retains Assign agent and Create another across tickets and app restarts.
 A failed upload or assignment keeps the saved ticket. An assignment retry keeps its original request ID.
 Close and Escape retain the draft and selected files. Create another clears the content and retains the settings.
 Command+Enter creates the ticket. Command+Shift+Enter also keeps the composer open.
@@ -363,3 +387,12 @@ The footer shows the current recipient count in Send. An empty message, no selec
 Command+Enter and Control+Enter use the same send action. Shift does not keep the composer open for another message.
 A pending delivery prevents sending and closing. The result receives focus and reports accepted deliveries and each failed recipient.
 Done closes the dialog and returns focus to its opener. The phone layout keeps the header and footer visible while the body scrolls.
+
+### Session composer
+
+New Session uses `TicketComposer`, `ComposerHeader`, `ComposerTitle`, and `ComposerAgentPicker` from the ticket composer.
+The header selects a project or No project. The session name stays optional, and the prompt takes initial focus.
+The agent picker holds the harness, model, effort, and account. Automatic account selection continues until a person selects an account.
+The footer holds Add attachment and Start session. Paste and drop also add files.
+Escape and Close keep the draft and its files. Command-Enter or Control-Enter starts the session from any field.
+The pending request disables edits and Close. A failure keeps the draft and shows its details through `FailureState`.

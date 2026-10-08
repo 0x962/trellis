@@ -1,0 +1,178 @@
+[
+	{
+		"source": "apps/web/src/features/epics/EpicPage/components/EpicTopbarActions/EpicTopbarActions.tsx",
+		"export": "EpicTopbarActions",
+		"stories": [
+			"Overlays/EpicActions/ClosedTrigger",
+			"Overlays/EpicActions/Open",
+			"Overlays/EpicActions/Disabled",
+			"Overlays/EpicActions/ReadOnly",
+			"Overlays/EpicActions/AddMenu",
+			"Overlays/EpicActions/AddPending",
+			"Overlays/EpicActions/AddTickets",
+			"Overlays/EpicActions/ChatterEmpty",
+			"Overlays/EpicActions/ChatterLoading",
+			"Overlays/EpicActions/ChatterError",
+			"Overlays/EpicActions/ChatterPopulated",
+			"Overlays/EpicActions/ChatterPending"
+		],
+		"states": ["closed-trigger", "open", "disabled", "read-only", "default", "pending", "empty", "loading", "error"],
+		"notes": "Stories mount the production component with synthetic props and API responses."
+	},
+	{
+		"source": "apps/web/src/features/epics/EpicPage/components/EpicTopbarActions/components/EpicChatter/EpicChatter.tsx",
+		"export": "EpicChatter",
+		"stories": [
+			"Overlays/EpicActions/ChatterReadOnly",
+			"Overlays/EpicActions/ChatterEmpty",
+			"Overlays/EpicActions/ChatterLoading",
+			"Overlays/EpicActions/ChatterError",
+			"Overlays/EpicActions/ChatterPopulated",
+			"Overlays/EpicActions/ChatterPending"
+		],
+		"states": ["read-only", "empty", "loading", "error", "default", "pending"],
+		"notes": "Stories mount the production component with synthetic props and API responses."
+	},
+	{
+		"source": "apps/web/src/features/epics/EpicSheet/EpicSheet.tsx",
+		"export": "EpicSheet",
+		"stories": [
+			"Overlays/EpicSheet/Open",
+			"Overlays/EpicSheet/ClosedTrigger",
+			"Overlays/EpicSheet/Edit",
+			"Overlays/EpicSheet/Selected",
+			"Overlays/EpicSheet/Pending",
+			"Overlays/EpicSheet/RequestError",
+			"Overlays/EpicSheet/Success"
+		],
+		"states": ["open", "closed-trigger", "default", "selected", "pending", "error", "success"],
+		"notes": "Stories mount the production component with synthetic props and API responses."
+	},
+	{
+		"source": "apps/web/src/features/epics/EpicSwitcher/EpicSwitcher.tsx",
+		"export": "EpicSwitcher",
+		"stories": [
+			"Overlays/EpicActions/SwitcherClosed",
+			"Overlays/EpicActions/SwitcherOpen",
+			"Overlays/EpicActions/SwitcherLoading",
+			"Overlays/EpicActions/SwitcherEmpty"
+		],
+		"states": ["closed-trigger", "open", "loading", "empty"],
+		"notes": "Stories mount the production component with synthetic props and API responses."
+	},
+	{
+		"source": "apps/web/src/features/epics/EpicsPage/components/EpicRow/EpicRow.tsx",
+		"export": "EpicRow",
+		"stories": ["Overlays/EpicActions/RowClosed", "Overlays/EpicActions/RowOpen", "Overlays/EpicActions/RowDisabled"],
+		"states": ["closed-trigger", "open", "disabled"],
+		"notes": "Stories mount the production component with synthetic props and API responses."
+	},
+	{
+		"source": "apps/web/src/features/filters/FilterBar/FilterBar.tsx",
+		"export": "FilterBar",
+		"stories": ["Overlays/Filters/FilterChips", "Overlays/Filters/ShareMenu", "Overlays/Filters/RemoveFilter"],
+		"states": ["default", "interaction"],
+		"notes": "Local state retains filter edits. RemoveFilter asserts that a removed filter loses its chip."
+	},
+	{
+		"source": "apps/web/src/features/filters/FilterBar/components/FilterPicker/FilterPicker.tsx",
+		"export": "FilterPicker",
+		"stories": [
+			"Overlays/Filters/Open",
+			"Overlays/Filters/ClosedTrigger",
+			"Overlays/Filters/Status",
+			"Overlays/Filters/Priority",
+			"Overlays/Filters/Label",
+			"Overlays/Filters/Project",
+			"Overlays/Filters/Epic",
+			"Overlays/Filters/Wave",
+			"Overlays/Filters/Actor",
+			"Overlays/Filters/PullRequest",
+			"Overlays/Filters/Checks",
+			"Overlays/Filters/Blocked",
+			"Overlays/Filters/Parent",
+			"Overlays/Filters/Dependencies",
+			"Overlays/Filters/Created",
+			"Overlays/Filters/Updated",
+			"Overlays/Filters/Selected",
+			"Overlays/Filters/Empty",
+			"Overlays/Filters/ChangeFilter"
+		],
+		"states": ["open", "closed-trigger", "default", "selected", "empty", "interaction"],
+		"notes": "Local state controls the trigger, field, and values. ChangeFilter asserts field selection, priority toggles, Escape, and a return to the field list."
+	},
+	{
+		"source": "apps/web/src/features/filters/FilterChip/FilterChip.tsx",
+		"export": "FilterChip",
+		"stories": ["Overlays/Filters/FilterChips"],
+		"states": ["default"],
+		"notes": "The parent story mounts this production child or its owning hook."
+	},
+	{
+		"source": "apps/web/src/features/flows/FlowEditor/components/FlowDraftPicker/FlowDraftPicker.tsx",
+		"export": "FlowDraftPicker",
+		"stories": [
+			"Overlays/FlowDrafts/ImportedOpen",
+			"Overlays/FlowDrafts/ImportedEmpty",
+			"Overlays/FlowDrafts/ImportedError"
+		],
+		"states": ["open", "empty", "error"],
+		"notes": "Stories mount the production component with synthetic props and API responses."
+	},
+	{
+		"source": "apps/web/src/features/flows/FlowEditor/components/FlowSettingsSheet/FlowSettingsSheet.tsx",
+		"export": "FlowSettingsSheet",
+		"stories": [
+			"Overlays/FlowEditorControls/Settings",
+			"Overlays/FlowEditorControls/SettingsError",
+			"Overlays/FlowEditorControls/SettingsPending",
+			"Overlays/FlowEditorControls/DeleteConfirmation"
+		],
+		"states": ["default", "error", "pending"],
+		"notes": "Stories mount the production component with synthetic props and API responses."
+	},
+	{
+		"source": "apps/web/src/features/flows/FlowEditor/components/NodeInspector/NodeInspector.tsx",
+		"export": "NodeInspector",
+		"stories": [
+			"Overlays/FlowEditorControls/NodeAgent",
+			"Overlays/FlowEditorControls/NodeGate",
+			"Overlays/FlowEditorControls/NodeHuman",
+			"Overlays/FlowEditorControls/NodeGroup",
+			"Overlays/FlowEditorControls/NodeLoop",
+			"Overlays/FlowEditorControls/NodePending",
+			"Overlays/FlowEditorControls/NodeError",
+			"Overlays/FlowEditorControls/NodeDeleteConfirmation",
+			"Overlays/FlowEditorControls/NodeDeleteSuccess"
+		],
+		"states": ["default", "pending", "error", "delete confirmation", "delete success"],
+		"notes": "Stories mount the production component with synthetic props and API responses."
+	},
+	{
+		"source": "apps/web/src/features/flows/FlowProjectSelect/FlowProjectSelect.tsx",
+		"export": "FlowProjectSelect",
+		"stories": [
+			"Overlays/FlowEditorControls/ProjectSelected",
+			"Overlays/FlowEditorControls/ProjectDisabled",
+			"Overlays/FlowEditorControls/ProjectError",
+			"Overlays/FlowEditorControls/ProjectMenuOpen",
+			"Overlays/FlowEditorControls/ChangeProject"
+		],
+		"states": ["selected", "disabled", "error", "open menu", "interaction"],
+		"notes": "Local state retains the project choice. ChangeProject asserts that the Every project choice updates the selector."
+	},
+	{
+		"source": "apps/web/src/features/flows/FlowsPage/components/NewFlowDialog/NewFlowDialog.tsx",
+		"export": "NewFlowDialog",
+		"stories": [
+			"Overlays/FlowEditorControls/NewFlow",
+			"Overlays/FlowEditorControls/NewFlowValidation",
+			"Overlays/FlowEditorControls/NewFlowLoading",
+			"Overlays/FlowEditorControls/NewFlowError",
+			"Overlays/FlowEditorControls/NewFlowPending",
+			"Overlays/FlowEditorControls/NewFlowSuccess"
+		],
+		"states": ["default", "validation", "loading", "error", "pending", "success"],
+		"notes": "Stories mount the production component with synthetic props and API responses."
+	}
+]

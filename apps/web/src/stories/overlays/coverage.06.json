@@ -1,0 +1,190 @@
+[
+	{
+		"source": "apps/web/src/features/reviews/FlowRuns/components/FlowRun/components/FlowDecisionDialog/FlowDecisionDialog.tsx",
+		"export": "FlowDecisionDialog",
+		"stories": [
+			"Overlays/FlowRunActions/DecisionOpen",
+			"Overlays/FlowRunActions/DecisionPending",
+			"Overlays/FlowRunActions/DecisionError",
+			"Overlays/FlowRunActions/DecisionSuccess"
+		],
+		"states": ["open", "pending", "error", "success"],
+		"notes": "Stories mount the production component with synthetic props and API responses."
+	},
+	{
+		"source": "apps/web/src/features/reviews/FlowRuns/components/StartFlowDialog/StartFlowDialog.tsx",
+		"export": "StartFlowDialog",
+		"stories": [
+			"Overlays/StartFlowDialog/Open",
+			"Overlays/StartFlowDialog/Empty",
+			"Overlays/StartFlowDialog/Loading",
+			"Overlays/StartFlowDialog/RequestError",
+			"Overlays/StartFlowDialog/Pending",
+			"Overlays/StartFlowDialog/Success",
+			"Overlays/StartFlowDialog/StartError",
+			"Overlays/StartFlowDialog/VersionConflict"
+		],
+		"states": ["open", "empty", "loading", "pending", "error", "success", "version conflict"],
+		"notes": "Stories mount the production component with synthetic props and API responses."
+	},
+	{
+		"source": "apps/web/src/features/reviews/ReviewApply/ApplySuggestionsDialog.tsx",
+		"export": "ApplySuggestionsDialog",
+		"stories": [
+			"Overlays/ReviewActions/CommitSuggestion",
+			"Overlays/ReviewActions/CommitPending",
+			"Overlays/ReviewActions/CommitError"
+		],
+		"states": ["default", "pending", "error"],
+		"notes": "Stories mount the production component with synthetic props and API responses."
+	},
+	{
+		"source": "apps/web/src/features/reviews/ReviewHeaderActions/ReviewHeaderActions.tsx",
+		"export": "ReviewHeaderActions",
+		"stories": [
+			"Overlays/GithubActions/ClosedTrigger",
+			"Overlays/GithubActions/Open",
+			"Overlays/GithubActions/Draft",
+			"Overlays/GithubActions/Merged",
+			"Overlays/GithubActions/Queued",
+			"Overlays/GithubActions/Loading",
+			"Overlays/GithubActions/CloseConfirmation",
+			"Overlays/GithubActions/MergeConfirmation",
+			"Overlays/GithubActions/Pending",
+			"Overlays/GithubActions/RequestError",
+			"Overlays/GithubActions/Success"
+		],
+		"states": ["closed-trigger", "open", "default", "loading", "pending", "error", "success"],
+		"notes": "Stories mount the production component with synthetic props and API responses."
+	},
+	{
+		"source": "apps/web/src/features/reviews/ReviewHeaderActions/components/MergeDialog/MergeDialog.tsx",
+		"export": "MergeDialog",
+		"stories": [
+			"Overlays/MergeDialog/Open",
+			"Overlays/MergeDialog/ClosedTrigger",
+			"Overlays/MergeDialog/Empty",
+			"Overlays/MergeDialog/Loading",
+			"Overlays/MergeDialog/RequestError",
+			"Overlays/MergeDialog/Pending",
+			"Overlays/MergeDialog/Selected"
+		],
+		"states": ["open", "closed-trigger", "empty", "loading", "error", "pending", "selected"],
+		"notes": "Stories mount the production component with synthetic props and API responses."
+	},
+	{
+		"source": "apps/web/src/features/reviews/ReviewPage/components/ReviewIdentity/components/LocalStateMenu/LocalStateMenu.tsx",
+		"export": "LocalStateMenu",
+		"stories": [
+			"Overlays/ReviewActions/LocalStateClosed",
+			"Overlays/ReviewActions/LocalStateReady",
+			"Overlays/ReviewActions/LocalStateNotReady"
+		],
+		"states": ["closed-trigger", "default"],
+		"notes": "Stories mount the production component with synthetic props and API responses."
+	},
+	{
+		"source": "apps/web/src/features/reviews/VerdictBar/components/DraftNote/DraftNote.tsx",
+		"export": "DraftNote",
+		"stories": [
+			"Overlays/ReviewActions/VerdictNote",
+			"Overlays/ReviewActions/VerdictPending",
+			"Overlays/ReviewActions/VerdictError",
+			"Overlays/ReviewActions/VerdictEmpty",
+			"Overlays/ReviewActions/EditVerdict"
+		],
+		"states": ["default", "pending", "error", "empty", "interaction"],
+		"notes": "Local state retains the note and closes the dialog on confirm or cancel. EditVerdict asserts text entry and dismissal through the confirm control."
+	},
+	{
+		"source": "apps/web/src/features/sessions/DeleteSessionDialog/DeleteSessionDialog.tsx",
+		"export": "DeleteSessionDialog",
+		"stories": [
+			"Overlays/DeleteSessionDialog/Open",
+			"Overlays/DeleteSessionDialog/ClosedTrigger",
+			"Overlays/DeleteSessionDialog/Pending",
+			"Overlays/DeleteSessionDialog/RequestError",
+			"Overlays/DeleteSessionDialog/Success"
+		],
+		"states": ["open", "closed-trigger", "pending", "error", "success"],
+		"notes": "Stories mount the production component with synthetic props and API responses."
+	},
+	{
+		"source": "apps/web/src/features/sessions/MoveSessionProjectDialog/MoveSessionProjectDialog.tsx",
+		"export": "MoveSessionProjectDialog",
+		"stories": [
+			"Overlays/SessionControls/MoveOpen",
+			"Overlays/SessionControls/MoveLoading",
+			"Overlays/SessionControls/MoveEmpty",
+			"Overlays/SessionControls/MoveError"
+		],
+		"states": ["open", "loading", "empty", "error"],
+		"notes": "Stories mount the production component with synthetic props and API responses."
+	},
+	{
+		"source": "apps/web/src/features/sessions/NewSessionDialog/NewSessionDialog.tsx",
+		"export": "NewSessionDialog",
+		"stories": [
+			"Overlays/NewSessionDialog/Open",
+			"Overlays/NewSessionDialog/ClosedTrigger",
+			"Overlays/NewSessionDialog/Selected",
+			"Overlays/NewSessionDialog/Empty",
+			"Overlays/NewSessionDialog/Loading",
+			"Overlays/NewSessionDialog/Pending",
+			"Overlays/NewSessionDialog/RequestError",
+			"Overlays/NewSessionDialog/Success",
+			"Overlays/NewSessionDialog/ProjectPicker",
+			"Overlays/NewSessionDialog/AgentPicker",
+			"Overlays/NewSessionDialog/ChangeProject",
+			"Overlays/NewSessionDialog/ChangeAgent",
+			"Overlays/NewSessionDialog/RetainedDraft",
+			"Overlays/NewSessionDialog/Attachment"
+		],
+		"states": [
+			"open",
+			"closed-trigger",
+			"selected",
+			"empty",
+			"loading",
+			"pending",
+			"error",
+			"success",
+			"disabled",
+			"selection-change",
+			"retained-draft"
+		],
+		"notes": "The production dialog uses local responses. Play actions verify submit, draft, picker, and disabled states."
+	},
+	{
+		"source": "apps/web/src/features/sessions/NewSessionHost/NewSessionHost.tsx",
+		"export": "NewSessionHost",
+		"stories": [
+			"Overlays/NewSessionDialog/Open",
+			"Overlays/NewSessionDialog/ClosedTrigger",
+			"Overlays/NewSessionDialog/Selected",
+			"Overlays/NewSessionDialog/Empty",
+			"Overlays/NewSessionDialog/Loading",
+			"Overlays/NewSessionDialog/Pending",
+			"Overlays/NewSessionDialog/RequestError",
+			"Overlays/NewSessionDialog/Success"
+		],
+		"states": ["open", "closed-trigger", "selected", "empty", "loading", "pending", "error", "success"],
+		"notes": "Stories mount the production component with synthetic props and API responses."
+	},
+	{
+		"source": "apps/web/src/features/sessions/PendingQuestions/components/QuestionForm/QuestionForm.tsx",
+		"export": "QuestionForm",
+		"stories": [
+			"Overlays/QuestionForm/Open",
+			"Overlays/QuestionForm/Multiple",
+			"Overlays/QuestionForm/FreeText",
+			"Overlays/QuestionForm/Selected",
+			"Overlays/QuestionForm/Pending",
+			"Overlays/QuestionForm/RequestError",
+			"Overlays/QuestionForm/Success",
+			"Overlays/QuestionForm/Declined"
+		],
+		"states": ["open", "default", "selected", "pending", "error", "success"],
+		"notes": "Stories mount the production component with synthetic props and API responses."
+	}
+]

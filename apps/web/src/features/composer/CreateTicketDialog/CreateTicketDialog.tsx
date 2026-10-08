@@ -2,15 +2,19 @@ import { Button, ComposerTitle, ConfirmDialog, FailureState, Switch, TicketCompo
 import { AddAttachmentButton } from "../../attachments/AddAttachmentButton";
 import { DropTarget } from "../../attachments/DropTarget";
 import { UploadProgress } from "../../attachments/UploadProgress";
+import { ComposerHeader } from "../ComposerHeader";
 import { AgentPicker } from "./components/AgentPicker";
 import { ChipRow } from "./components/ChipRow";
-import { ComposerHeader } from "./components/ComposerHeader";
 import { DescriptionField } from "./components/DescriptionField";
 
 import { useTicketComposer } from "./components/useTicketComposer";
 
 export function CreateTicketDialog({ open = true }: { open?: boolean }) {
 	const {
+		assignAgent,
+		createMore,
+		onAssignAgent,
+		onCreateMore,
 		draft,
 		setDraft,
 		defaults,
@@ -52,6 +56,7 @@ export function CreateTicketDialog({ open = true }: { open?: boolean }) {
 				onSubmit={(stay) => void create(stay)}
 				header={
 					<ComposerHeader
+						title="New ticket"
 						project={project}
 						disabled={submission.busy}
 						locked={locked}
@@ -66,13 +71,24 @@ export function CreateTicketDialog({ open = true }: { open?: boolean }) {
 						<fieldset disabled={locked}>
 							<AddAttachmentButton uploads={uploads} />
 						</fieldset>
-						<Switch
-							label="Create another"
-							checked={draft.createMore ?? false}
-							onCheckedChange={(createMore) => setDraft({ ...draft, createMore })}
-							disabled={submission.busy}
-							className="composer-another"
-						/>
+						<div className="composer-options">
+							<Switch
+								label="Create another"
+								checked={createMore}
+								onCheckedChange={onCreateMore}
+								disabled={submission.busy}
+								className="composer-option"
+							/>
+							{choice !== null && (
+								<Switch
+									label="Assign agent"
+									checked={assignAgent}
+									onCheckedChange={onAssignAgent}
+									disabled={locked}
+									className="composer-option"
+								/>
+							)}
+						</div>
 						{submission.receipt && submission.failure?.stage === "assigning" && (
 							<Button className="composer-keep" onClick={() => finish(false)}>
 								Keep ticket
@@ -126,6 +142,7 @@ export function CreateTicketDialog({ open = true }: { open?: boolean }) {
 								statuses={defaults.statuses}
 								status={status}
 								priority={priority}
+								automatic={draft.automatic}
 								parent={parent}
 								placement={placement}
 								labels={labels}
@@ -140,8 +157,9 @@ export function CreateTicketDialog({ open = true }: { open?: boolean }) {
 								agent={
 									<AgentPicker
 										value={choice}
+										assignAgent={assignAgent}
 										accounts={accounts.data}
-										onChange={(assignment) => setDraft({ ...draft, assignment })}
+										onChange={(assignment) => chooseClassification({ assignment })}
 										disabled={locked}
 									/>
 								}
@@ -164,11 +182,6 @@ export function CreateTicketDialog({ open = true }: { open?: boolean }) {
 									/>
 								))}
 							</div>
-						)}
-						{submission.receipt && (
-							<p role="status" className="mt-3 text-xs text-fg-muted">
-								Ticket {submission.receipt.identifier} is saved.
-							</p>
 						)}
 						{submission.failure && (
 							<FailureState

@@ -7,6 +7,10 @@ import { epicSplat, projectHref } from "../../../lib/projectUrl";
 import { TitleMenuButton } from "../../shell/PageTitle/TitleMenuButton";
 import { allEpicsId, epicSwitcherItems, epicSwitchSearch } from "./epicSwitcherItems";
 
+export const epicSwitcherPopoverClassName = "w-80 max-w-(--available-width) p-0";
+export const epicSwitcherCommandClassName =
+	"[&_[cmdk-item]]:h-7 max-sm:[&_[cmdk-input]]:min-w-0 max-sm:[&_[cmdk-item]]:h-auto max-sm:[&_[cmdk-item]]:min-h-7 max-sm:[&_[cmdk-item]]:py-1 max-sm:[&_[cmdk-item]>span[aria-hidden=true]]:hidden pointer-coarse:[&_[cmdk-item]]:h-auto pointer-coarse:[&_[cmdk-item]]:min-h-11 max-sm:pointer-coarse:[&_[cmdk-item]]:min-h-11";
+
 export type EpicSwitcherProps = {
 	// The path of the project the epic page is under.
 	project: string;
@@ -15,6 +19,8 @@ export type EpicSwitcherProps = {
 	name: string;
 	// The tab of the open epic. The epic a person switches to opens on it.
 	tab: "overview" | "resources";
+	className?: string;
+	wrap?: boolean;
 };
 
 // The epic name in the top bar, as a button that opens a search of the
@@ -22,7 +28,7 @@ export type EpicSwitcherProps = {
 // reads as a control before the pointer reaches it. A pick opens that epic
 // on the same tab; the All epics row opens the Epics list. `g e` clicks the
 // button through `data-epic-switcher` (see `useGlobalHotkeys`).
-export function EpicSwitcher({ project, epicRef, name, tab }: EpicSwitcherProps) {
+export function EpicSwitcher({ project, epicRef, name, tab, className, wrap = false }: EpicSwitcherProps) {
 	const { orpc } = useApp();
 	const navigate = useNavigate();
 	const [open, setOpen] = useState(false);
@@ -49,7 +55,7 @@ export function EpicSwitcher({ project, epicRef, name, tab }: EpicSwitcherProps)
 			open={open}
 			onOpenChange={setOpen}
 			initialFocus={input}
-			className="w-80 p-0"
+			className={epicSwitcherPopoverClassName}
 			triggerTooltip={
 				<span className="inline-flex items-center gap-1.5">
 					Switch epic
@@ -57,9 +63,10 @@ export function EpicSwitcher({ project, epicRef, name, tab }: EpicSwitcherProps)
 					<Kbd>E</Kbd>
 				</span>
 			}
-			trigger={<TitleMenuButton data-epic-switcher="" label={name} />}
+			trigger={<TitleMenuButton data-epic-switcher="" label={name} wrap={wrap} className={className} />}
 		>
 			<Command
+				className={epicSwitcherCommandClassName}
 				inputRef={input}
 				label="Search epics"
 				placeholder="Switch epic"

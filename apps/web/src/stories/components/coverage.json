@@ -1,0 +1,45 @@
+[
+	{
+		"source": "packages/ui/src/gallery/Gallery.tsx",
+		"export": "Gallery",
+		"stories": ["Pages/Design gallery/BothThemes", "Pages/Design gallery/Narrow"],
+		"states": ["system theme", "light theme", "dark theme", "narrow viewport"],
+		"notes": "The Pages/Design gallery stories render the public gallery export. Its theme control changes the whole gallery. The narrow story uses the phone viewport."
+	},
+	{
+		"source": "packages/ui/src/desktop/DesktopChrome/DesktopChrome.tsx",
+		"export": "DesktopChrome",
+		"stories": ["Components/DesktopChrome/Default", "Components/DesktopChrome/Browser"],
+		"states": ["default", "browser"],
+		"notes": "The story renders the public component with local fixture data. Global controls set the theme and viewport."
+	},
+	{
+		"source": "packages/ui/src/terminal/TerminalSurface/TerminalSurface.tsx",
+		"export": "TerminalSurface",
+		"stories": [
+			"Components/TerminalSurface/Connected",
+			"Components/TerminalSurface/ReadOnly",
+			"Components/TerminalSurface/Connecting",
+			"Components/TerminalSurface/ErrorState",
+			"Components/TerminalSurface/Unavailable",
+			"Components/TerminalSurface/BufferGap",
+			"Components/TerminalSurface/Stopped",
+			"Components/TerminalSurface/Fill"
+		],
+		"states": ["connected", "read only", "connecting", "error", "unavailable", "buffer gap", "stopped", "fill"],
+		"notes": "The real terminal uses an in-memory transport with local ANSI output and keyboard echo. Connecting, error, unavailable, buffer gap, stopped, and read-only states use no runtime service. Unmount disposes the terminal identity."
+	},
+	{
+		"source": "apps/web/src/features/agents/NativeTerminal/NativeTerminal.tsx",
+		"export": "NativeTerminal",
+		"stories": [
+			"Components/NativeTerminal/Default",
+			"Components/NativeTerminal/Starting",
+			"Components/NativeTerminal/Exited",
+			"Components/NativeTerminal/Disconnected",
+			"Components/NativeTerminal/Fill"
+		],
+		"states": ["no terminal", "starting", "exited", "disconnected", "fill"],
+		"notes": "The real application wrapper uses a synthetic agent run. The shared network boundary blocks runtime socket calls in Disconnected. TerminalSurface covers an active local transcript. This checkout has no TerminalView export."
+	}
+]

@@ -46,6 +46,13 @@ const announcementOf = (machines: MachinePressureMachineView[]) =>
 		)
 		.join(". ");
 
+const dotReadings = (readings: MachinePressureReadingView[]) => {
+	const thermal = readings.find((reading) => reading.key === "thermal");
+	const temperature = readings.find((reading) => reading.key === "temperature");
+	const heat = thermal?.tone === "danger" ? thermal : (temperature ?? thermal);
+	return readings.filter((reading) => (reading.key !== "thermal" && reading.key !== "temperature") || reading === heat);
+};
+
 function PressureDots({
 	machinesWithAlerts,
 	collapsed,
@@ -69,7 +76,7 @@ function PressureDots({
 	return (
 		<span className="sidebar-trailing min-w-10 gap-1 pointer-coarse:min-w-15" aria-hidden="true">
 			{machinesWithAlerts.flatMap((machine) =>
-				machine.readings.map((reading) => (
+				dotReadings(machine.readings).map((reading) => (
 					<AttentionDot
 						key={`${machine.id}:${reading.key}`}
 						label={`${reading.label} is ${reading.tone}`}
@@ -93,7 +100,7 @@ export function MachinePressure({
 }: MachinePressureProps) {
 	const announcement = announcementOf(machinesWithAlerts);
 	const description = announcementOf(machines);
-	if (machines.length === 0) return <span role="status" aria-live="polite" className="sr-only" />;
+	if (machinesWithAlerts.length === 0) return <span role="status" aria-live="polite" className="sr-only" />;
 	const trigger = (
 		<button
 			type="button"

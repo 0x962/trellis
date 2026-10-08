@@ -29,16 +29,80 @@ const run = (id: string, fields: Partial<Parameters<typeof sessionGroups>[0][num
 
 afterEach(() => setSystemTime());
 
+test.each(["done", "canceled"] as const)(
+	"a %s ticket moves its sessions to Archived immediately",
+	(ticketStatusCategory) => {
+		const completed = run("completed", { ticketStatusCategory });
+		const current = run("current");
+		const runs = [completed, current];
+		const options = { search: "", now: now.getTime() };
+		expect(sessionGroups(runs, { ...options, showArchived: false }).runs).toEqual([current]);
+		expect(sessionGroups(runs, { ...options, showArchived: true }).runs).toEqual([completed]);
+		expect(nextSessionArchiveTimeMs([completed], now.getTime())).toBeNull();
+		expect(selectedSession(runs, [current], completed.id)).toBe(completed);
+		expect(runs).toEqual([completed, current]);
+	},
+);
+
+test("completed tickets stay archived with pins, active processes, or disabled cleanup", () => {
+	for (const fields of [
+		{ pinnedAt: hoursAgo(1) },
+		{ processStatus: "running" as const },
+		{ processStatus: "unknown" as const },
+		{ state: "starting" as const },
+		{ activityAt: null },
+	]) {
+		const completed = run("completed", { ticketStatusCategory: "done", ...fields });
+		expect(isAutomaticallyArchived(completed, now.getTime(), null)).toBe(true);
+		expect(nextSessionArchiveTimeMs([completed], now.getTime())).toBeNull();
+	}
+});
+
+test.each(["todo", "started", "review", null] as const)(
+	"a %s ticket or standalone session stays current",
+	(ticketStatusCategory) => {
+		const current = run("current", { ticketStatusCategory });
+		expect(isAutomaticallyArchived(current, now.getTime())).toBe(false);
+	},
+);
+
+test("a reopened ticket returns to the current list unless its session is inactive", () => {
+	const completed = run("completed", { ticketStatusCategory: "done" });
+	const options = { search: "", showArchived: false, now: now.getTime() };
+	expect(sessionGroups([completed], options).runs).toEqual([]);
+	const reopened = { ...completed, ticketStatusCategory: "started" as const };
+	expect(sessionGroups([reopened], options).runs).toEqual([reopened]);
+	expect(sessionGroups([{ ...reopened, activityAt: hoursAgo(80) }], options).runs).toEqual([]);
+});
+
 test("manual sessions and ticket agents share one list", () => {
 	setSystemTime(now);
 	const runs = [
-		run("ticket", { activityAt: hoursAgo(2) }),
-		run("manual", { kind: "session", ticketId: null, activityAt: hoursAgo(1) }),
+		run("ticket", { createdAt: hoursAgo(3), activityAt: hoursAgo(1) }),
+		run("manual", { kind: "session", ticketId: null, createdAt: hoursAgo(2), activityAt: hoursAgo(2) }),
 	];
 	expect(sessionGroups(runs, { search: "", showArchived: false }).runs.map((item) => item.id)).toEqual([
 		"manual",
 		"ticket",
 	]);
+});
+
+test.each([false, true])("activity cannot reorder sessions when showArchived is %s", (showArchived) => {
+	setSystemTime(now);
+	const activityAt = hoursAgo(showArchived ? 100 : 2);
+	const runs = [
+		run("older", { createdAt: hoursAgo(200), activityAt }),
+		run("newer-a", { createdAt: hoursAgo(150), activityAt }),
+		run("newer-b", { createdAt: hoursAgo(150), activityAt }),
+	];
+	const options = { search: "", showArchived };
+	const before = sessionGroups(runs, options).runs.map((item) => item.id);
+	expect(before).toEqual(["newer-b", "newer-a", "older"]);
+	expect(
+		sessionGroups([{ ...runs[0]!, activityAt: hoursAgo(showArchived ? 80 : 1) }, ...runs.slice(1)], options).runs.map(
+			(item) => item.id,
+		),
+	).toEqual(before);
 });
 
 test("an unpinned session moves to Archived at the 72-hour boundary", () => {

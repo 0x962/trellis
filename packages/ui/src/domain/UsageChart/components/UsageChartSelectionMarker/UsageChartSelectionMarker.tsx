@@ -8,7 +8,7 @@ type SelectionSeries = {
 };
 
 type UsageChartSelectionMarkerProps = {
-	variant: "bar" | "line";
+	variant: "bar" | "line" | "grouped";
 	selectedDay: string | null;
 	selectedIndex: number;
 	series: readonly SelectionSeries[];
@@ -19,6 +19,11 @@ type UsageChartSelectionMarkerProps = {
 };
 
 const chartBorderColor: Record<ChartTone, string> = {
+	usage: "var(--chart-usage)",
+	merged: "var(--chart-merged)",
+	added: "var(--chart-added)",
+	deleted: "var(--chart-deleted)",
+
 	agent: "var(--agent)",
 	fg: "var(--fg)",
 	faint: "var(--fg-faint)",

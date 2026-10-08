@@ -89,9 +89,15 @@ The helper reads the highest `PMU tdie` event from the private `IOHIDEventSystem
 A missing helper, an unsupported sensor, or a failed process supplies no temperature value.
 The desktop supplies thermal state through the trusted preload bridge.
 The renderer combines that state only when the desktop host origin exactly matches the page origin.
+The sidebar shows Machine only when a metric has warning or danger pressure.
+The expanded row shows one yellow or red dot for CPU load, memory pressure, disk space, and heat, up to four dots.
+Processor temperature and thermal pressure share the heat dot at their higher severity. The Inspector retains both readings.
+The collapsed rail shows one dot at the highest severity.
+When the last alert clears, the Inspector closes and requests for run details stop.
 
 The Bun host owns PGlite. A separate Node runtime owns agent PTYs.
-Its private Unix socket uses protocol 16. A lifetime file lock permits one runtime owner.
+Its private Unix socket uses protocol 17. A lifetime file lock permits one runtime owner.
+Protocol 17 requires the validator for large prompts. Desktop activation replaces an older runtime before the host resumes saved conversations.
 Each attempt has one immutable identifier, a token hash, retained terminal output, and a process record.
 The runtime keeps complete records for active processes and subscribers. It checks for idle agents every 30 seconds and stops their process trees after more than 30 idle minutes.
 The cutoff requires a saved provider identity, an idle observation, no active tool, no pending question, and no unacknowledged message. Human terminal input restarts the 30-minute clock. Working agents and custom terminals stay active.
@@ -258,7 +264,7 @@ A note is titled markdown on one project. Agents read project notes through
 the notes API and ticket briefs. `notes` holds one row per
 note with its `audience` (`all` or `worker`), an optional
 `expires_at`, and the actor of the last write. A read collects the notes of
-the project, newest change first, and drops an expired note. A title is unique in its project without case; a repeated title is
+the project in creation order, newest first, and drops an expired note. A title is unique in its project without case; a repeated title is
 `DUPLICATE`. A human and an agent can create, update, and delete a note. An
 archived project serves reads and refuses writes. A project delete cascades
 to its notes.
@@ -293,9 +299,14 @@ The final transaction checks the selected references again.
 Classification creates no ticket, epic, or wave.
 
 Manual field choices and explicit page context constrain automatic selection.
+The composer starts without an existing wave unless the caller or the saved draft selects one.
+Automatic wave and priority changes use one standard text glimmer sweep and respect reduced motion.
 The saved draft identifies automatic fields so later edits can update them after the dialog reopens.
 A stale response cannot change a newer draft or a submitted ticket.
-A provider error leaves manual creation available and appears in the existing placement status text.
+A provider error leaves manual creation available and appears inside the epic and wave picker.
+The agent picker uses the last saved harness, model, effort, and account choice.
+A draft retains its agent choice through later classification calls and a dialog reopen.
+Classification and ticket submission use the existing controls without an extra status paragraph below the fields.
 
 ### Epics
 
@@ -314,6 +325,8 @@ checks that the epic sits in the project of the ticket, and checks
 change of `epic` records field `epic` with the epic refs as `from_value` and
 `to_value` and the ids in `meta.fromId` and `meta.toId`. `TicketSummary`
 carries `epic` as `{id, ref, name}` or `null`.
+
+`epics.list` groups open, completed, and canceled epics in that order. Each group uses creation time, newest first, with ID as the tie breaker.
 
 The API is `epics.list`, `epics.get`, `epics.create`, `epics.update`, `epics.cancel`, and
 `epics.delete`. `epics.get` returns the summary, the waves of the epic in
@@ -389,9 +402,8 @@ waves of one epic never share a slug; a taken slug is `DUPLICATE` with
 field `slug`. A create without `slug` derives one from `name`, and a derived
 slug that collides takes the lowest free numeric suffix from `-2`. A create
 puts the wave after the last wave of the epic. A delete leaves a gap
-in the positions, and the order still holds. A wave write leaves
-`updated_at` and the actor of the epic as they are, so the order of
-`epics.list` stays. An archived project refuses every wave write of its
+in the positions, and the order still holds. A wave write preserves
+`updated_at` and the actor of the epic. An archived project refuses every wave write of its
 epics (`PROJECT_ARCHIVED`).
 
 A ticket joins a wave through `wave` on `tickets.create`,
@@ -607,6 +619,13 @@ Add and list use EpicRef, a ULID or `KEY/slug`. Add can also use TicketRef, a
 ULID or `KEY-n`. Update, remove, and blob reads use the resource ULID. The CLI
 verb is `trellis resource` with `add`, `list`, and `rm`.
 
+The epic plan and document resources show an automatic contents list.
+`EpicDocument` observes the rendered Markdown headings, including edits before the body save completes.
+The list reads body headings at levels one through six.
+Each heading retains a separate navigation target while its element remains in the document.
+`DocumentLayout` puts the list in a right sidebar or a Contents popover, according to the available width.
+The contents use the shared virtual-row hook with measured row heights and keyboard access to the complete list.
+
 #### Document comments
 
 `resource_comments` holds the comment threads on the text of a document
@@ -728,6 +747,17 @@ It removes a clean worktree for a done or canceled ticket after the assigned pro
 Session workspaces, active tickets, live processes, open files, and dirty worktrees keep their directories.
 `workspaceOperation` serializes launch and removal for the same workspace.
 The sweep keeps the branch, assignment, and provider conversation.
+
+The attempt sweep reads all references once, then skips referenced and recent directories.
+Resume retains a temporary reference to the prior attempt before it replaces the database reference.
+Manual, idle, session, and observer resumes retain this reference through the required descriptor reads.
+A background session launch releases the reference after success or failure.
+The attempt lock orders temporary references and cleanup. Cleanup skips a directory while a resume retains it.
+It checks each remaining attempt again under its attempt lock before removal.
+Between attempts, it yields after 25 milliseconds so the database worker can receive requests.
+Sweep logs identify each phase, its duration, and its counts under one sweep identifier.
+The attempt loop logs counts between candidates when at least five seconds pass.
+
 A stable start request identifier returns its existing run instead of a new launch.
 A changed target rejects reuse of that identifier.
 
@@ -825,13 +855,16 @@ A compatible desktop restart preserves a session agent. After a protocol change,
 `sessions.delete` confirms process exit and removes the directory before it deletes the row. The run retains its output as history.
 `sessions.setArchived` puts a session away, or brings it back. It stops the agent the same way a delete does, and keeps the directory, the files, and the conversation.
 An archived session runs no agent and holds no project: `sessions.start` and `sessions.move` refuse it, and a session that holds a project cannot be archived.
-Project Sessions puts project sessions and ticket agents in one list, in order of the latest stored process or conversation activity.
+Project Sessions puts project sessions and ticket agents in one list, with pinned rows first.
+Each group uses creation time, newest first, with ID as the tie breaker.
 `agent_runs.activity_at` stores the latest process or conversation time that Trellis observes.
 An attempt start and an assignment close also count as activity.
 The host monitor requires a complete execution service read before it stores new activity.
 The Clean up section in Settings sets the archive and deletion periods in whole days.
 The defaults are 3 days for archive and 7 days for deletion. Each rule can be disabled.
 After the archive period without activity, an unpinned, stopped row moves to Archived.
+Ticket sessions move to Archived as soon as the ticket reaches Done or Canceled, regardless of pins, process activity, or the archive period.
+If the ticket reopens, its sessions use the normal inactivity rule again.
 This automatic move changes list visibility only. It leaves the process, assignment, workspace, conversation, and ticket link unchanged.
 The host also runs session cleanup at boot and once each hour.
 Cleanup archives sessions without a project by setting `archived_at`. This archive keeps the original activity time for deletion.
@@ -917,7 +950,11 @@ Each mutation emits `providers.changed {id}`.
 The Usage page at `/usage` shows what every agent on the machine consumed.
 `usage.report` reads the transcript files that each harness CLI writes: `projects/` of a Claude profile, `sessions/` of a Codex or Pi profile, `opencode/storage/` of an OpenCode data home, and `muse/sessions/` of a Muse data home, the default XDG data home or a Muse account profile.
 The scan covers the default profile of each harness and the profile of every account, resolved to real paths, so a shared directory counts once.
-The scan runs in the `prepare` step, outside every database transaction. A child worker parses the transcripts and builds the report. Database calls continue during the scan. The server caches each range for five minutes. A refresh uses a cached result for ten seconds.
+The scan runs in the `prepare` step, outside every database transaction. A child worker parses the transcripts and builds the report. Database calls continue during the scan. The server saves each completed range under `cache/usage-reports-v1` in the data home. An ordinary read uses this report across restarts. The first read of a range scans when that range has no saved report.
+
+An explicit refresh scans again. Concurrent refresh requests share that scan. Readers keep the completed report during the scan, and a failed scan preserves it. Account changes remove the saved ranges.
+
+The page shows the report time and the refresh control. Ranking pages retain the current and previous report in memory so an active reader can finish during a refresh.
 Every turn uses the rate in `services/usage/pricing.ts`. A harness that records its own cost, such as Pi or OpenCode, keeps that cost. Muse Spark and Muse Glimmer cost $1.25 per million input tokens and $4.25 per million output tokens. Cached Muse input uses the input rate. A model outside the table takes the cheapest rate of its harness and marks the row approximate.
 A session joins the agent run whose `session_id` it carries. A session whose cwd is inside `agents/<run id>/work` joins that run. A session whose cwd is inside a project directory joins that project. Every other session is outside Trellis.
 The report holds the day series by harness, the totals, and separate cost and token rankings. Each ranking holds one row list per grouping (ticket, agent, project, kind, account, model, harness) and every session with one key per grouping.
@@ -925,7 +962,9 @@ The cached report retains every group and session. The report response carries r
 `usage.ranking` returns eight groups and ten sessions per page. It applies the selected group and day before it selects the session page.
 Each page request names the report timestamp. A missing or replaced report requires a refresh. Previous and Next controls expose every page.
 `usage.accounts` lists every configured account and the default login of each harness that no account names, each with its quota. A Codex account with no standard quota windows is `unlimited`. An API key is `metered`. A login with no quota endpoint or no usable quota data is `unavailable`. The default Muse login comes from `muse/auth.json` under the XDG config home, and a Muse account profile holds its own `muse/auth.json`. Its windows come from the normal usage and quota files that Muse agent runs save. The page joins each login to its value through the account grouping of the selected ranking.
-The page keeps the range, the metric, the grouping, the selected row, and the selected day in the URL.
+The page shows model and harness breakdowns beside each other. A selected row filters the daily usage chart. The page keeps the range, metric, model or harness selection, and selected day in the URL.
+
+`usage.mergedWork` reads saved GitHub data through the report timestamp. It counts each linked PR once, even when several tickets link to it. The merge date places each PR in a local calendar day. Added and deleted lines include all changed files. Separate missing-value counts distinguish incomplete totals from zero. These charts stay independent of the model and harness selection.
 
 The default login of a harness resolves the way SuperSet resolves it. SuperSet keeps one pointer file per harness under `~/.superset/state/`: `default-claude-config-dir` and `default-codex-home`, each with the profile directory of the default, or nothing for the plain login. When the file exists it wins. Otherwise the account with the Trellis default flag wins. Otherwise the plain login of the harness is the default. A pointer whose directory is gone counts as the plain login. A default picked in Settings also writes the pointer, so both tools agree. A run with no account reads the pointer again at every launch, and a profile exported in the login shell wins over the pointer.
 
@@ -969,7 +1008,7 @@ Claude transcript snapshots and OpenCode text parts retain context with unproven
 Pi messages without identifiers also retain context with unproven completeness.
 A completion signal states unavailable message coverage without suppressing completed tool counts.
 The reader reports missing journal data separately. Legacy journals reconstruct tool state before the saved position and emit only new completed items.
-The runtime saves activity state in its checkpoint and appends optional annotations to the existing event records under protocol 16.
+The runtime saves activity state in its checkpoint and appends optional annotations to the existing event records under protocol 17.
 
 `isWorking` is true when a controllable live process reports a working turn. It is false for ready or idle turns and exited processes.
 Missing processes, unknown process status, lost process control, and unobserved turn activity produce a null work state.
@@ -1295,62 +1334,15 @@ The schema migrations live in `apps/server/drizzle/`, through `0078_kind_jetstre
 The migrator applies schema changes at boot in one transaction, then runs `ANALYZE` and sets `pg_trgm.word_similarity_threshold`.
 The schema drift check requires `drizzle-kit generate` to leave the migration directory unchanged.
 
+The schema retains the Langflow tables for migration compatibility and record preservation.
+Applied migrations and snapshots retain the schema history.
+Native flows use the original flow services, editor, and execution tables.
+
 PGlite has no autovacuum. A maintenance timer runs `VACUUM (ANALYZE)` on
 tickets and activity after more than 1000 writes, and after a backup
 or a restore.
 
 ## API contract and ref grammars
-
-`clientContract` and the server contract expose the versioned `flowDocumentsV1` methods.
-The methods retain the shared RPC transport, actor headers, and query utilities.
-The shared router sends these methods through the actor-aware service transport.
-The document and execution tables must exist before this router serves requests.
-The document methods use `/api/flows/{flow}/document-v1`.
-Document responses include an ETag for the complete representation.
-Conditional saves evaluate `If-Match` and `If-None-Match` in the save transaction.
-The required `expectedVersion` also checks the saved revision.
-The execution view uses `/api/flow-executions/{id}/view-v1`.
-The execution index uses `/api/flow-executions/index-v1` and returns IDs with their stored engine.
-Its pagination combines both engines in creation order, with the ID as the tie breaker.
-`langflowDispatch.getView` selects the reader from the stored execution association.
-The current document cannot change that selection.
-`langflowDispatch.startLegacy` locks the flow before it checks the saved document format.
-An exact legacy request replay retains its original result after a document conversion.
-New legacy start requests reject a Langflow document with `FLOW_UNSUPPORTED_FORMAT`.
-`flows.changed` invalidates versioned document and execution queries with the legacy flow queries.
-
-The versioned start, decision, and cancel routes acquire a durable permit before their database action.
-The action and its immutable receipt commit together. A known refusal rolls back its savepoint before the outer transaction stores the error bytes.
-The external receipt archive retains the committed receipt before the host gate settles its permit.
-An exact replay reads that receipt and the current view. Changed request bytes return `FLOW_REQUEST_CONFLICT`.
-A permit without a receipt returns `FLOW_ACTION_PENDING` and stays pending until reconciliation.
-These local action permits do not settle the separate permits for engine delivery or native processes.
-
-`flowDocumentsV1.editorSession` issues an editor grant through
-`POST /api/flows/{flow}/editor-session-v1`. `createApp` requires an explicit
-editor configuration with the host identity, separate origins, and installed
-component manifest provider. An absent configuration returns `EDITOR_UNAVAILABLE`.
-The issuer requires the host bearer, the exact parent Origin, and a stored
-`defaultActorName`. An actor header identifies a request; it does not authenticate a person.
-The scoped gateway uses its own cookie authorization under `/api/trellis-editor/v1/`.
-The HTTP adapter calls the plain issuer, sets the credential cookie, and returns the session.
-Its service calls retain the request ID and database timing collector.
-`flowDocumentsV1.editorHost` reads the current host and data-home identifiers from the host control directory.
-It returns their combined identity, or `null` when the editor has no configuration.
-Grant operations reject a changed host identity.
-Version conflicts return 412, concurrent channel saves return 409, and an unconfigured actor returns 503.
-
-A parent save carries `x-trellis-editor-channel` through `flowDocumentsV1.save`.
-The grant service holds the channel until the actual document transaction returns.
-If the response is lost after commit, the next exact request reads the durable
-save receipt before it checks the old HTTP preconditions. The accepted receipt
-advances the grant revision; the original bootstrap identity stays unchanged.
-
-A V1 occurrence carries its archived node `kind`, or `null` when that kind is unknown.
-Its `outputSource` identifies the exact native step, agent run, attempt, and result that supply its output.
-The source must match one retained attempt, even when the occurrence has later attempts.
-A null source means that no native result binding is available.
-Historical text can remain available with a null source.
 
 The contract lives in `packages/api/src/contract/`. Two handlers serve one
 router: `RPCHandler` at `/rpc` for typed clients, and `OpenAPIHandler` at `/api`
@@ -1423,7 +1415,8 @@ returns one canonical spelling.
 | providers.models | GET /api/providers/{id}/models | language models from the remote catalog; optional refresh |
 | providers.publicModels | GET /api/providers/kinds/{kind}/models | public Vercel catalog or an empty compatible catalog; optional refresh |
 | providers.check | GET /api/providers/{id}/check | key acceptance and optional credit balance; optional refresh |
-| usage.report | GET /api/usage | token cost from the harness transcripts, joined to runs, tickets, projects, and accounts; cached for five minutes |
+| usage.report | GET /api/usage | token cost from the harness transcripts, joined to runs, tickets, projects, and accounts; each range persists until an explicit refresh or an account change |
+| usage.mergedWork | GET /api/usage/merged-work | unique linked PRs by merge date, known added and deleted lines, and missing-value counts |
 | usage.ranking | GET /api/usage/ranking | ranked pages and the selected group from the exact cached report |
 | usage.accounts | GET /api/usage/accounts | every configured account and each default login with its subscription quota; cached for five minutes |
 | agentRuns.output | GET /api/agent-runs/{id}/output | the terminal text as `{text}` |
@@ -1466,15 +1459,15 @@ The filter grammar is identical in the API, the web URL, and the CLI flags.
 | actor | `kind:name` or `name`, matched against the last actor |
 | q | full text search with a prefix on the last token |
 | updated, created, completed | ISO lower bounds |
-| sort | `[-]updatedAt`, createdAt, priority, number, status, or position |
+| sort | `[-]updatedAt`, createdAt, priority, number, status, or position; default `-createdAt` |
 | cursor, limit | an opaque cursor bound to the filter hash; limit 1 to 200, default 50 |
 
 One example on the three surfaces:
 
 ```
-GET /api/tickets?project=CDE&status=in-progress,agent-review&parent=none&label=bug&ci=fail&sort=-updatedAt
-/p/CDE?status=in-progress,agent-review&parent=none&label=bug&ci=fail&sort=-updatedAt
-trellis ticket list --project CDE --status in-progress,agent-review --parent none --label bug --ci fail --sort -updatedAt
+GET /api/tickets?project=CDE&status=in-progress,agent-review&parent=none&label=bug&ci=fail&sort=-createdAt
+/p/CDE?status=in-progress,agent-review&parent=none&label=bug&ci=fail&sort=-createdAt
+trellis ticket list --project CDE --status in-progress,agent-review --parent none --label bug --ci fail --sort -createdAt
 ```
 
 The contract declares every error as `{defined, code, status, message, data}`.

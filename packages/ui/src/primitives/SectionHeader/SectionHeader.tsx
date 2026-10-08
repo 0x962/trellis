@@ -7,31 +7,56 @@ export type SectionHeaderProps = {
 	count?: ReactNode;
 	// Metadata and quiet sm buttons, on the right.
 	actions?: ReactNode;
-	// 2 titles a region of a page. 3 titles a part of a region, and it draws
-	// one step down the type scale.
-	level?: 2 | 3;
+	level?: 2 | 3 | 4;
+	appearance?: "default" | "overview" | "prominent";
+	description?: string;
 	className?: string;
 };
 
 // The title size per level. The count draws one step under its title.
-const titleSize = { 2: "text-base", 3: "text-sm" } as const;
-const countSize = { 2: "text-sm", 3: "text-xs" } as const;
+const titleSize = { 2: "text-base", 3: "text-sm", 4: "text-sm" } as const;
+const countSize = { 2: "text-sm", 3: "text-xs", 4: "text-xs" } as const;
 
-// The 28 px header row of a section on a ticket, a settings page, or a
-// project settings page. An empty section is this row alone, with its
-// action on the right.
-//
-// Write every title in sentence case, and pass `level` to say how deep the
-// header sits. The size carries the level.
-export function SectionHeader({ title, count, actions, level = 2, className }: SectionHeaderProps) {
-	const Heading = level === 2 ? "h2" : "h3";
+export function SectionHeader({
+	title,
+	count,
+	actions,
+	level = 2,
+	className,
+	appearance = "default",
+	description,
+}: SectionHeaderProps) {
+	const Heading = level === 2 ? "h2" : level === 3 ? "h3" : "h4";
 	return (
-		<div className={cx("flex h-7 items-center gap-2", className)}>
-			<Heading className="flex min-w-0 items-baseline gap-2">
-				<span className={cx("truncate font-medium text-fg", titleSize[level])}>{title}</span>
-				{count !== undefined && <span className={cx("text-fg-faint tabular", countSize[level])}>({count})</span>}
-			</Heading>
-			{actions !== undefined && <div className="ml-auto flex items-center gap-2 text-sm text-fg-faint">{actions}</div>}
+		<div className={cx(appearance === "default" ? "flex h-7 items-center gap-2" : "flex flex-col gap-1", className)}>
+			<div className={appearance === "default" ? "contents" : "flex min-h-5 items-center gap-2"}>
+				<Heading className="flex min-w-0 items-baseline gap-2">
+					<span
+						className={cx(
+							"text-fg",
+							appearance === "default"
+								? cx("truncate font-medium", titleSize[level])
+								: appearance === "overview"
+									? "text-md font-medium"
+									: "text-lg font-semibold",
+						)}
+					>
+						{title}
+					</span>
+					{count !== undefined && <span className={cx("text-fg-faint tabular", countSize[level])}>({count})</span>}
+				</Heading>
+				{actions !== undefined && (
+					<div
+						className={cx(
+							"ml-auto flex items-center gap-2",
+							appearance === "default" ? "text-sm text-fg-faint" : "text-xs text-fg-muted",
+						)}
+					>
+						{actions}
+					</div>
+				)}
+			</div>
+			{description !== undefined && <p className="text-sm text-fg-muted">{description}</p>}
 		</div>
 	);
 }

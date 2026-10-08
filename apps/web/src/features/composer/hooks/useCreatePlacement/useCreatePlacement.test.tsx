@@ -64,12 +64,20 @@ test("existing choices require an epic and wave even when each list has one entr
 	expect(render([plan], [wave], plan.ref, wave.ref)).toMatchObject({ ready: true, epic: plan.ref, wave: wave.ref });
 });
 
-test("sole defaults remain selected and additional choices require selection", () => {
+test("a sole Default wave requires selection", () => {
 	expect(render([defaultEpic], [defaultWave])).toMatchObject({
-		ready: true,
+		ready: false,
 		epic: defaultEpic.ref,
+		wave: undefined,
+		message: "Choose a wave.",
+	});
+	expect(render([defaultEpic], [defaultWave], undefined, defaultWave.ref)).toMatchObject({
+		ready: true,
 		wave: defaultWave.ref,
 	});
+});
+
+test("additional choices require selection", () => {
 	expect(render([defaultEpic, plan])).toMatchObject({ ready: false, epic: undefined });
 	expect(render([plan], [defaultWave, wave], plan.ref)).toMatchObject({ ready: false, wave: undefined });
 });
@@ -83,3 +91,47 @@ test("creation waits for both lists", () => {
 	expect(render()).toMatchObject({ ready: false, message: "Load epics and waves…" });
 	expect(render([plan], undefined, plan.ref)).toMatchObject({ ready: false, message: "Load epics and waves…" });
 });
+
+for (const failedQuery of ["epics", "epic"]) {
+	test(`a failed ${failedQuery} query blocks creation until Retry succeeds`, async () => {
+		const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+		const error = new Error("Synthetic network failure");
+		queryClient.setQueryData(["epics"], [plan]);
+		queryClient.setQueryData(["epic"], { waves: [wave] });
+		await expect(
+			queryClient.fetchQuery({
+				queryKey: [failedQuery],
+				queryFn: async () => {
+					throw error;
+				},
+			}),
+		).rejects.toThrow(error.message);
+		const app = {
+			orpc: {
+				epics: {
+					list: { queryOptions: () => ({ queryKey: ["epics"], queryFn: async () => [plan] }) },
+					get: { queryOptions: () => ({ queryKey: ["epic"], queryFn: async () => ({ waves: [wave] }) }) },
+				},
+			},
+		} as unknown as AppContext;
+		let result: ReturnType<typeof useCreatePlacement>;
+		function Probe() {
+			result = useCreatePlacement("PR", plan.ref, wave.ref);
+			return null;
+		}
+		const inspect = () =>
+			renderToStaticMarkup(
+				<QueryClientProvider client={queryClient}>
+					<AppProvider value={app}>
+						<Probe />
+					</AppProvider>
+				</QueryClientProvider>,
+			);
+		inspect();
+		expect(result!).toMatchObject({ ready: false, error, epic: plan.ref, wave: wave.ref });
+		await result!.retry();
+		inspect();
+		expect(result!).toMatchObject({ ready: true, error: null, epic: plan.ref, wave: wave.ref });
+		queryClient.clear();
+	});
+}

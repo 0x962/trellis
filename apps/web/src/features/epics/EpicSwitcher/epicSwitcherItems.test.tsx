@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import type { EpicCounts, EpicSummary } from "@trellis/api";
+import { Command } from "@trellis/ui";
 import { renderToStaticMarkup } from "react-dom/server";
 import { allEpicsId, epicSwitcherItems, epicSwitchSearch } from "./epicSwitcherItems";
 
@@ -22,9 +23,6 @@ const epics = [
 	epic("onboarding", "Onboarding", "done", counts(5, 5)),
 ];
 
-const iconLabel = (item: ReturnType<typeof epicSwitcherItems>[number]) =>
-	renderToStaticMarkup(item.icon!).match(/aria-label="([^"]+)"/)?.[1];
-
 describe("epicSwitcherItems", () => {
 	test("lists incomplete and empty epics in list order, then the All epics row", () => {
 		const items = epicSwitcherItems(epics, "OP/runtime");
@@ -42,9 +40,18 @@ describe("epicSwitcherItems", () => {
 		expect(items.map((item) => item.current === true)).toEqual([false, true, false, false]);
 	});
 
-	test("draws the progress circle of each epic, without the canceled tickets", () => {
+	test("prints the progress of each open epic", () => {
 		const items = epicSwitcherItems(epics, "OP/runtime");
-		expect(items.slice(0, 3).map(iconLabel)).toEqual(["3 of 10 done", "0 of 4 done", "0 of 0 done"]);
+		expect(items.slice(0, 3).map((item) => item.hint)).toEqual(["3/10 done", "0/4 done", "0/0 done"]);
+	});
+
+	test("puts progress in the option name without a nested focus target", () => {
+		const items = epicSwitcherItems(epics, "OP/runtime");
+		const html = renderToStaticMarkup(<Command label="Search epics" items={items} onSelect={() => {}} />);
+		expect(html).toContain('<span class="sr-only">, 3 of 10 tickets done</span>');
+		expect(html).not.toContain('aria-label="Make Operator dashboards real"');
+		expect(html).not.toContain('tabindex="0"');
+		expect(items.slice(0, 3).every((item) => item.icon === undefined)).toBe(true);
 	});
 
 	test("does not create a search item for a completed epic", () => {

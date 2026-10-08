@@ -1,6 +1,6 @@
 import { useInfiniteQuery, useMutation } from "@tanstack/react-query";
 import type { Project } from "@trellis/api";
-import { toast } from "@trellis/ui";
+import { toast, useMediaQuery } from "@trellis/ui";
 import { useEffect, useMemo } from "react";
 import { useApp } from "../../../lib/appContext";
 import { ArchivedBanner } from "../../project-actions";
@@ -20,6 +20,7 @@ export type PageListProps = {
 
 export function PageList({ project, search, onSearchChange }: PageListProps) {
 	const { client, orpc, queryClient } = useApp();
+	const phone = useMediaQuery("(max-width: 767px)");
 	useEffect(() => {
 		document.title = `${project.name} Pages · trellis`;
 	}, [project.name]);
@@ -33,15 +34,23 @@ export function PageList({ project, search, onSearchChange }: PageListProps) {
 	const failed = query.data === undefined && query.failureCount > 0;
 	const pin = useMutation({
 		mutationFn: (page: (typeof pages)[number]) => client.pages.pin({ page: page.ref, pinned: !page.pinned }),
-		onSuccess: () => queryClient.invalidateQueries({ queryKey: orpc.pages.key() }),
+		onSuccess: async (_data, selectedPage) => {
+			await queryClient.invalidateQueries({ queryKey: orpc.pages.key() });
+			toast.success(selectedPage.pinned ? "Page unpinned" : "Page pinned");
+		},
 		onError: (error) => toast.error("The Page pin did not change", { description: error.message }),
 	});
 	return (
 		<>
 			<Topbar>
-				<PageTitle parent={<ProjectBreadcrumb project={project} />} title="Pages" />
-				<PageListFilters projectId={project.id} search={search} onChange={onSearchChange} />
+				<PageTitle parent={phone ? undefined : <ProjectBreadcrumb project={project} />} title="Pages" />
+				{!phone && <PageListFilters projectId={project.id} search={search} onChange={onSearchChange} />}
 			</Topbar>
+			{phone && (
+				<div className="flex shrink-0 border-b border-border px-2 py-2">
+					<PageListFilters projectId={project.id} search={search} onChange={onSearchChange} />
+				</div>
+			)}
 			<div className="page-card flex flex-1 flex-col overflow-hidden">
 				{project.archivedAt !== null && <ArchivedBanner project={project} />}
 				<div className="min-h-0 flex-1 overflow-y-auto">

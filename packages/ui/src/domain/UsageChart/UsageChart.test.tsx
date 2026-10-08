@@ -26,7 +26,44 @@ describe("UsageChart keyboard entry", () => {
 		});
 
 		expect(html.match(/<button/g)?.length).toBe(1);
-		expect(html).toContain("Use Left and Right to inspect days.");
+		expect(html).toContain("Use Left and Right to inspect chart points.");
+		expect(html).toContain("Press Escape to clear the selected point.");
+	});
+
+	test.each([
+		[7, 4],
+		[30, 5],
+		[90, 7],
+	] as const)("uses %i days with %i ticks", (count, expected) => {
+		const range = Array.from({ length: count }, (_, index) =>
+			new Date(Date.UTC(2026, 0, index + 1)).toISOString().slice(0, 10),
+		);
+		const html = render({
+			days: range,
+			series: [{ ...series[0]!, values: Array.from({ length: count }, () => 1) }],
+			selectedDay: null,
+		});
+
+		expect(html.match(/data-chart-tick=/g)).toHaveLength(expected);
+		expect(html).toContain(`data-chart-tick="${range[0]}"`);
+		expect(html).toContain(`data-chart-tick="${range.at(-1)}"`);
+	});
+
+	test("uses point instructions for samples within one day", () => {
+		const html = render({
+			label: "CPU history",
+			days: ["2026-09-29T12:00:00Z", "2026-09-29T12:00:05Z"],
+			series: [{ key: "cpu", label: "CPU", tone: "accent", values: [25, 30] }],
+			format: (value) => `${value}%`,
+			formatDay: (value) => value.slice(11, 19),
+			selectedDay: "2026-09-29T12:00:05Z",
+		});
+
+		expect(html).toContain('aria-label="CPU history. 12:00:05: 30%"');
+		expect(html).toContain("Use Left and Right to inspect chart points.");
+		expect(html).toContain("Press Escape to clear the selected point.");
+		expect(html).not.toContain("inspect days");
+		expect(html).not.toContain("select or clear a day");
 	});
 
 	test("names the focused day and exposes its selected state", () => {
@@ -74,4 +111,30 @@ describe("UsageChart states", () => {
 
 		expect(html).not.toMatch(/animate-|motion-|transition-/);
 	});
+});
+
+test("grouped bars share a baseline and use the largest series value for the scale", () => {
+	const html = render({
+		variant: "grouped",
+		appearance: "overview",
+		days: ["2026-09-29"],
+		series: [
+			{ key: "added", label: "Added", tone: "added", values: [40] },
+			{ key: "deleted", label: "Deleted", tone: "deleted", values: [20] },
+		],
+	});
+	const rects = [...html.matchAll(/<rect[^>]*data-series="(added|deleted)"[^>]*>/g)].map((match) => match[0]);
+	expect(rects).toHaveLength(2);
+	const attribute = (rect: string, name: string) => Number(new RegExp(`${name}="([^" ]+)"`).exec(rect)![1]);
+	expect(attribute(rects[0]!, "height")).toBe(100);
+	expect(attribute(rects[1]!, "height")).toBe(50);
+	for (const rect of rects) expect(attribute(rect, "y") + attribute(rect, "height")).toBe(100);
+	expect(attribute(rects[0]!, "x") + attribute(rects[0]!, "width")).toBeLessThan(attribute(rects[1]!, "x"));
+});
+
+test("count charts keep integer grid labels when the largest count is seven", () => {
+	const html = render({ integerScale: true, format: String, series: [{ ...series[0]!, values: [7, 2, 1] }] });
+	expect(html).toContain(">12</span>");
+	expect(html).toContain(">9</span>");
+	expect(html).not.toContain(">7.5</span>");
 });

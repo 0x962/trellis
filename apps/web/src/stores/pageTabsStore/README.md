@@ -4,7 +4,13 @@ A named group holds tabs. `groups` lists the groups in strip order, each with a 
 
 `moveTab(id, beforeId)` places a tab before another tab. A null `beforeId` places it at the end. `renameTab(id, title)` saves a custom name separately from the automatic page title. Null or blank text restores the automatic title.
 
-`setPinned(id, pinned)` pins or unpins a tab. Every pinned tab sits before every other tab, so the pinned tabs form the prefix of the saved order. `pageTabRegion(tab)` names the region of a tab: pinned, its group, or the ungrouped tail. A pin places the tab at the end of the pinned region and removes it from its group. An unpin places it at the start of the ungrouped tail. A move keeps a tab inside its region: a target across a boundary lands at the edge of the region of the moving tab. A pin changes the position and the presentation only. The tab keeps its identity, its page, its history, and its custom name.
+`setPinned(id, pinned)` pins or unpins a tab. Every pinned tab sits before every other tab, so the pinned tabs form the prefix of the saved order. `pageTabRegion(tab)` names the region of a tab: pinned, its group, or the ungrouped tail. A pin places the tab at the end of the pinned region and removes it from its group. An unpin places it at the start of the ungrouped tail. A move keeps a tab inside its region: a target across a boundary lands at the edge of the region of the moving tab.
+
+A pin saves the current URL and page title in `pinnedPage`. Navigation and title updates keep this destination. An unpin removes the destination. A later pin saves the current page. The tab keeps its identity, its page, its history, and its custom name.
+
+`createPageTabsHistory` calls `restorePinnedTabs(keepActivePage)` at startup. Each restored pin returns to its saved destination and adds its departed page to the back history. Its forward history stays available. A pin already at its destination keeps its history. Ordinary tabs and closed tabs keep their current pages. A saved pin without `pinnedPage` adopts its current page when the store reads it.
+
+The browser navigation type distinguishes a reload from a direct entry, even when both use the same URL. A reload restores the pins. The desktop starts at `/` to restore saved tabs. An explicit direct URL takes precedence over the active pin's destination. For a direct entry, `keepActivePage` preserves the active page before the router applies the requested URL.
 
 `sortTabs(direction)` orders the tabs by their visible names, ascending or descending. The visible name is the custom name when one exists, else the page title. Tabs with equal names keep their relative order. `pageTabRegion(tab)` names the region of a tab; a sort reorders tabs inside each contiguous region and keeps the regions in place. The selected tab, every tab ID, page, history, and custom name stay unchanged.
 

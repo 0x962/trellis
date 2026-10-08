@@ -189,7 +189,7 @@ type MinePullRequest = {
 };
 
 const mineQuery = `query($cursor:String) {
-	viewer { pullRequests(first:100,after:$cursor,states:OPEN,orderBy:{field:UPDATED_AT,direction:DESC}) {
+	viewer { pullRequests(first:100,after:$cursor,states:OPEN,orderBy:{field:CREATED_AT,direction:DESC}) {
 		nodes { number title repository { nameWithOwner } isDraft url }
 		pageInfo { hasNextPage endCursor } totalCount
 	} }

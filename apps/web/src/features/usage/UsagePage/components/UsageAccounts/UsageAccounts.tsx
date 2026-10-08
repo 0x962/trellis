@@ -4,7 +4,6 @@ import type {
 	HarnessAccount,
 	HarnessAccountCreate,
 	HarnessAccountUpdate,
-	UsageAccount,
 	UsageGroupRow,
 	UsageMetric,
 } from "@trellis/api";
@@ -13,9 +12,11 @@ import {
 	ConfirmDialog,
 	EmptyState,
 	FailureState,
+	FilterBar,
 	HarnessAccountForm,
 	HarnessAccountNameForm,
 	IconButton,
+	Input,
 	SectionHeader,
 	Skeleton,
 	Tooltip,
@@ -25,38 +26,18 @@ import { useApp } from "../../../../../lib/appContext";
 import { accountError } from "./accountError";
 import { UsageAccountRow } from "./components/UsageAccountRow";
 import { VirtualUsageAccountRows } from "./components/VirtualUsageAccountRows";
+import { unavailableUsageAccounts } from "./unavailableUsageAccounts";
+import { usageAccountMatches, usageAccountSearchText } from "./usageAccountMatches";
 
 export type UsageAccountsProps = {
 	rows: readonly UsageGroupRow[];
 	metric: UsageMetric;
 	total: number;
 	pending: boolean;
+	reportAvailable?: boolean;
 };
 
-export const unavailableUsageAccounts = (accounts: readonly HarnessAccount[]): UsageAccount[] =>
-	accounts.map((account) => ({
-		key: `account:${account.name}`,
-		id: account.id,
-		name: account.name,
-		harness: account.harness,
-		profilePath: account.profilePath,
-		isDefault: account.isDefault,
-		defaultSource: null,
-		loginCommand: account.loginCommand,
-		sharedWith: [],
-		quota: {
-			status: "unavailable",
-			email: null,
-			plan: null,
-			detail: null,
-			windows: [],
-			creditsBalance: null,
-			extraUsage: null,
-			fetchedAt: account.updatedAt,
-		},
-	}));
-
-export function UsageAccounts({ rows, metric, total, pending }: UsageAccountsProps) {
+export function UsageAccounts({ rows, metric, total, pending, reportAvailable = true }: UsageAccountsProps) {
 	const { orpc, client, queryClient } = useApp();
 	const accountOptions = orpc.usage.accounts.queryOptions({ input: {} });
 	const accounts = useQuery({ ...accountOptions, refetchInterval: 30_000 });
@@ -64,12 +45,27 @@ export function UsageAccounts({ rows, metric, total, pending }: UsageAccountsPro
 		...orpc.harnessAccounts.list.queryOptions({ input: {} }),
 		refetchInterval: 30_000,
 	});
-	const usageAccounts = accounts.isError ? unavailableUsageAccounts(configured.data ?? []) : (accounts.data ?? []);
+	const usageAccounts = useMemo(
+		() => (accounts.isError ? unavailableUsageAccounts(configured.data ?? []) : (accounts.data ?? [])),
+		[accounts.isError, accounts.data, configured.data],
+	);
 	const configuredById = useMemo(
 		() => new Map((configured.data ?? []).map((account) => [account.id, account])),
 		[configured.data],
 	);
 	const rowsByKey = useMemo(() => new Map(rows.map((row) => [row.key, row])), [rows]);
+	const [query, setQuery] = useState("");
+	const searchableAccounts = useMemo(
+		() => usageAccounts.map((account) => ({ account, searchText: usageAccountSearchText(account) })),
+		[usageAccounts],
+	);
+	const filteredUsageAccounts = useMemo(
+		() =>
+			searchableAccounts
+				.filter(({ searchText }) => usageAccountMatches(searchText, query))
+				.map(({ account }) => account),
+		[query, searchableAccounts],
+	);
 	const [addOpen, setAddOpen] = useState(false);
 	const [edit, setEdit] = useState<HarnessAccount | null>(null);
 	const [remove, setRemove] = useState<HarnessAccount | null>(null);
@@ -134,19 +130,32 @@ export function UsageAccounts({ rows, metric, total, pending }: UsageAccountsPro
 		<section aria-label="Accounts" className="flex flex-col gap-3">
 			<SectionHeader
 				title="Accounts"
-				count={accounts.isPending || configured.isPending ? undefined : usageAccounts.length}
+				count={accounts.isPending || configured.isPending ? undefined : filteredUsageAccounts.length}
 				actions={
-					<Tooltip content="Add account">
-						<IconButton
-							label="Add account"
-							disabled={busy}
-							onClick={() => {
-								create.reset();
-								setAddOpen(true);
-							}}
-							icon={<Plus />}
-						/>
-					</Tooltip>
+					<>
+						<FilterBar>
+							<Input
+								type="search"
+								label="Search accounts"
+								hideLabel
+								placeholder="Search accounts…"
+								value={query}
+								onChange={(event) => setQuery(event.target.value)}
+								className="w-48 max-md:w-32"
+							/>
+						</FilterBar>
+						<Tooltip content="Add account">
+							<IconButton
+								label="Add account"
+								disabled={busy}
+								onClick={() => {
+									create.reset();
+									setAddOpen(true);
+								}}
+								icon={<Plus />}
+							/>
+						</Tooltip>
+					</>
 				}
 			/>
 			<p className="-mt-1 max-w-prose text-xs text-fg-faint text-pretty">
@@ -182,9 +191,14 @@ export function UsageAccounts({ rows, metric, total, pending }: UsageAccountsPro
 					title="No accounts"
 					description="Add an account so an agent can sign in to a harness on this machine."
 				/>
+			) : filteredUsageAccounts.length === 0 ? (
+				<EmptyState
+					title="No accounts match"
+					description={`No accounts match “${query.trim()}”. Change the search text.`}
+				/>
 			) : (
 				<VirtualUsageAccountRows
-					accounts={usageAccounts}
+					accounts={filteredUsageAccounts}
 					renderRow={(account, onActiveChange) => {
 						const managed = account.id ? configuredById.get(account.id) : undefined;
 						const shared = account.sharedWith.length ? rowsByKey.get(`shared:${account.harness}`) : undefined;
@@ -198,6 +212,7 @@ export function UsageAccounts({ rows, metric, total, pending }: UsageAccountsPro
 								metric={metric}
 								total={total}
 								pending={pending}
+								reportAvailable={reportAvailable}
 								busy={busy}
 								refreshing={refresh.isPending}
 								onActiveChange={onActiveChange}

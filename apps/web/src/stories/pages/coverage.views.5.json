@@ -1,0 +1,15 @@
+[
+	{
+		"source": "apps/web/src/features/setup/ProjectStep/ProjectStep.tsx",
+		"export": "ProjectStep",
+		"stories": [
+			"Pages/Setup/Name",
+			"Pages/Setup/BlankName",
+			"Pages/Setup/Project",
+			"Pages/Setup/ExistingProjects",
+			"Pages/Setup/Narrow"
+		],
+		"states": ["new project", "existing project colors", "narrow"],
+		"notes": ""
+	}
+]

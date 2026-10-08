@@ -120,8 +120,7 @@ const OPEN_CATEGORIES: readonly StatusCategory[] = ["todo", "started", "review"]
 // The WHERE clause of a ticket query over the alias `t` (tickets). `q`
 // matches the FTS column only; the trigram path belongs to search. A
 // category filter within the open categories adds `completed_at IS NULL`,
-// the predicate of tickets_open_idx, so the default table query walks that
-// index in updated_at order.
+// the predicate that lets PostgreSQL use tickets_open_idx.
 export const filterWhere = (filter: TicketFilter): SQL => {
 	const clauses: SQL[] = [sql`true`];
 	if (filter.projectIds) clauses.push(projectClause(filter.projectIds));

@@ -122,7 +122,7 @@ export function Command({
 			data-checked={item.checked === undefined ? undefined : String(item.checked)}
 			data-depth={item.depth}
 			className={cx(
-				"flex h-8 cursor-default items-center gap-2 rounded-sm pr-2 text-base text-fg outline-none select-none data-[selected=true]:bg-bg",
+				"flex h-8 max-md:h-11 pointer-coarse:h-11 cursor-default items-center gap-2 rounded-sm pr-2 text-base text-fg outline-none select-none data-[selected=true]:bg-bg",
 				indents[Math.min(item.depth ?? 0, indents.length - 1)],
 				"after:ml-auto after:text-xs after:text-fg-muted after:content-[attr(data-hint)] after:tabular",
 			)}

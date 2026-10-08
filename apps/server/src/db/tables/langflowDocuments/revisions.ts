@@ -1,4 +1,3 @@
-import type { FlowDocumentSnapshotV1 } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { check, integer, jsonb, pgTable, primaryKey, text, unique } from "drizzle-orm/pg-core";
 import { at } from "../actors.ts";
@@ -15,7 +14,7 @@ export const langflowDocumentRevisions = pgTable(
 		documentHash: text("document_hash").notNull(),
 		componentManifestHash: text("component_manifest_hash"),
 		sourceBytes: bytes("source_bytes").notNull(),
-		snapshot: jsonb().$type<FlowDocumentSnapshotV1>().notNull(),
+		snapshot: jsonb().notNull(),
 		savedAt: at("saved_at").notNull(),
 	},
 	(t) => [

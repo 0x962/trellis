@@ -21,8 +21,13 @@ export function TicketComposer({
 					event.preventDefault();
 					onSubmit();
 				}}
-				onKeyDown={(event) => {
-					if (!event.defaultPrevented && (event.metaKey || event.ctrlKey) && event.key === "Enter") {
+				onKeyDownCapture={(event) => {
+					if (
+						!event.defaultPrevented &&
+						!event.nativeEvent.isComposing &&
+						(event.metaKey || event.ctrlKey) &&
+						event.key === "Enter"
+					) {
 						event.preventDefault();
 						onSubmit(event.shiftKey ? true : undefined);
 					}

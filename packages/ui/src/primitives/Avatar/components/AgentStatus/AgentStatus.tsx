@@ -6,6 +6,7 @@ export type AgentStatusValue =
 	| "needs-input"
 	| "done"
 	| "idle"
+	| "paused"
 	| "failed"
 	| "interrupted"
 	| "unavailable";
@@ -16,6 +17,7 @@ const colors: Record<AgentStatusValue, string> = {
 	done: "bg-success",
 	idle: "bg-fg-faint",
 	failed: "bg-danger",
+	paused: "bg-fg-faint",
 	interrupted: "bg-fg-muted",
 	unavailable: "bg-fg-faint",
 };

@@ -1,13 +1,5 @@
-import type { FlowDocumentSnapshotV1, FlowPublicationV1 } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { bigint, check, index, jsonb, pgTable, text, unique } from "drizzle-orm/pg-core";
-import type {
-	AdmissionStateV1,
-	CancelIntentV1,
-	CorrelationReceiptV1,
-	DeliveryAuthorityV1,
-	SubmissionV1,
-} from "../../../langflowContracts";
 import { tickets } from "../../schema";
 import { at } from "../actors";
 import { flowExecutions } from "../flowExecutions";
@@ -34,21 +26,21 @@ export const langflowExecutions = pgTable(
 		publicationRecordId: text("publication_record_id").references(() => langflowDocumentPublications.publicationId, {
 			onDelete: "set null",
 		}),
-		publication: jsonb().$type<FlowPublicationV1>().notNull(),
-		snapshot: jsonb().$type<FlowDocumentSnapshotV1>().notNull(),
+		publication: jsonb().notNull(),
+		snapshot: jsonb().notNull(),
 		hostId: text("host_id").notNull(),
 		actorKind: text("actor_kind").notNull(),
 		actorName: text("actor_name").notNull(),
 		requestId: text("request_id").notNull(),
 		requestBytes: text("request_bytes").notNull(),
 		submissionBytes: text("submission_bytes").notNull(),
-		submission: jsonb().$type<SubmissionV1>().notNull(),
+		submission: jsonb().notNull(),
 		engineJobId: text("engine_job_id"),
 		engineSessionId: text("engine_session_id"),
-		correlation: jsonb().$type<CorrelationReceiptV1>(),
-		admission: jsonb().$type<AdmissionStateV1>().notNull(),
-		authority: jsonb().$type<DeliveryAuthorityV1>(),
-		cancelIntent: jsonb("cancel_intent").$type<CancelIntentV1>(),
+		correlation: jsonb(),
+		admission: jsonb().notNull(),
+		authority: jsonb(),
+		cancelIntent: jsonb("cancel_intent"),
 		revision: bigint({ mode: "number" }).notNull(),
 		createdAt: at("created_at").notNull(),
 	},

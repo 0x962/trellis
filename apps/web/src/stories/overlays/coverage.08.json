@@ -1,0 +1,190 @@
+[
+	{
+		"source": "apps/web/src/features/table/WaveStart/components/WaveStartForm/WaveStartForm.tsx",
+		"export": "WaveStartForm",
+		"stories": [
+			"Overlays/WaveStartDialog/Open",
+			"Overlays/WaveStartDialog/ClosedTrigger",
+			"Overlays/WaveStartDialog/Empty",
+			"Overlays/WaveStartDialog/Disabled",
+			"Overlays/WaveStartDialog/Waiting",
+			"Overlays/WaveStartDialog/Pending",
+			"Overlays/WaveStartDialog/RequestError",
+			"Overlays/WaveStartDialog/Success"
+		],
+		"states": ["open", "closed-trigger", "empty", "disabled", "default", "pending", "error", "success"],
+		"notes": "The parent story mounts this production child or its owning hook."
+	},
+	{
+		"source": "apps/web/src/features/table/hooks/useBulkWrite/useBulkWrite.tsx",
+		"export": "useBulkWrite",
+		"stories": ["Overlays/CommandPalette/BulkDeleteConfirmation"],
+		"states": ["default"],
+		"notes": "The parent story mounts this production child or its owning hook."
+	},
+	{
+		"source": "apps/web/src/features/table/hooks/useWaveEditing/useWaveEditing.tsx",
+		"export": "useWaveEditing",
+		"stories": [
+			"Overlays/WaveDelete/ClosedTrigger",
+			"Overlays/WaveDelete/Open",
+			"Overlays/WaveDelete/Assigned",
+			"Overlays/WaveDelete/Pending",
+			"Overlays/WaveDelete/RequestError",
+			"Overlays/WaveDelete/Success"
+		],
+		"states": ["closed-trigger", "open", "default", "pending", "error", "success"],
+		"notes": "The parent story mounts this production child or its owning hook."
+	},
+	{
+		"source": "apps/web/src/features/ticket/Description/components/LazyEditor/components/EditorView/EditorView.tsx",
+		"export": "EditorView",
+		"stories": [
+			"Overlays/EditorControls/ClosedTrigger",
+			"Overlays/EditorControls/FormatOpen",
+			"Overlays/EditorControls/FormatSelected",
+			"Overlays/EditorControls/WithComments",
+			"Overlays/EditorControls/LinkOpen",
+			"Overlays/EditorControls/LinkSelected",
+			"Overlays/EditorControls/SlashOpen",
+			"Overlays/EditorControls/SlashFiltered",
+			"Overlays/EditorControls/SlashEmpty"
+		],
+		"states": ["closed-trigger", "open", "selected", "default", "empty"],
+		"notes": "Stories mount the production component with synthetic props and API responses."
+	},
+	{
+		"source": "apps/web/src/features/ticket/Description/components/LazyEditor/components/EditorView/components/FormatMenu/FormatMenu.tsx",
+		"export": "FormatMenu",
+		"stories": [
+			"Overlays/EditorControls/FormatOpen",
+			"Overlays/EditorControls/FormatSelected",
+			"Overlays/EditorControls/WithComments",
+			"Overlays/EditorControls/LinkOpen",
+			"Overlays/EditorControls/LinkSelected"
+		],
+		"states": ["open", "selected", "default"],
+		"notes": "The parent story mounts this production child or its owning hook."
+	},
+	{
+		"source": "apps/web/src/features/ticket/Description/components/LazyEditor/components/SlashMenu/SlashMenuList.tsx",
+		"export": "SlashMenuList",
+		"stories": [
+			"Overlays/EditorControls/SlashOpen",
+			"Overlays/EditorControls/SlashFiltered",
+			"Overlays/EditorControls/SlashEmpty"
+		],
+		"states": ["open", "default", "empty"],
+		"notes": "The parent story mounts this production child or its owning hook."
+	},
+	{
+		"source": "apps/web/src/features/ticket/Header/components/MoreMenu/MoreMenu.tsx",
+		"export": "MoreMenu",
+		"stories": [
+			"Overlays/TicketActions/ClosedTrigger",
+			"Overlays/TicketActions/Open",
+			"Overlays/TicketActions/DeleteConfirmation"
+		],
+		"states": ["closed-trigger", "open", "default"],
+		"notes": "Stories mount the production component with synthetic props and API responses."
+	},
+	{
+		"source": "apps/web/src/features/ticket/components/ConflictNotice/ConflictNotice.tsx",
+		"export": "ConflictNotice",
+		"stories": ["Overlays/TicketActions/Conflict", "Overlays/TicketActions/ConflictConfirmation"],
+		"states": ["error"],
+		"notes": "Stories mount the production component with synthetic props and API responses."
+	},
+	{
+		"source": "apps/web/src/features/usage/UsagePage/components/UsageAccounts/UsageAccounts.tsx",
+		"export": "UsageAccounts",
+		"stories": [
+			"Overlays/UsageAccounts/ClosedTrigger",
+			"Overlays/UsageAccounts/MenuOpen",
+			"Overlays/UsageAccounts/AddOpen",
+			"Overlays/UsageAccounts/AddPending",
+			"Overlays/UsageAccounts/AddError",
+			"Overlays/UsageAccounts/AddSuccess",
+			"Overlays/UsageAccounts/RenameOpen",
+			"Overlays/UsageAccounts/RenamePending",
+			"Overlays/UsageAccounts/RenameError",
+			"Overlays/UsageAccounts/RemoveOpen",
+			"Overlays/UsageAccounts/RemovePending",
+			"Overlays/UsageAccounts/RemoveError",
+			"Overlays/UsageAccounts/DetailsOpen",
+			"Overlays/UsageAccounts/SignInOpen",
+			"Overlays/UsageAccounts/Empty",
+			"Overlays/UsageAccounts/Loading",
+			"Overlays/UsageAccounts/RequestError"
+		],
+		"states": ["closed-trigger", "open", "pending", "error", "success", "empty", "loading"],
+		"notes": "Stories mount the production component with synthetic props and API responses."
+	},
+	{
+		"source": "apps/web/src/features/usage/UsagePage/components/UsageAccounts/components/UsageAccountRow/UsageAccountRow.tsx",
+		"export": "UsageAccountRow",
+		"stories": [
+			"Overlays/UsageAccounts/MenuOpen",
+			"Overlays/UsageAccounts/DetailsOpen",
+			"Overlays/UsageAccounts/SignInOpen",
+			"Overlays/UsageAccounts/RenameOpen",
+			"Overlays/UsageAccounts/RemoveOpen"
+		],
+		"states": ["open"],
+		"notes": "The parent story mounts this production child or its owning hook."
+	},
+	{
+		"source": "apps/web/src/features/usage/UsagePage/components/UsageProviders/UsageProviders.tsx",
+		"export": "UsageProviders",
+		"stories": [
+			"Overlays/UsageProviders/ClosedTrigger",
+			"Overlays/UsageProviders/Open",
+			"Overlays/UsageProviders/Disabled",
+			"Overlays/UsageProviders/Edit",
+			"Overlays/UsageProviders/RemoveConfirmation",
+			"Overlays/UsageProviders/RemovePending",
+			"Overlays/UsageProviders/RemoveError",
+			"Overlays/UsageProviders/RemoveSuccess",
+			"Overlays/UsageProviders/TogglePending",
+			"Overlays/UsageProviders/ToggleError",
+			"Overlays/UsageProviders/CheckLoading",
+			"Overlays/UsageProviders/CheckError",
+			"Overlays/UsageProviders/Empty",
+			"Overlays/UsageProviders/ListLoading",
+			"Overlays/UsageProviders/ListError"
+		],
+		"states": ["closed-trigger", "open", "disabled", "default", "pending", "error", "success", "loading", "empty"],
+		"notes": "Stories mount the production component with synthetic props and API responses."
+	},
+	{
+		"source": "apps/web/src/features/usage/UsagePage/components/UsageProviders/components/UsageProviderForm/UsageProviderForm.tsx",
+		"export": "UsageProviderForm",
+		"stories": [
+			"Overlays/UsageProviderForm/Open",
+			"Overlays/UsageProviderForm/ClosedTrigger",
+			"Overlays/UsageProviderForm/Selected",
+			"Overlays/UsageProviderForm/Disabled",
+			"Overlays/UsageProviderForm/CompatibleEndpoint",
+			"Overlays/UsageProviderForm/ModelsOpen",
+			"Overlays/UsageProviderForm/ModelsEmpty",
+			"Overlays/UsageProviderForm/ModelsLoading",
+			"Overlays/UsageProviderForm/ModelsError",
+			"Overlays/UsageProviderForm/Pending",
+			"Overlays/UsageProviderForm/RequestError",
+			"Overlays/UsageProviderForm/Success"
+		],
+		"states": [
+			"open",
+			"closed-trigger",
+			"selected",
+			"disabled",
+			"default",
+			"empty",
+			"loading",
+			"error",
+			"pending",
+			"success"
+		],
+		"notes": "Stories mount the production component with synthetic props and API responses."
+	}
+]

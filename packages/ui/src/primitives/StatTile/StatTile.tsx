@@ -18,17 +18,40 @@ export type StatTileProps = {
 	// page ground, for a row of tiles that needs no frame of its own.
 	framed?: boolean;
 	className?: string;
+	size?: "default" | "large";
 };
 
-// One measure: its name, the figure, and one line that qualifies it. Every
-// statistic in trellis draws this tile, so two screens that report a number
-// report it at one size and one weight.
-export function StatTile({ label, value, detail, valueClass = "text-fg", framed = false, className }: StatTileProps) {
+export function StatTile({
+	label,
+	value,
+	detail,
+	valueClass = "text-fg",
+	framed = false,
+	className,
+	size = "default",
+}: StatTileProps) {
 	return (
-		<dl className={cx("flex min-w-0 flex-col gap-0.5", framed && "rounded-lg border border-border p-4", className)}>
-			<dt className="truncate text-xs text-fg-faint">{label}</dt>
-			<dd className={cx("text-xl font-semibold tabular", valueClass)}>{value}</dd>
-			{detail !== undefined && <dd className="truncate text-xs text-fg-muted tabular">{detail}</dd>}
+		<dl
+			className={cx(
+				"flex min-w-0 flex-col gap-0.5",
+				framed && "rounded-lg border border-border p-4",
+				size === "large" && "gap-1.5",
+				className,
+			)}
+		>
+			<dt className={cx("text-xs", size === "default" ? "truncate text-fg-faint" : "text-fg-muted")}>{label}</dt>
+			<dd
+				className={cx(
+					"tabular",
+					size === "large" ? "text-metric font-medium tracking-tight max-sm:text-2xl" : "text-xl font-semibold",
+					valueClass,
+				)}
+			>
+				{value}
+			</dd>
+			{detail !== undefined && (
+				<dd className={cx("text-xs text-fg-muted tabular", size === "default" && "truncate")}>{detail}</dd>
+			)}
 		</dl>
 	);
 }

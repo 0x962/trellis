@@ -100,7 +100,7 @@ export function MenuPopup({ items, onClose, className, onKeyDown, ...props }: Pr
 			{...props}
 			onKeyDown={runKey}
 			className={cx(
-				"min-w-40 origin-(--transform-origin) rounded-lg border border-border bg-elevated p-1 shadow-md outline-none",
+				"min-w-40 max-w-(--available-width) max-sm:min-w-0 origin-(--transform-origin) rounded-lg border border-border bg-elevated p-1 shadow-md outline-none",
 				popupMotion,
 				"duration-popover",
 				className,

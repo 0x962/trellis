@@ -1,4 +1,4 @@
-import { Checks } from "@phosphor-icons/react";
+import { ArrowClockwise, Checks } from "@phosphor-icons/react";
 import type { PageComment, PageCommentThread } from "@trellis/api";
 import { Badge, EmptyState, FailureState, IconButton, SectionHeader, Skeleton, Tooltip } from "@trellis/ui";
 import { ReviewThreadCard } from "@trellis/ui/review";
@@ -52,6 +52,7 @@ export function PageCommentThreads({
 	actions,
 	onSelect,
 	onShowResolved,
+	onRetry,
 }: {
 	threads: { number: number; thread: PageCommentThread }[];
 	selected: string | null;
@@ -62,6 +63,7 @@ export function PageCommentThreads({
 	actions: PageCommentActions;
 	onSelect: (id: string) => void;
 	onShowResolved: (show: boolean) => void;
+	onRetry: () => void;
 }) {
 	const actor = useActor();
 	const resolvedCount = useMemo(() => threads.filter(({ thread }) => thread.resolved !== null).length, [threads]);
@@ -101,7 +103,7 @@ export function PageCommentThreads({
 		<section aria-label="Comments" className="flex flex-col gap-2">
 			<SectionHeader
 				title="Comments"
-				level={3}
+				level={2}
 				actions={
 					resolvedCount > 0 ? (
 						<Tooltip content={showResolved ? "Hide resolved threads" : `Show ${resolvedCount} resolved`}>
@@ -116,7 +118,16 @@ export function PageCommentThreads({
 				}
 			/>
 			{loadError !== null && (
-				<FailureState title="The comments did not load" detail={errorMessage(loadError)} variant="section" />
+				<FailureState
+					title="The comments did not load"
+					detail={errorMessage(loadError)}
+					variant="section"
+					action={
+						<Tooltip content="Retry">
+							<IconButton label="Retry" icon={<ArrowClockwise />} onClick={onRetry} />
+						</Tooltip>
+					}
+				/>
 			)}
 			{loading && (
 				<div role="status" aria-label="Load comments">
@@ -153,7 +164,7 @@ export function PageCommentThreads({
 						anchorAction={
 							<button
 								type="button"
-								className="block w-full text-left text-xs text-fg-muted"
+								className="flex min-h-7 w-full items-center text-left text-xs text-fg-muted max-md:min-h-11"
 								onClick={() => onSelect(thread.id)}
 							>
 								{anchor}

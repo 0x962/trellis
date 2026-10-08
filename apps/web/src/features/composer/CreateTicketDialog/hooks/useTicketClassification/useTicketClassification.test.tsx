@@ -14,7 +14,11 @@ type Request = {
 	resolve: (result: TicketClassification) => void;
 	reject: (error: Error) => void;
 };
-const suggestion: TicketClassification = { epic: "TRL/forms", wave: "TRL/forms/fixes", priority: "high" };
+const suggestion: TicketClassification = {
+	epic: "TRL/forms",
+	wave: "TRL/forms/fixes",
+	priority: "high",
+};
 const disposals: Array<() => Promise<void>> = [];
 afterEach(async () => {
 	for (const dispose of disposals.splice(0)) await dispose();
@@ -97,7 +101,7 @@ test("a response from an earlier title cannot update the new draft", async () =>
 	await act(async () => f.requests[0]!.resolve(suggestion));
 	expect(f.applied).toHaveLength(0);
 	await wait();
-	const fresh = { epic: "TRL/database", wave: "TRL/database/fixes", priority: "urgent" } as const;
+	const fresh = { ...suggestion, epic: "TRL/database", wave: "TRL/database/fixes", priority: "urgent" } as const;
 	await act(async () => f.requests[1]!.resolve(fresh));
 	expect(f.applied[0]!.result).toEqual(fresh);
 });

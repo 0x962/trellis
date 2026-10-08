@@ -205,18 +205,31 @@ export const Row = memo(function Row({
 			onDoubleClick={() => onOpen?.(ticket.id)}
 			onKeyDown={onKeyDown}
 		>
-			{washing && <DoneWash />}
-			<a
-				href={href}
-				tabIndex={-1}
-				data-row-link=""
-				aria-label={`Open ${identifier}`}
-				className="absolute inset-0 z-0"
-				onClick={onLinkClick}
-				onAuxClick={stopLinkPropagation}
-			>
-				<span className="sr-only">Open {identifier}</span>
-			</a>
+			{/* biome-ignore lint/a11y/useSemanticElements lint/a11y/useFocusableInteractive: The row owns focus, and this cell keeps the native ticket link. */}
+			<div role="gridcell" className="absolute inset-0 z-0">
+				{washing && <DoneWash />}
+				<a
+					href={href}
+					tabIndex={-1}
+					data-row-link=""
+					aria-label={`Open ${identifier}`}
+					className="absolute inset-0 z-0"
+					onClick={onLinkClick}
+					onAuxClick={stopLinkPropagation}
+				>
+					<span className="sr-only">Open {identifier}</span>
+				</a>
+				{hasChildLines && <TreeStem depth={1} />}
+				<HiddenPickers
+					ticket={ticket}
+					columns={columns}
+					editing={editing}
+					statuses={statuses}
+					finalFocus={element}
+					onEditingChange={editingChange}
+					onChange={change}
+				/>
+			</div>
 			{columns.map((column) => (
 				// biome-ignore lint/a11y/useSemanticElements lint/a11y/useFocusableInteractive: The row owns the grid focus, so its cells stay outside the tab order.
 				<div
@@ -237,22 +250,17 @@ export const Row = memo(function Row({
 			    ticket, so the track is empty on most rows. It keeps its width either way,
 			    so the cells of every row of the table sit at the same x. */}
 			{isEpicTable(columns) && (
-				<div data-column="disclosure" className={cx("relative z-10 flex items-center justify-end", linkedCellClass)}>
+				// biome-ignore lint/a11y/useSemanticElements lint/a11y/useFocusableInteractive: The row owns focus, and the disclosure button keeps its focus target.
+				<div
+					role="gridcell"
+					data-column="disclosure"
+					className={cx("relative z-10 flex items-center justify-end", linkedCellClass)}
+				>
 					{disclosure !== null && (
 						<TicketDisclosure identifier={identifier} disclosure={disclosure} onToggle={toggleDisclosure} />
 					)}
 				</div>
 			)}
-			{hasChildLines && <TreeStem depth={1} />}
-			<HiddenPickers
-				ticket={ticket}
-				columns={columns}
-				editing={editing}
-				statuses={statuses}
-				finalFocus={element}
-				onEditingChange={editingChange}
-				onChange={change}
-			/>
 		</div>
 	);
 });

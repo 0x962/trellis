@@ -35,6 +35,7 @@ export type RankedBarsProps = {
 	limit?: number;
 	maxValue?: number;
 	className?: string;
+	appearance?: "default" | "overview";
 };
 
 // A tiny bar series of the days, for the right of a row: it shows when the
@@ -65,7 +66,16 @@ function Spark({ values }: { values: readonly number[] }) {
 // The ranked slices of a whole, largest first, each with a bar as long as
 // its share of the largest. A pressed row is the selected slice. The list
 // shows `limit` rows, then a Show all button reveals the rest.
-export function RankedBars({ label, rows, selected, onSelect, limit = 8, maxValue, className }: RankedBarsProps) {
+export function RankedBars({
+	label,
+	rows,
+	selected,
+	onSelect,
+	limit = 8,
+	maxValue,
+	className,
+	appearance = "default",
+}: RankedBarsProps) {
 	const [expanded, setExpanded] = useState(false);
 	const narrow = useMediaQuery("(max-width: 767px)");
 	const max = maxValue ?? rows[0]?.value ?? 0;
@@ -87,6 +97,7 @@ export function RankedBars({ label, rows, selected, onSelect, limit = 8, maxValu
 										"max-md:gap-x-2 max-md:gap-y-1 max-md:py-2",
 										"focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2",
 										pressed ? "bg-accent-soft" : "hover:bg-band",
+										appearance === "overview" && "min-h-15 py-3 max-md:py-3",
 									)}
 								>
 									<span className="flex min-w-0 items-center gap-2 max-md:col-span-2 max-md:items-start">
@@ -107,7 +118,12 @@ export function RankedBars({ label, rows, selected, onSelect, limit = 8, maxValu
 										<span className="w-20 text-right text-sm text-fg tabular max-md:w-auto max-md:text-left">
 											{row.valueLabel}
 										</span>
-										<span className="w-10 text-right text-xs text-fg-faint tabular max-md:w-auto max-md:text-left">
+										<span
+											className={cx(
+												"w-10 text-right text-xs tabular max-md:w-auto max-md:text-left",
+												pressed ? "text-fg" : "text-fg-muted",
+											)}
+										>
 											{Math.round(row.share * 100)}%
 										</span>
 									</span>
@@ -122,7 +138,9 @@ export function RankedBars({ label, rows, selected, onSelect, limit = 8, maxValu
 									</span>
 								</button>
 							</Tooltip>
-							<span className="flex w-7 shrink-0 justify-center pointer-coarse:w-11">{row.action}</span>
+							{(row.action != null || appearance === "default") && (
+								<span className="flex w-7 shrink-0 justify-center pointer-coarse:w-11">{row.action}</span>
+							)}
 						</li>
 					);
 				})}

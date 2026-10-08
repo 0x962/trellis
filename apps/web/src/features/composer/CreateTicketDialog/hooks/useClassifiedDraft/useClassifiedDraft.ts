@@ -3,7 +3,7 @@ import type { ComposerOptions } from "../../../composerStore";
 import type { ComposerDraft } from "../../../hooks/useComposerDraft/useComposerDraft";
 import { useTicketClassification } from "../useTicketClassification";
 
-type Fields = Pick<ComposerDraft, "epic" | "wave" | "priority">;
+type Fields = Pick<ComposerDraft, "epic" | "wave" | "priority" | "assignment">;
 const fields = ["epic", "wave", "priority"] as const;
 const pins = (draft: ComposerDraft, options: ComposerOptions, defaultPriority: Priority) => {
 	const automatic = draft.automatic ?? [];
@@ -59,7 +59,12 @@ export function useClassifiedDraft({
 				)
 					return current;
 				const automatic = fields.filter((field) => !selected[field]);
-				return { ...current, ...Object.fromEntries(automatic.map((field) => [field, result[field]])), automatic };
+				const next: ComposerDraft = {
+					...current,
+					...Object.fromEntries(automatic.map((field) => [field, result[field]])),
+					automatic,
+				};
+				return next;
 			});
 		},
 	});
@@ -69,11 +74,6 @@ export function useClassifiedDraft({
 			...change,
 			automatic: current.automatic?.filter((field) => !Object.hasOwn(change, field)),
 		}));
-	const message =
-		state === "pending"
-			? "Selecting epic, wave, and priority…"
-			: state === "error"
-				? "Automatic selection is unavailable. Select an epic, wave, and priority."
-				: null;
+	const message = state === "error" ? "Automatic selection is unavailable. Select the ticket fields." : null;
 	return { choose, message };
 }

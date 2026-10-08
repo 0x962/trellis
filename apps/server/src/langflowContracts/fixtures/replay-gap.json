@@ -1,9 +1,0 @@
-{
-  "version": 1,
-  "state": "gap",
-  "executionId": "execution-1",
-  "afterSeq": 0,
-  "firstAvailableSeq": 10,
-  "snapshotRevision": 20,
-  "snapshotLastSeq": 12
-}

@@ -1,81 +1,31 @@
 import { afterAll, beforeAll, expect, test } from "bun:test";
 import { OpenAPIHandler } from "@orpc/openapi/fetch";
+import { TicketClassificationInputSchema } from "@trellis/api";
 import { sql } from "drizzle-orm";
 import { ulid } from "ulid";
-import type { ServiceCtx } from "../../../context.ts";
-import { createCache } from "../../../db/cache.ts";
-import { openTestDb } from "../../../db/testDb.ts";
 import type { ServiceTransport } from "../../../db/transport.ts";
-import type { Tx } from "../../../db/tx.ts";
 import type { GhAccess } from "../../../ghState.ts";
 import type { ProcedureContext } from "../../../procedures/base.ts";
 import { tickets } from "../../../procedures/tickets.ts";
 import { createDbTiming } from "../../../serverTiming.ts";
-import { create as createEpic } from "../../epics/epics.ts";
-import type { evaluate } from "../../providers/evaluate";
 import type { ProviderFetch } from "../../providers/remote.ts";
-import { remoteHarness } from "../../providers/testSupport/testSupport.ts";
-import { create as createWave } from "../../waves/waves.ts";
 import { classify } from "./classify.ts";
 import { classificationResult } from "./result";
+import { classificationHarness } from "./testSupport";
 
-let db: Awaited<ReturnType<typeof openTestDb>>;
-let h: ReturnType<typeof remoteHarness>;
-let core: ServiceCtx;
-let inside = false;
+type Harness = Awaited<ReturnType<typeof classificationHarness>>;
+let db: Harness["db"];
+let h: Harness["h"];
+let core: Harness["core"];
+let project: Harness["project"];
+let epic: Harness["epic"];
+let wave: Harness["wave"];
+let answer: Harness["answer"];
+let first: ProviderFetch;
 const at = "2026-09-30T06:00:00Z";
-let number = 0;
-const project = async () => {
-	const id = ulid();
-	const key = `JC${++number}`;
-	await db.execute(sql`INSERT INTO projects (id, key, slug, name, created_at, updated_at)
-		VALUES (${id}, ${key}, ${key.toLowerCase()}, ${key}, ${at}, ${at})`);
-	await db.transaction((tx) => core.cache.rebuild(tx));
-	return { id, key };
-};
-const epic = (project: string, name: string) => db.transaction((tx) => createEpic(core, tx, { project, name }));
-const wave = (epic: string, name: string) => db.transaction((tx) => createWave(core, tx, { epic, name }));
-type Evaluation = Parameters<typeof evaluate>[1];
-type Candidate = { epic: string; wave: string | null; description: string };
-const answer =
-	(choose: (choices: Record<string, Candidate>, input: Evaluation) => string | undefined): ProviderFetch =>
-	async (_url, init) => {
-		expect(inside).toBe(false);
-		const input = JSON.parse(init.body as string) as Evaluation & { state: { candidates: Record<string, Candidate> } };
-		const placement = choose(input.state.candidates, input);
-		return Response.json({
-			answers: {
-				priority: { type: "choice", choice: "high" },
-				...(placement === undefined ? {} : { placement: { type: "choice", choice: placement } }),
-			},
-		});
-	};
-const first = answer((choices) => Object.keys(choices)[0]);
-
 beforeAll(async () => {
-	db = await openTestDb();
-	h = remoteHarness(db);
-	core = {
-		actor: { kind: "human", name: "Test" },
-		session: null,
-		reqId: ulid(),
-		now: new Date(at),
-		cache: createCache(),
-		actorCache: new Map(),
-		emit: () => {},
-		dropBlobs: () => {},
-		publicUrl: "http://localhost:4597",
-	};
-	h.ctx.core = core;
-	h.ctx.newTx = async <T>(fn: (tx: Tx) => Promise<T>) => {
-		inside = true;
-		try {
-			return await db.transaction(fn);
-		} finally {
-			inside = false;
-		}
-	};
-	await h.create({ models: ["typesafe-ai/jev"] });
+	({ db, h, core, project, epic, wave, answer } = await classificationHarness(at));
+	first = answer((choices) => Object.keys(choices)[0]);
 }, 30_000);
 afterAll(async () => db.$client.close());
 
@@ -144,7 +94,11 @@ test("an empty project and an epic without waves keep normal creation defaults",
 	expect(empty.suggestion).toEqual({ epic: null, wave: null, priority: "high" });
 	const selected = await epic(p.id, "Plan");
 	const result = await classify(h.ctx, { project: p.key, title: "Work", description: "" }, first);
-	expect(result.suggestion).toEqual({ epic: selected.ref, wave: null, priority: "high" });
+	expect(result.suggestion).toEqual({
+		epic: selected.ref,
+		wave: null,
+		priority: "high",
+	});
 });
 
 test("foreign and mismatched references fail before a provider call", async () => {
@@ -187,7 +141,7 @@ test("canceled plans stay out of automatic choices", async () => {
 	expect(result.suggestion.epic).toBe(available.ref);
 });
 
-test("invalid model choices and provider failure never yield a suggestion", async () => {
+test("invalid placement choices and provider failure never yield a suggestion", async () => {
 	const p = await project();
 	await epic(p.id, "Plan");
 	const input = { project: p.key, title: "Work", description: "" };
@@ -239,6 +193,37 @@ test("the HTTP endpoint requires an actor and validates the draft before classif
 	expect(calls).toBe(0);
 	const response = await post("Work", true);
 	expect(response.status).toBe(200);
-	expect(await response.json()).toEqual({ epic: null, wave: null, priority: "high" });
+	expect(await response.json()).toEqual({
+		epic: null,
+		wave: null,
+		priority: "high",
+	});
 	expect(calls).toBe(1);
+});
+
+test("Jev receives only placement and priority questions", async () => {
+	const p = await project();
+	await epic(p.id, "Plan");
+	await classify(
+		h.ctx,
+		{ project: p.key, title: "Diagnose data loss", description: "Investigate a critical failure" },
+		answer((choices, input) => {
+			expect(Object.keys(input.questions).sort()).toEqual(["placement", "priority"]);
+			return Object.keys(choices)[0];
+		}),
+	);
+});
+
+test("classification rejects model selection input before a provider call", async () => {
+	const p = await project();
+	const input = { project: p.key, title: "Fix form", description: "", harness: "codex" };
+	expect(TicketClassificationInputSchema.safeParse(input).success).toBe(false);
+	let calls = 0;
+	await expect(
+		classify(h.ctx, input, async () => {
+			calls += 1;
+			throw new Error("Unexpected provider call");
+		}),
+	).rejects.toThrow();
+	expect(calls).toBe(0);
 });

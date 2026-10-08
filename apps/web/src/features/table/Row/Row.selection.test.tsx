@@ -3,6 +3,7 @@ import { createMemoryHistory, createRootRoute, createRouter, RouterProvider } fr
 import type { TicketSummary } from "@trellis/api";
 import { act, useState } from "react";
 import { createRoot } from "react-dom/client";
+import { renderToStaticMarkup } from "react-dom/server";
 import { usePageSheetStore } from "../../../stores/pageSheetStore";
 import { type RowSelection, useRowSelection } from "../hooks/useRowSelection";
 import { useRowActions } from "../TicketTable/useRowActions";
@@ -185,4 +186,17 @@ domTest("Shift row clicks select ranges in the narrow layout", async () => {
 	await table.click("5", "link", { shiftKey: true });
 	expect(table.selected()).toEqual(["2", "3", "4", "5"]);
 	expect(usePageSheetStore.getState().ticket).toBeNull();
+});
+
+test("the desktop row gives its direct content grid-cell semantics", () => {
+	const html = renderToStaticMarkup(
+		<Row ticket={ticket("1")} columns={["id", "title", "waits"]} disclosure="collapsed" hasChildLines washing />,
+	);
+	const linkCell = html.split('role="gridcell"')[1]!;
+
+	expect(html.match(/role="gridcell"/g)).toHaveLength(5);
+	expect(linkCell).toContain('aria-label="Open TRL-1"');
+	expect(linkCell).toContain("data-done-wash");
+	expect(linkCell).toContain('aria-hidden="true"');
+	expect(html).toContain('role="gridcell" data-column="disclosure"');
 });

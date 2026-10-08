@@ -3,7 +3,7 @@ import { Field, Select } from "@trellis/ui";
 import { harnessPresets, type NativePreset } from "../harnessPresets";
 import { ModelPicker } from "../ModelPicker";
 
-type Common = { disabled?: boolean; compact?: boolean };
+type Common = { disabled?: boolean };
 
 // With `allowDefault`, the harness select carries one more item, labelled
 // with that text, and a choice of it reports null: the caller then falls
@@ -14,13 +14,7 @@ export type LaunchFieldsProps = Common &
 		| { harness: Harness | null; onChange: (harness: Harness | null) => void; allowDefault: string }
 	);
 
-export function LaunchFields({
-	harness,
-	onChange,
-	allowDefault,
-	disabled = false,
-	compact = false,
-}: LaunchFieldsProps) {
+export function LaunchFields({ harness, onChange, allowDefault, disabled = false }: LaunchFieldsProps) {
 	const change = onChange as (harness: Harness | null) => void;
 	const model =
 		harness === null
@@ -35,7 +29,7 @@ export function LaunchFields({
 	];
 	return (
 		<>
-			<Field label="Harness" hideLabel={compact} className={compact ? "max-w-full" : undefined}>
+			<Field label="Harness">
 				<Select
 					label="Harness"
 					value={harness?.preset ?? "default"}
@@ -48,24 +42,22 @@ export function LaunchFields({
 				/>
 			</Field>
 			{harness !== null && harness.preset !== "custom" && (
-				<Field label="Model" hideLabel={compact} className={compact ? "max-w-full" : undefined}>
+				<Field label="Model">
 					<ModelPicker
 						harness={harness.preset}
 						value={harness.model}
-						compact={compact}
-						className={compact ? "w-auto" : undefined}
 						disabled={disabled}
 						onValueChange={(model) => change({ ...harness, model, effort: undefined })}
 					/>
 				</Field>
 			)}
 			{harness !== null && effort && (
-				<Field label={effort.label} hideLabel={compact} className={compact ? "max-w-full" : undefined}>
+				<Field label={effort.label}>
 					<Select
 						label={effort.label}
 						value={harness.effort ?? "default"}
 						disabled={disabled}
-						items={[{ value: "default", label: compact ? "Default effort" : "Harness default" }, ...effort.options]}
+						items={[{ value: "default", label: "Harness default" }, ...effort.options]}
 						onValueChange={(value) =>
 							change({ ...harness, effort: value === "default" ? undefined : (value as Harness["effort"]) })
 						}

@@ -1,0 +1,167 @@
+[
+	{
+		"source": "packages/ui/src/primitives/PickerButton/PickerButton.tsx",
+		"export": "PickerButton",
+		"stories": [
+			"Components/PickerButton/Default",
+			"Components/PickerButton/Small",
+			"Components/PickerButton/Disabled",
+			"Components/PickerButton/LongContent"
+		],
+		"states": ["default", "small", "disabled", "long content"],
+		"notes": "The story renders the public component with local fixture data. Global controls set the theme and viewport."
+	},
+	{
+		"source": "packages/ui/src/primitives/Popover/Popover.tsx",
+		"export": "Popover",
+		"stories": [
+			"Components/Popover/Default",
+			"Components/Popover/Open",
+			"Components/Popover/Above",
+			"Components/Popover/AlignEnd"
+		],
+		"states": ["default", "open", "above", "align end"],
+		"notes": "Click the action to open the panel. Escape closes it and returns focus."
+	},
+	{
+		"source": "packages/ui/src/primitives/PropertyRow/PropertyRow.tsx",
+		"export": "PropertyRow",
+		"stories": [
+			"Components/PropertyRow/Default",
+			"Components/PropertyRow/Compact",
+			"Components/PropertyRow/LongContent"
+		],
+		"states": ["default", "compact", "long content"],
+		"notes": "The story renders the public component with local fixture data. Global controls set the theme and viewport."
+	},
+	{
+		"source": "packages/ui/src/primitives/ResizeHandle/ResizeHandle.tsx",
+		"export": "ResizeHandle",
+		"stories": ["Components/ResizeHandle/Default", "Components/ResizeHandle/Active", "Components/ResizeHandle/Fixed"],
+		"states": ["default", "active", "fixed"],
+		"notes": "This primitive exposes the resize state and pointer target. The owning panel supplies drag and keyboard handlers."
+	},
+	{
+		"source": "packages/ui/src/primitives/ScrollArea/ScrollArea.tsx",
+		"export": "ScrollArea",
+		"stories": ["Components/ScrollArea/Default", "Components/ScrollArea/Empty", "Components/ScrollArea/Busy"],
+		"states": ["default", "empty", "busy"],
+		"notes": "Focus the region and use Page Up, Page Down, Home, or End to scroll."
+	},
+	{
+		"source": "packages/ui/src/primitives/SectionHeader/SectionHeader.tsx",
+		"export": "SectionHeader",
+		"stories": [
+			"Components/SectionHeader/Default",
+			"Components/SectionHeader/Empty",
+			"Components/SectionHeader/Nested",
+			"Components/SectionHeader/WithAction",
+			"Components/SectionHeader/LongTitle"
+		],
+		"states": ["default", "empty", "nested", "with action", "long title"],
+		"notes": "The story renders the public component with local fixture data. Global controls set the theme and viewport."
+	},
+	{
+		"source": "packages/ui/src/primitives/Segmented/Segmented.tsx",
+		"export": "Segmented",
+		"stories": ["Components/Segmented/Default", "Components/Segmented/SecondSelected"],
+		"states": ["default", "second selected"],
+		"notes": "Arrow keys select an option. Tab moves to the next control."
+	},
+	{
+		"source": "packages/ui/src/primitives/Select/Select.tsx",
+		"export": "Select",
+		"stories": [
+			"Components/Select/Default",
+			"Components/Select/Disabled",
+			"Components/Select/ErrorState",
+			"Components/Select/ReadOnly",
+			"Components/Select/Placeholder",
+			"Components/Select/HiddenLabel",
+			"Components/Select/Virtualized"
+		],
+		"states": ["default", "disabled", "error", "read only", "placeholder", "hidden label", "virtualized"],
+		"notes": "Open the control to inspect its popup. Arrow keys move the selection."
+	},
+	{
+		"source": "packages/ui/src/primitives/Separator/Separator.tsx",
+		"export": "Separator",
+		"stories": ["Components/Separator/Default", "Components/Separator/Vertical"],
+		"states": ["default", "vertical"],
+		"notes": "The story renders the public component with local fixture data. Global controls set the theme and viewport."
+	},
+	{
+		"source": "packages/ui/src/primitives/SettingsNav/SettingsNav.tsx",
+		"export": "SettingsNav",
+		"stories": [
+			"Components/SettingsNav/Default",
+			"Components/SettingsNav/SecondSelected",
+			"Components/SettingsNav/LongLabels"
+		],
+		"states": ["default", "second selected", "long labels"],
+		"notes": "The story renders the public component with local fixture data. Global controls set the theme and viewport."
+	},
+	{
+		"source": "packages/ui/src/primitives/Sheet/Sheet.tsx",
+		"export": "Sheet",
+		"stories": [
+			"Components/Sheet/Default",
+			"Components/Sheet/Open",
+			"Components/Sheet/Left",
+			"Components/Sheet/NonModal",
+			"Components/Sheet/FullWidth",
+			"Components/Sheet/LongContent"
+		],
+		"states": ["default", "open", "left", "non modal", "full width", "long content"],
+		"notes": "The form renders SheetBody, SheetSection, and SheetFooter. Escape closes the sheet. The opener receives focus."
+	},
+	{
+		"source": "packages/ui/src/primitives/SheetBody/SheetBody.tsx",
+		"export": "SheetBody",
+		"stories": [
+			"Components/Sheet/Default",
+			"Components/Sheet/Open",
+			"Components/Sheet/Left",
+			"Components/Sheet/NonModal",
+			"Components/Sheet/FullWidth",
+			"Components/Sheet/LongContent"
+		],
+		"states": ["default", "open", "left", "non modal", "full width", "long content"],
+		"notes": "SheetBody contains the form in the open sheet. LongContent checks scrolling."
+	},
+	{
+		"source": "packages/ui/src/primitives/SheetFooter/SheetFooter.tsx",
+		"export": "SheetFooter",
+		"stories": [
+			"Components/Sheet/Default",
+			"Components/Sheet/Open",
+			"Components/Sheet/Left",
+			"Components/Sheet/NonModal",
+			"Components/Sheet/FullWidth",
+			"Components/Sheet/LongContent"
+		],
+		"states": ["default", "open", "left", "non modal", "full width", "long content"],
+		"notes": "SheetFooter contains form status and the save action in the open sheet."
+	},
+	{
+		"source": "packages/ui/src/primitives/SheetSection/SheetSection.tsx",
+		"export": "SheetSection",
+		"stories": [
+			"Components/Sheet/Default",
+			"Components/Sheet/Open",
+			"Components/Sheet/Left",
+			"Components/Sheet/NonModal",
+			"Components/Sheet/FullWidth",
+			"Components/Sheet/LongContent"
+		],
+		"states": ["default", "open", "left", "non modal", "full width", "long content"],
+		"notes": "SheetSection groups the fields in the open sheet."
+	},
+	{
+		"source": "packages/ui/src/primitives/Skeleton/Skeleton.tsx",
+		"export": "Skeleton",
+		"stories": ["Components/Skeleton/Default", "Components/Skeleton/MultipleLines", "Components/Skeleton/Row"],
+		"states": ["default", "multiple lines", "row"],
+		"notes": "The story renders the public component with local fixture data. Global controls set the theme and viewport."
+	}
+]

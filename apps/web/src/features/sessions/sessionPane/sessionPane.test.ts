@@ -51,7 +51,7 @@ describe("sessionPane", () => {
 			kind: "failed",
 			title: "The agent stopped before it finished",
 			description:
-				"Trellis keeps the workspace and every file in it. A new start opens a new agent in the same workspace.",
+				"Trellis keeps the workspace and every file in it. Resume uses the saved conversation when one is available.",
 			detail: exitLine,
 		});
 	});
@@ -90,6 +90,27 @@ describe("sessionPane", () => {
 			description:
 				"Trellis keeps the conversation, the workspace and every file in it. Resume opens the same conversation in the same workspace.",
 		});
+	});
+
+	test("a completed ticket agent keeps its Done heading after process exit", () => {
+		for (const state of ["stopped", "exited"] as const) {
+			const completed = run({
+				kind: "agent",
+				assigned: true,
+				ticketId: "ticket",
+				ticketStatusCategory: "done",
+				state,
+				processStatus: "exited",
+				observation: null,
+			});
+			expect(sessionPane(completed, false)).toEqual({
+				kind: "paused",
+				title: "The agent is done",
+				description: "Trellis keeps the conversation, the workspace and every file in it.",
+			});
+			completed.state = "failed";
+			expect(sessionPane(completed, false).kind).toBe("failed");
+		}
 	});
 
 	test("keeps a failed process out of the paused words", () => {

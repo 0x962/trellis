@@ -1,0 +1,157 @@
+import type { PullRequest, ReviewOverview, ReviewRevision, ReviewThread } from "@trellis/api";
+import { actor, id, ticket, timestamp } from "./project";
+import { projectResponses } from "./responses";
+
+export const pullRequest: PullRequest = {
+	id: id(300),
+	owner: "example",
+	repo: "trellis",
+	number: 42,
+	url: "https://github.com/example/trellis/pull/42",
+	title: "Keep the ticket title readable at every screen width",
+	state: "open",
+	isDraft: false,
+	isQueued: false,
+	localState: "ready",
+	localVerdict: null,
+	additions: 2,
+	deletions: 1,
+	changedFiles: 1,
+	files: [{ path: "src/title.ts", change: "change", additions: 2, deletions: 1 }],
+	reviewGaps: [],
+	readyForReviewAt: timestamp,
+	headRef: "demo/readable-title",
+	baseRef: "main",
+	mergeable: "mergeable",
+	reviewState: "review_required",
+	mergedAt: null,
+	closedAt: null,
+	checks: [
+		{
+			name: "Types",
+			workflow: "Check",
+			bucket: "pass",
+			link: null,
+			startedAt: "2026-09-30T11:56:00.000Z",
+			endedAt: "2026-09-30T11:57:30.000Z",
+		},
+		{
+			name: "Lint",
+			workflow: "Check",
+			bucket: "pass",
+			link: null,
+			startedAt: "2026-09-30T11:56:00.000Z",
+			endedAt: "2026-09-30T11:56:25.000Z",
+		},
+	],
+	ciState: "pass",
+	fetchedAt: timestamp,
+	fetchError: null,
+	createdAt: timestamp,
+	updatedAt: timestamp,
+};
+
+export const reviewStatus = {
+	title: pullRequest.title,
+	state: "OPEN",
+	isDraft: false,
+	isQueued: false,
+	localState: "ready",
+	headRefOid: "1234567890abcdef",
+	baseRefOid: "abcdef1234567890",
+	headRefName: pullRequest.headRef,
+	baseRefName: "main",
+	mergeable: "MERGEABLE",
+	mergeStateStatus: "CLEAN",
+	reviewDecision: "REVIEW_REQUIRED",
+	url: pullRequest.url,
+	number: 42,
+	author: { login: "storybook" },
+	additions: 2,
+	deletions: 1,
+	changedFiles: 1,
+	ticket: { identifier: ticket.identifier, title: ticket.title },
+	prRow: null,
+	checks: pullRequest.checks,
+};
+
+export const revision: ReviewRevision = {
+	id: id(301),
+	prId: pullRequest.id,
+	baseSha: reviewStatus.baseRefOid,
+	headSha: reviewStatus.headRefOid,
+	patch:
+		"diff --git a/src/title.ts b/src/title.ts\nindex 1234567..7654321 100644\n--- a/src/title.ts\n+++ b/src/title.ts\n@@ -1,3 +1,4 @@\n export function title(value: string) {\n-\treturn value;\n+\tconst trimmed = value.trim();\n+\treturn trimmed;\n }\n",
+	meta: reviewStatus,
+	fetchedAt: timestamp,
+};
+
+export const reviewOverview: ReviewOverview = {
+	pullRequest,
+	ticket: reviewStatus.ticket,
+	summary: {
+		pullRequestId: pullRequest.id,
+		headSha: revision.headSha,
+		headline: "The title removes surrounding spaces.",
+		why: "A pasted title can contain surrounding spaces. The title function removes these spaces before display.",
+		watch: "Read src/title.ts to check the text result.",
+	},
+	evidence: {
+		pullRequestId: pullRequest.id,
+		headSha: revision.headSha,
+		body: "## Verification\n\nThe type check and lint check pass. The title remains readable at desktop and phone widths.\n\n```sh\nbun run check\n```",
+		actor,
+		createdAt: timestamp,
+		updatedAt: timestamp,
+	},
+};
+
+export const reviewThread: ReviewThread = {
+	id: id(302),
+	prId: pullRequest.id,
+	author: "Storybook",
+	kind: "human",
+	session: null,
+	body: "Keep the title readable when the value contains only spaces.",
+	createdAt: timestamp,
+	updatedAt: timestamp,
+	version: 1,
+	reactions: [],
+	path: "src/title.ts",
+	side: "new",
+	line: 2,
+	startLine: 2,
+	revisionId: revision.id,
+	status: "open",
+	resolvedBy: null,
+	resolvedAt: null,
+	replies: [],
+	suggestion: null,
+};
+
+export const reviewResponses = {
+	...projectResponses,
+	"reviews.overview": reviewOverview,
+	"reviews.revision": revision,
+	"reviews.refresh": revision,
+	"reviews.status": reviewStatus,
+	"reviews.metadata": { mergeQueueEntry: null, reviews: [], commits: [], files: [] },
+	"reviews.submissions": [],
+	"reviews.list": { items: [reviewThread], total: 1, open: 1 },
+	"reviews.file": {
+		path: "src/title.ts",
+		old: "export function title(value: string) {\n\treturn value;\n}",
+		new: "export function title(value: string) {\n\tconst trimmed = value.trim();\n\treturn trimmed;\n}",
+	},
+	"reviews.prs": [{ ...pullRequest, open: 1, resolved: 2 }],
+	"reviews.mine": [
+		{
+			number: pullRequest.number,
+			title: pullRequest.title,
+			repository: { nameWithOwner: `${pullRequest.owner}/${pullRequest.repo}` },
+			isDraft: pullRequest.isDraft,
+			url: pullRequest.url,
+			local: { localState: pullRequest.localState, localVerdict: pullRequest.localVerdict },
+		},
+	],
+};

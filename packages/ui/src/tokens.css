@@ -39,6 +39,11 @@
 	--accent: #6E6E73;
 	--accent-soft: #EDEDEF;
 	--agent: #693ACF;
+	--chart-usage: #4568D4;
+	--chart-merged: #7954B9;
+	--chart-added: #147F72;
+	--chart-deleted: #B54A4B;
+	--usage-panel: #FFFFFF;
 	--agent-soft: #EFE8FB;
 	--pr-ready: #0969DA;
 	--success: #097F34;
@@ -193,6 +198,11 @@
 		--accent: #C4C4C4;
 		--accent-soft: #2A2A2C;
 		--agent: #9D6AFB;
+		--chart-usage: #829BF3;
+		--chart-merged: #B59ADD;
+		--chart-added: #6FC7B4;
+		--chart-deleted: #E7958D;
+		--usage-panel: #141518;
 		--agent-soft: #24183F;
 		--pr-ready: #388BFD;
 		--success: #5ECC71;
@@ -295,6 +305,11 @@
 	--accent: #C4C4C4;
 	--accent-soft: #2A2A2C;
 	--agent: #9D6AFB;
+	--chart-usage: #829BF3;
+	--chart-merged: #B59ADD;
+	--chart-added: #6FC7B4;
+	--chart-deleted: #E7958D;
+	--usage-panel: #141518;
 	--agent-soft: #24183F;
 	--pr-ready: #388BFD;
 	--success: #5ECC71;
@@ -390,6 +405,10 @@
  * data-theme swap. The default palette is cleared: a class like bg-red-500
  * does not exist, so a raw color cannot enter a component through a utility.
  */
+@theme static {
+	--breakpoint-md: 48rem;
+}
+
 @theme {
 	--color-*: initial;
 	--color-bg: var(--bg);
@@ -406,6 +425,11 @@
 	--color-accent: var(--accent);
 	--color-accent-soft: var(--accent-soft);
 	--color-agent: var(--agent);
+	--color-chart-usage: var(--chart-usage);
+	--color-chart-merged: var(--chart-merged);
+	--color-chart-added: var(--chart-added);
+	--color-chart-deleted: var(--chart-deleted);
+	--color-usage-panel: var(--usage-panel);
 	--color-agent-soft: var(--agent-soft);
 	--color-pr-ready: var(--pr-ready);
 	--color-success: var(--success);
@@ -475,6 +499,8 @@
 	--text-lg--line-height: 24px;
 	--text-xl: 20px;
 	--text-xl--line-height: 28px;
+	--text-metric: 30px;
+	--text-metric--line-height: 36px;
 	--text-2xl: 24px;
 	--text-2xl--line-height: 32px;
 	--text-kbd: 10px;
@@ -485,6 +511,7 @@
 	--font-weight-medium: 500;
 
 	--spacing: 4px;
+	--popover-max-height: 60dvh;
 
 	--radius-*: initial;
 	/* One step per box size. hairline rounds a mark of a few pixels, sm a

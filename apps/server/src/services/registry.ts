@@ -27,18 +27,26 @@ import { cancel as cancelEpic } from "./epics/cancel";
 import * as epics from "./epics/epics.ts";
 import * as evidence from "./evidence/evidence.ts";
 import { prepareNameFromFirstMessage, saveNameFromFirstMessage } from "./firstMessageName";
+import { decide as decideFlowExecution } from "./flowExecutions/decide.ts";
+import { list as listFlowExecutions } from "./flowExecutions/list.ts";
+import { prepareFlowCancel } from "./flowExecutions/prepareFlowCancel.ts";
+import { prepareFlowReconcile } from "./flowExecutions/prepareFlowReconcile.ts";
+import { get as getFlowExecution } from "./flowExecutions/queries.ts";
+import { start as startFlowExecution } from "./flowExecutions/start.ts";
+import * as flows from "./flows/flows.ts";
+import * as flowSave from "./flows/save.ts";
 import * as flowWaiver from "./flowWaiver/flowWaiver.ts";
 import * as harnessAccounts from "./harnessAccounts/harnessAccounts.ts";
 import { prepareQuota } from "./harnessAccounts/quota.ts";
 import * as internalLinks from "./internalLinks";
 import * as labelGroups from "./labelGroups.ts";
 import * as labels from "./labels.ts";
-import { flowServices } from "./langflowDispatch/registry";
 import * as notes from "./notes/notes.ts";
 import { pageServices } from "./pages/registry";
 import * as prFiles from "./prFiles/prFiles.ts";
 import * as projects from "./projects.ts";
 import { prepareCheck } from "./providers/check.ts";
+import { prepareDraftCheck } from "./providers/draftCheck/index.ts";
 import { prepareModels } from "./providers/models.ts";
 import * as providers from "./providers/providers.ts";
 import { preparePublicModels } from "./providers/publicModels.ts";
@@ -92,7 +100,6 @@ import * as waves from "./waves/waves.ts";
 
 const { prepareBroadcastRecipients, broadcastRecipients } = broadcast;
 export const services = {
-	...flowServices,
 	"agentRuns.activity": prepared("read", agentActivity, agentTerminal.result),
 	"agentRuns.broadcastRecipients": prepared("read", prepareBroadcastRecipients, broadcastRecipients),
 	"agentRuns.broadcast": prepared("mutation", broadcast.prepareBroadcast, broadcast.broadcast),
@@ -130,12 +137,19 @@ export const services = {
 	"providers.models": prepared("read", prepareModels, agentTerminal.result),
 	"providers.publicModels": prepared("read", preparePublicModels, agentTerminal.result),
 	"providers.check": prepared("read", prepareCheck, agentTerminal.result),
+	"providers.checkDraft": prepared("read", prepareDraftCheck, agentTerminal.result),
 	"providers.list": io("read", providers.list),
 	"providers.get": io("read", providers.get),
 	"providers.create": io("mutation", providers.create),
 	"providers.update": io("mutation", providers.update),
 	"providers.delete": io("mutation", providers.remove),
 	...usageServices,
+	"flowExecutions.start": core("mutation", startFlowExecution),
+	"flowExecutions.get": core("read", getFlowExecution),
+	"flowExecutions.list": core("read", listFlowExecutions),
+	"flowExecutions.decide": core("mutation", decideFlowExecution),
+	"flowExecutions.cancel": prepared("mutation", prepareFlowCancel, agentTerminal.result),
+	"flowExecutions.reconcile": prepared("mutation", prepareFlowReconcile, agentTerminal.result),
 	"system.doctor": prepared("read", diagnostics, agentTerminal.result),
 	"system.stopNativeWork": prepared("mutation", stopNativeWork, agentTerminal.result),
 	"system.sweep": prepared("mutation", prepareSweep, agentTerminal.result),
@@ -195,6 +209,12 @@ export const services = {
 	"agentRuns.stop": agentMutation(agentLifecycle.prepareStop),
 	"agentRuns.pause": agentMutation(agentLifecycle.preparePause),
 	"agentRuns.refresh": agentMutation(agentLifecycle.prepareRefresh),
+	"flows.list": core("read", flows.list),
+	"flows.get": core("read", flows.get),
+	"flows.create": core("mutation", flows.create),
+	"flows.update": core("mutation", flows.update),
+	"flows.save": core("mutation", flowSave.save),
+	"flows.delete": core("mutation", flows.remove),
 	"labels.list": core("read", labels.list),
 	"labels.create": core("mutation", labels.create),
 	"labels.update": core("mutation", labels.update),
@@ -277,7 +297,6 @@ export const services = {
 	"brief.get": core("read", brief.get),
 	"actors.list": core("read", actors.list),
 	"actors.default": core("read", actors.default),
-	"settings.defaultActorName": core("read", settings.defaultActorName),
 	"settings.get": core("read", settings.get),
 	"settings.set": core("mutation", settings.set),
 	"settings.agentPrompt": core("read", settings.agentPromptSettings),

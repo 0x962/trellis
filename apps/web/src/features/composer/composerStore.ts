@@ -1,5 +1,6 @@
 import type { Priority } from "@trellis/api";
 import { create } from "zustand";
+import { persist } from "zustand/middleware";
 
 // What the caller that opens the quick composer already knows. The palette
 // fills it from the route and from the ticket in context; a table group
@@ -23,13 +24,22 @@ export type ComposerOptions = {
 export type ComposerState = {
 	open: boolean;
 	options: ComposerOptions;
+	assignAgent: boolean;
+	createMore: boolean;
 };
 
 // Whether the composer is open, and what opened it. The dialog mounts from
 // the root shell, so any page opens it.
-export const useComposerStore = create<ComposerState>()(() => ({ open: false, options: {} }));
+export const useComposerStore = create<ComposerState>()(
+	persist((): ComposerState => ({ open: false, options: {}, assignAgent: true, createMore: false }), {
+		name: "trellis-composer-preferences",
+		partialize: ({ assignAgent, createMore }) => ({ assignAgent, createMore }),
+	}),
+);
 
 export const composerActions = {
 	open: (options: ComposerOptions = {}) => useComposerStore.setState({ open: true, options }),
 	close: () => useComposerStore.setState({ open: false, options: {} }),
+	setAssignAgent: (assignAgent: boolean) => useComposerStore.setState({ assignAgent }),
+	setCreateMore: (createMore: boolean) => useComposerStore.setState({ createMore }),
 };

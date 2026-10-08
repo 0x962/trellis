@@ -20,6 +20,7 @@ import type { BoardColumnModel, BoardMove } from "../types";
 type TicketData = {
 	type: "ticket";
 	ticketId: string;
+	createdAt: string;
 	// The column the card sits in. A column refuses a card it already holds.
 	columnId: string;
 	identifier: string;
@@ -59,7 +60,7 @@ export const useCardDnd = (
 	const [previewFrame, setPreviewFrame] = useState<DragPreviewFrame | null>(null);
 	const positionRef = useRef<HTMLDivElement>(null);
 	const surfaceRef = useRef<HTMLDivElement>(null);
-	const { ticketId, columnId, identifier, title, index, columnName, columnCount } = input;
+	const { ticketId, createdAt, columnId, identifier, title, index, columnName, columnCount } = input;
 	useEffect(() => {
 		const element = ref.current!;
 		let frame: DragPreviewFrame;
@@ -90,6 +91,7 @@ export const useCardDnd = (
 				return {
 					type: "ticket",
 					ticketId,
+					createdAt,
 					columnId,
 					identifier,
 					title,
@@ -117,7 +119,20 @@ export const useCardDnd = (
 			cleanup();
 			if (settleTimer !== undefined) clearTimeout(settleTimer);
 		};
-	}, [announce, columnCount, columnId, columnName, identifier, index, readOnly, reducedMotion, ref, ticketId, title]);
+	}, [
+		announce,
+		columnCount,
+		columnId,
+		columnName,
+		createdAt,
+		identifier,
+		index,
+		readOnly,
+		reducedMotion,
+		ref,
+		ticketId,
+		title,
+	]);
 	return { dragging: previewFrame !== null, previewFrame, positionRef, surfaceRef };
 };
 
@@ -127,7 +142,7 @@ export const useColumnDnd = (
 	collapsed: boolean,
 	expand: () => void,
 ) => {
-	// BoardColumn uses the dragged ticket to mark its active or inactive group boundary.
+	// BoardColumn uses the dragged ticket to mark its position within its active or inactive group.
 	const [over, setOver] = useState<TicketData | null>(null);
 	useEffect(() => {
 		const element = ref.current!;

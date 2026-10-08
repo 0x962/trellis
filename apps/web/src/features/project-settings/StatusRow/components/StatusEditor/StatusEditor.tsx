@@ -1,5 +1,5 @@
 import type { ColorToken } from "@trellis/api";
-import { Button, Checkbox, FormStatus, Input, Select, Textarea } from "@trellis/ui";
+import { Button, Checkbox, Input, Select, Textarea } from "@trellis/ui";
 import { type FormEvent, useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
 import type { StatusRowProps } from "../../StatusRow";
@@ -15,36 +15,40 @@ const colors: { value: ColorToken; label: string }[] = [
 	{ value: "danger", label: "Danger" },
 ];
 
-type StatusEditorProps = Pick<StatusRowProps, "project" | "status" | "onChanged" | "onCancel">;
+export type StatusEditorProps = Pick<
+	StatusRowProps,
+	"project" | "status" | "busy" | "onWrite" | "onChanged" | "onCancel"
+>;
 
-export function StatusEditor({ project, status, onChanged, onCancel }: StatusEditorProps) {
+export function StatusEditor({ project, status, busy, onWrite, onChanged, onCancel }: StatusEditorProps) {
 	const { client } = useApp();
 	const [name, setName] = useState(status.name);
 	const [description, setDescription] = useState(status.description);
 	const [color, setColor] = useState<ColorToken>(status.color);
 	const [isDefault, setIsDefault] = useState(status.isDefault);
-	const [message, setMessage] = useState<string | null>(null);
+	const [nameError, setNameError] = useState<string | null>(null);
 
 	const save = async (event: FormEvent) => {
 		event.preventDefault();
 		if (name.trim() === "") {
-			setMessage("Enter a status name.");
+			setNameError("Enter a status name.");
 			return;
 		}
 		try {
-			await client.statuses.update({
-				project,
-				status: status.id,
-				name: name.trim(),
-				description,
-				color,
-				isDefault,
+			await onWrite(async () => {
+				await client.statuses.update({
+					project,
+					status: status.id,
+					name: name.trim(),
+					description,
+					color,
+					isDefault,
+				});
+				await onChanged();
+				onCancel();
 			});
-			setMessage(null);
-			await onChanged();
-			onCancel();
 		} catch (error) {
-			setMessage((error as Error).message);
+			setNameError((error as Error).message);
 		}
 	};
 
@@ -56,7 +60,12 @@ export function StatusEditor({ project, status, onChanged, onCancel }: StatusEdi
 					aria-label={`Name for ${status.name}`}
 					value={name}
 					autoFocus
-					onChange={(event) => setName(event.target.value)}
+					error={nameError ?? undefined}
+					disabled={busy}
+					onChange={(event) => {
+						setName(event.target.value);
+						setNameError(null);
+					}}
 				/>
 				<Select
 					label={`Color for ${status.name}`}
@@ -64,6 +73,7 @@ export function StatusEditor({ project, status, onChanged, onCancel }: StatusEdi
 					items={colors}
 					value={color}
 					onValueChange={setColor}
+					disabled={busy}
 					className="h-8"
 				/>
 			</div>
@@ -72,20 +82,20 @@ export function StatusEditor({ project, status, onChanged, onCancel }: StatusEdi
 				aria-label={`Description for ${status.name}`}
 				rows={3}
 				value={description}
+				disabled={busy}
 				onChange={(event) => setDescription(event.target.value)}
 			/>
 			<div className="status-row-editor-actions">
-				<Checkbox label="Default status" checked={isDefault} onCheckedChange={setIsDefault} />
+				<Checkbox label="Default status" checked={isDefault} disabled={busy} onCheckedChange={setIsDefault} />
 				<div className="status-row-editor-buttons">
-					<Button type="button" onClick={onCancel}>
+					<Button type="button" disabled={busy} onClick={onCancel}>
 						Cancel
 					</Button>
-					<Button type="submit" variant="primary">
+					<Button type="submit" variant="primary" processing={busy}>
 						Save status
 					</Button>
 				</div>
 			</div>
-			{message !== null && <FormStatus status="error" message={message} />}
 		</form>
 	);
 }

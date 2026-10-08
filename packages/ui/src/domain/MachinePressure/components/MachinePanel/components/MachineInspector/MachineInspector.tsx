@@ -1,9 +1,9 @@
 import { type ReactNode, useState } from "react";
 import { Tabs } from "../../../../../../primitives/Tabs";
+import { MachineRuns } from "../../../../../MachineRuns";
 import type { MachinePressureMachineView } from "../../../../MachinePressure";
 import { MachineDetails } from "./components/MachineDetails";
 import { MachineOverview } from "./components/MachineOverview";
-import { MachineRuns } from "./components/MachineRuns";
 
 export function MachineInspector({
 	machine,

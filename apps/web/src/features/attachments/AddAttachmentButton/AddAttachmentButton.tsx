@@ -6,7 +6,7 @@ import type { Uploads } from "../hooks/useUploads";
 export type AddAttachmentButtonProps = {
 	// The upload list of the surface that draws this control. The surface
 	// renders the progress rows, so this control only adds files to the list.
-	uploads: Uploads;
+	uploads: Pick<Uploads, "addFiles">;
 };
 
 // The control that picks files and takes a drop.

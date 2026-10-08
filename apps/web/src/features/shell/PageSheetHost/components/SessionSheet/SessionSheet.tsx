@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { EmptyState } from "@trellis/ui";
+import { Button, EmptyState, FailureState } from "@trellis/ui";
 import { useRef } from "react";
 import { useApp } from "../../../../../lib/appContext";
 import { pageSheetActions, usePageSheetStore } from "../../../../../stores/pageSheetStore";
@@ -8,6 +8,7 @@ import { PageSheet } from "../../../PageSheet";
 import { useShown } from "../../useShown";
 import { BrowserSheet } from "../BrowserSheet";
 import { ProjectSettingsSheet } from "../ProjectSettingsSheet";
+import { PublishedPageSheet } from "../PublishedPageSheet";
 import { SettingsSheet } from "../SettingsSheet";
 
 const sheetOpenMotionMs = () =>
@@ -44,7 +45,20 @@ export function SessionSheet() {
 			title={run?.name ?? "Session"}
 		>
 			{shown !== null && runs.isError && (
-				<EmptyState variant="page" title="The session did not load" description={runs.error.message} />
+				<div className="p-3">
+					<FailureState
+						variant="section"
+						title={run === null ? "The session did not load" : "The session did not refresh"}
+						description={run === null ? undefined : "The last loaded session stays available."}
+						detail={runs.error.message}
+						recovery="retrying"
+						action={
+							<Button size="md" disabled={runs.isFetching} onClick={() => void runs.refetch()}>
+								Retry
+							</Button>
+						}
+					/>
+				</div>
 			)}
 			{shown !== null && runs.isSuccess && run === null && (
 				<EmptyState variant="page" title="The session is gone" description="Trellis holds no run with this id." />
@@ -58,6 +72,7 @@ export function SessionSheet() {
 					onLeaveTerminal={pageSheetActions.closeSession}
 				/>
 			)}
+			<PublishedPageSheet />
 			<SettingsSheet at="session" />
 			<ProjectSettingsSheet at="session" />
 			<BrowserSheet at="session" />

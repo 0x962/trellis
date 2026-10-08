@@ -2,6 +2,7 @@ import { internalLink, type PageDetail as PageRecord } from "@trellis/api";
 import { Button, Input, Sheet, SheetBody, SheetFooter } from "@trellis/ui";
 import type { RefObject } from "react";
 import { copyText } from "../../../../../lib/clipboard";
+import { pageShareVersionText } from "./pageShareVersionText";
 
 export function PageShare({
 	page,
@@ -23,7 +24,13 @@ export function PageShare({
 			}}
 		>
 			<SheetBody>
-				<p className="text-sm text-fg-muted">This link follows the Page if its title, project, or address changes.</p>
+				<p className="text-sm text-fg-muted">
+					People can open this link only if they can access this project. The link follows the Page if its title,
+					project, or address changes.
+				</p>
+				<p className="text-sm text-fg-muted">
+					{pageShareVersionText(page.requestedVersion.number, page.latestVersion)}
+				</p>
 				<Input label="Trellis link" value={href} readOnly />
 			</SheetBody>
 			<SheetFooter>

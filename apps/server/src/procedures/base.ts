@@ -2,8 +2,6 @@ import { implement, ORPCError, ValidationError } from "@orpc/server";
 import { ActorHeaderSchema, type ActorRef, actorHeaderGrammar, contract } from "@trellis/api";
 import type { RequestContext } from "../context.ts";
 import type { ServiceTransport } from "../db/transport.ts";
-import type { documentActions } from "../documentActions";
-import type { editorGateway } from "../editorGateway";
 import { fail, type InputIssue, invalidInput, invalidIssues } from "../errors.ts";
 import type { GhAccess } from "../ghState.ts";
 import type { DbTiming } from "../serverTiming.ts";
@@ -20,8 +18,6 @@ import type { ServiceName } from "../services/registry.ts";
 // seconds.
 export type ProcedureContext = {
 	headers: Headers;
-	editorGateway?: ReturnType<typeof editorGateway>;
-	documentActions?: ReturnType<typeof documentActions>;
 	reqId: string;
 	transport: ServiceTransport;
 	actor: ActorRef | null;

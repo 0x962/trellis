@@ -11,6 +11,7 @@ import { rows } from "../../db/queries/support.ts";
 import { executionEnvironment } from "../../executionEnvironment";
 import { readRuntimeSessions } from "../agentRuns/liveState.ts";
 import type { ServiceCtx } from "../support.ts";
+import { sweepLog } from "./components/sweepLog";
 import { outputFilesToRemove, type SweepRun, workspaceRemovable } from "./decide.ts";
 import { openPaths } from "./openPaths.ts";
 import { sweepAttempts } from "./sweepAttempts.ts";
@@ -73,8 +74,13 @@ const readRuns = (ctx: ServiceCtx, owner?: { runId: string; work: string }) =>
 	);
 
 async function sweep(ctx: ServiceCtx): Promise<SweepResult> {
+	const log = sweepLog(ctx.log);
+	const finishOpenFiles = log.phase("open files");
 	const heldPaths = await openPaths();
+	finishOpenFiles({ paths: heldPaths.length });
+	const finishRuntime = log.phase("runtime sessions");
 	const observed = await readRuntimeSessions(ctx.home);
+	finishRuntime({ sessions: observed.length });
 	const result: SweepResult = {
 		removedWorkspaces: [],
 		removedOutputFiles: 0,
@@ -88,7 +94,9 @@ async function sweep(ctx: ServiceCtx): Promise<SweepResult> {
 	let env: NodeJS.ProcessEnv | undefined;
 	const gitEnv = async () => (env ??= await executionEnvironment());
 	const agents = agentWorkspacesRoot(ctx.home);
-	for (const runId of await directories(agents)) {
+	const finishWorkspaces = log.phase("workspaces");
+	const owners = await directories(agents);
+	for (const runId of owners) {
 		const directory = join(agents, runId);
 		const work = join(directory, "work");
 		await workspaceOperation(work, async () => {
@@ -117,17 +125,33 @@ async function sweep(ctx: ServiceCtx): Promise<SweepResult> {
 			if (removed !== null) result.removedWorkspaces.push(removed);
 		});
 	}
+	finishWorkspaces({
+		directories: owners.length,
+		removed: result.removedWorkspaces.length,
+		removedOutputFiles: result.removedOutputFiles,
+		errors: result.errors.length,
+	});
+	const finishInventory = log.phase("attempt inventory");
 	const attemptsRoot = join(ctx.home, "harness-attempts");
 	const attempts = [];
 	for (const name of await directories(attemptsRoot)) {
 		if (!attemptName.test(name)) continue;
 		attempts.push({ id: name, modifiedAt: (await stat(join(attemptsRoot, name))).mtimeMs });
 	}
-	result.removedAttempts = await sweepAttempts(ctx, attempts, ATTEMPT_MIN_AGE_MS);
+	finishInventory({ directories: attempts.length });
+	const finishAttempts = log.phase("attempt checks");
+	result.removedAttempts = await sweepAttempts({ ...ctx, log: log.write }, attempts, ATTEMPT_MIN_AGE_MS);
+	finishAttempts({ removed: result.removedAttempts });
+	const finishScratch = log.phase("scratch files");
 	const scratch = await sweepScratch(tmpdir(), ctx.now().getTime(), heldPaths);
 	result.removedScratch = scratch.removedScratch;
 	result.removedScratchBytes = scratch.removedScratchBytes;
 	result.errors.push(...scratch.errors);
+	finishScratch({
+		removed: scratch.removedScratch,
+		removedBytes: scratch.removedScratchBytes,
+		errors: scratch.errors.length,
+	});
 	return result;
 }
 

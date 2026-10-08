@@ -33,12 +33,19 @@ export function PriorityIcon({
 	const shared = decorative
 		? { "aria-hidden": "true" as const }
 		: { role: "img", "aria-label": label, tabIndex: tooltip && focusable ? 0 : undefined };
+	// A mark that takes focus draws the ring every other control draws. Without
+	// this class the browser draws its own ring, which no other control uses.
+	const focusRing =
+		!decorative && tooltip && focusable
+			? "rounded-sm focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2"
+			: undefined;
 	if (priority === "urgent") {
 		const icon = (
 			<span
 				{...shared}
 				className={cx(
 					"inline-grid size-4 shrink-0 place-items-center rounded-sm bg-danger text-on-accent select-none",
+					focusRing,
 					className,
 				)}
 			>
@@ -49,7 +56,7 @@ export function PriorityIcon({
 	}
 	const filled = filledBars[priority];
 	const icon = (
-		<span {...shared} className={cx("inline-flex h-4 w-4 shrink-0 items-end gap-0.5", className)}>
+		<span {...shared} className={cx("inline-flex h-4 w-4 shrink-0 items-end gap-0.5", focusRing, className)}>
 			{barHeights.map((height, index) => (
 				<i
 					key={height}

@@ -39,7 +39,7 @@ export async function prs(ctx: IoCtx, tx: Tx, input: { project?: string; all?: b
 		tx,
 		sql`WITH selected_prs AS MATERIALIZED (
 			SELECT p.id, p.url, p.owner, p.repo, p.number, p.title, p.state, p.mergeable,
-				p.is_draft, p.is_queued, p.local_state, p.checks, p.ci_state, p.head_sha, p.updated_at
+				p.is_draft, p.is_queued, p.local_state, p.checks, p.ci_state, p.head_sha, p.created_at, p.updated_at
 			FROM pull_requests p WHERE ${where}
 		), thread_totals AS (
 			SELECT t.pr_id,
@@ -61,11 +61,6 @@ export async function prs(ctx: IoCtx, tx: Tx, input: { project?: string; all?: b
 			SELECT execution.diff_id, execution.flow_id, execution.state->>'status' AS status
 			FROM flow_executions execution
 			JOIN applicable_flows flow ON flow.pr_id = execution.diff_id AND flow.flow_id = execution.flow_id
-			UNION ALL
-			SELECT execution.diff_id, execution.flow_id, projection.view->>'status' AS status
-			FROM langflow_executions execution
-			JOIN applicable_flows flow ON flow.pr_id = execution.diff_id AND flow.flow_id = execution.flow_id
-			JOIN langflow_execution_projections projection ON projection.execution_id = execution.execution_id
 		), flow_totals AS (
 			SELECT flow.pr_id, bool_or(execution.status = 'succeeded') AS succeeded
 			FROM applicable_flows flow
@@ -84,7 +79,7 @@ export async function prs(ctx: IoCtx, tx: Tx, input: { project?: string; all?: b
 		FROM selected_prs p
 		LEFT JOIN thread_totals ON thread_totals.pr_id = p.id
 		LEFT JOIN flow_totals ON flow_totals.pr_id = p.id
-		ORDER BY "updatedAt" DESC`,
+		ORDER BY p.created_at DESC, p.id DESC`,
 	);
 	return found.map(({ hasExplanation, hasEvidence, flowAnswered, mergeable, ...row }) => ({
 		...row,

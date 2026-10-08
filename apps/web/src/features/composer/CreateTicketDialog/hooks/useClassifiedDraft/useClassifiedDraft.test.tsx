@@ -3,6 +3,7 @@ import type { TicketClassification, TicketClassificationInput } from "@trellis/a
 import { act } from "react";
 import { createRoot } from "test-renderer";
 import { type AppContext, AppProvider } from "../../../../../lib/appContext";
+import { type AssignChoice, DEFAULT_CHOICE } from "../../../../agents/AssignAgent/assignChoice";
 import type { ComposerOptions } from "../../../composerStore";
 import { type ComposerDraft, useComposerDraft } from "../../../hooks/useComposerDraft/useComposerDraft";
 import { useClassifiedDraft } from "./useClassifiedDraft";
@@ -31,10 +32,17 @@ const wait = () =>
 	act(async () => {
 		await new Promise((resolve) => setTimeout(resolve, 650));
 	});
-const suggestion: TicketClassification = { epic: "TRL/forms", wave: "TRL/forms/first", priority: "high" };
+const suggestion: TicketClassification = {
+	epic: "TRL/forms",
+	wave: "TRL/forms/first",
+	priority: "high",
+};
 
-async function fixture(options: ComposerOptions = {}, initial?: ComposerDraft) {
-	if (initial) storage.set("trellis-composer-draft", JSON.stringify(initial));
+async function fixture(
+	options: ComposerOptions = {},
+	initial: ComposerDraft = { title: "", description: "", assignment: null },
+) {
+	storage.set("trellis-composer-draft", JSON.stringify(initial));
 	const requests: Array<{ input: TicketClassificationInput; resolve: (result: TicketClassification) => void }> = [];
 	const app = {
 		client: {
@@ -96,13 +104,77 @@ test("automatic fields follow later edits and survive a dialog reopen", async ()
 	await f.edit({ title: "Fix form" });
 	await wait();
 	await act(async () => f.requests[0]!.resolve(suggestion));
-	expect(f.draft()).toMatchObject({ ...suggestion, automatic: ["epic", "wave", "priority"] });
+	expect(f.draft()).toMatchObject({
+		epic: suggestion.epic,
+		wave: suggestion.wave,
+		priority: "high",
+		automatic: ["epic", "wave", "priority"],
+	});
 	await f.reopen();
 	await f.edit({ title: "Fix database" });
 	await wait();
 	const changed = { epic: "TRL/database", wave: "TRL/database/first", priority: "urgent" } as const;
-	await act(async () => f.requests[1]!.resolve(changed));
+	await act(async () => f.requests[1]!.resolve({ ...suggestion, ...changed }));
 	expect(f.draft()).toMatchObject(changed);
+});
+
+test("classification preserves the last model, effort, and account through edits and reopen", async () => {
+	const choice: AssignChoice = {
+		preset: "codex",
+		model: "openai/gpt-6-astra",
+		effort: "high",
+		accountId: "account-one",
+	};
+	const f = await fixture({}, { title: "Fix form", description: "", assignment: choice });
+	await wait();
+	expect(f.requests[0]!.input).not.toHaveProperty("harness");
+	await act(async () => f.requests[0]!.resolve(suggestion));
+	expect(f.draft().assignment).toEqual(choice);
+	await f.reopen();
+	await f.edit({ title: "Diagnose database corruption" });
+	await wait();
+	await act(async () => f.requests[1]!.resolve(suggestion));
+	expect(f.draft().assignment).toEqual(choice);
+});
+
+test("classification leaves the recent assignment available for a new draft", async () => {
+	const f = await fixture({}, { title: "Rename a label", description: "" });
+	await wait();
+	await act(async () => f.requests[0]!.resolve(suggestion));
+	expect(f.draft().assignment).toBeUndefined();
+	expect(f.draft().automatic).toEqual(["epic", "wave", "priority"]);
+});
+
+test("manual model choices and No agent persist across edits and pending responses", async () => {
+	const f = await fixture({}, { title: "Fix form", description: "" });
+	await wait();
+	const choice: AssignChoice = { ...DEFAULT_CHOICE, model: "anthropic/claude-opus-5.5" };
+	await f.choose({ assignment: choice });
+	await act(async () => f.requests[0]!.resolve(suggestion));
+	expect(f.draft().assignment).toEqual(choice);
+	await f.edit({ title: "A minor fix" });
+	await wait();
+	expect(f.requests[1]!.input).not.toHaveProperty("harness");
+	await act(async () => f.requests[1]!.resolve(suggestion));
+	expect(f.draft().assignment).toEqual(choice);
+	await f.choose({ assignment: null });
+	await f.reopen();
+	await wait();
+	await act(async () => f.requests[2]!.resolve(suggestion));
+	expect(f.draft().assignment).toBeNull();
+});
+
+test("an immediate manual agent choice survives a pending classification", async () => {
+	const f = await fixture({}, { title: "Fix form", description: "" });
+	await wait();
+	const choice: AssignChoice = { preset: "codex", model: "openai/gpt-6-astra", effort: null, accountId: null };
+	await act(async () => {
+		f.classification().choose({ assignment: choice });
+		f.requests[0]!.resolve(suggestion);
+	});
+	expect(f.draft().assignment).toEqual(choice);
+	await wait();
+	expect(f.requests).toHaveLength(1);
 });
 
 test("a manual choice keeps its value when it matches the automatic value", async () => {

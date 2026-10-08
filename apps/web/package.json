@@ -6,6 +6,12 @@
 	"type": "module",
 	"scripts": {
 		"dev": "vite",
+		"storybook": "storybook dev --host 127.0.0.1 --port 6006 --no-open --disable-telemetry",
+		"storybook:build": "storybook build --output-dir storybook-static --disable-telemetry",
+		"storybook:serve": "bun scripts/storybook/serve.ts",
+		"storybook:check": "bun scripts/storybook/check.ts",
+		"storybook:typecheck": "tsc --noEmit -p .storybook/tsconfig.json",
+		"storybook:test": "bun scripts/storybook/smoke.ts",
 		"build": "NODE_ENV=production vite build",
 		"typecheck": "tsc --noEmit -p tsconfig.json",
 		"lint": "biome check ."
@@ -58,11 +64,17 @@
 		"zustand": "5.0.15"
 	},
 	"devDependencies": {
+		"@storybook/addon-a11y": "10.6.1",
+		"@storybook/addon-docs": "10.6.1",
+		"@storybook/react-vite": "10.6.1",
 		"@tailwindcss/vite": "4.3.3",
 		"@tanstack/router-plugin": "1.168.36",
 		"@types/react": "19.2.18",
 		"@types/react-dom": "19.2.7",
 		"@vitejs/plugin-react": "6.1.1",
+		"happy-dom": "20.14.5",
+		"playwright": "1.63.0",
+		"storybook": "10.6.1",
 		"tailwindcss": "4.3.3",
 		"terser": "5.51.2",
 		"vite": "8.2.2",

@@ -1,11 +1,11 @@
-import { type CSSProperties, useMemo, useRef, useState } from "react";
+import { type CSSProperties, type KeyboardEvent, useId, useMemo, useRef, useState } from "react";
 import { ContextMenu } from "../../primitives/ContextMenu";
 import { TabsList, TabsRoot } from "../../primitives/Tabs";
 import { cx } from "../../utils/cx";
 import { PageTab } from "./components/PageTab";
 import { TabGroupHeader } from "./components/TabGroupHeader";
 import { TabStripControls } from "./components/TabStripControls";
-import { dropTargetId, slotIndexOf } from "./components/tabSlots";
+import { dropTargetId, slotIndexOf, tabSlots } from "./components/tabSlots";
 import { useFocusAfterChange } from "./components/useFocusAfterChange";
 import { useTabContextMenu } from "./components/useTabContextMenu";
 import { useTabDrag } from "./components/useTabDrag";
@@ -39,11 +39,10 @@ export type PageTabsProps = {
 	"aria-label"?: string;
 };
 
-const pinnedWidth = 96;
 const emptyGroups: readonly PageTabGroupItem[] = [];
 
 const regionClass =
-	"relative h-full overflow-x-auto overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden";
+	"relative h-full overflow-x-auto overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [--tab-control-steps:7] max-sm:[--tab-control-steps:11] pointer-coarse:[--tab-control-steps:11] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent";
 
 // Focus, editing, menus, and pointer capture require their target boxes to stay mounted.
 const withRetained = (indexes: number[], retained: number[]) =>
@@ -67,15 +66,32 @@ export function PageTabs({
 	onSetTabGroup,
 	"aria-label": ariaLabel = "Open pages",
 }: PageTabsProps) {
+	const idPrefix = useId();
+	const tabId = (id: string) => `${idPrefix}-${encodeURIComponent(id)}`;
 	const { activeIndex, pinnedCount, activePinned, slots, activeSlot } = useTabRegions(tabs, groups, activeId);
 	const pinnedTabs = useMemo(() => tabs.slice(0, pinnedCount), [tabs, pinnedCount]);
-	const pinnedLayout = useTabLayout(pinnedTabs, activePinned ? activeIndex : -1, pinnedWidth);
+	const pinnedSlots = useMemo(() => tabSlots(pinnedTabs, []), [pinnedTabs]);
+	const pinnedLayout = useTabLayout(pinnedSlots, activePinned ? activeIndex : -1);
 	const layout = useTabLayout(slots, activeSlot);
 	const listRef = useRef<HTMLDivElement>(null);
 	const addButton = useRef<HTMLButtonElement>(null);
 	const focusAfterChange = useFocusAfterChange(listRef, addButton, activeId);
 	const [announcement, setAnnouncement] = useState("");
-	const items = useMemo(() => tabs.map((tab) => ({ value: tab.id })), [tabs]);
+	const items = useMemo(
+		() =>
+			[...pinnedTabs, ...slots.flatMap((slot) => (slot.kind === "tab" ? [slot.tab] : []))].map((tab) => ({
+				value: tab.id,
+			})),
+		[pinnedTabs, slots],
+	);
+	const tabStop = items.some((item) => item.value === activeId) ? activeId : items[0]?.value;
+	const stopControlKey = (event: KeyboardEvent<HTMLDivElement>) => {
+		if (
+			(event.target as HTMLElement).getAttribute("role") !== "tab" &&
+			["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)
+		)
+			event.stopPropagation();
+	};
 	const close = (id: string) => {
 		focusAfterChange.current = listRef.current!.contains(document.activeElement);
 		onClose(id);
@@ -114,8 +130,7 @@ export function PageTabs({
 	});
 	const pinnedDrag = useTabDrag({
 		listRef: pinnedLayout.ref,
-		slotWidth: pinnedWidth,
-		slotCount: pinnedCount,
+		boxes: pinnedLayout.boxes,
 		enabled: onMove !== undefined,
 		onDrop: (id, index) => {
 			const before = tabs[index]?.id ?? null;
@@ -124,8 +139,7 @@ export function PageTabs({
 	});
 	const drag = useTabDrag({
 		listRef: layout.ref,
-		slotWidth: layout.width,
-		slotCount: slots.length,
+		boxes: layout.boxes,
 		enabled: onMove !== undefined,
 		onDrop: (id, index) => {
 			const before = dropTargetId(slots, index);
@@ -141,7 +155,11 @@ export function PageTabs({
 		...[...menu.retainedIds, drag.draggedId].map((id) => (id === null ? -1 : slotIndexOf(slots, id))),
 		slots.findIndex((slot) => slot.kind === "group" && slot.group.id === menu.editingGroupId),
 	]);
-	const pageTab = (index: number, style: CSSProperties, pointerDown: typeof drag.pointerDown, separator: boolean) => {
+	const ownedTabs = [
+		...pinnedIndexes.map((index) => pinnedTabs[index]!.id),
+		...renderedIndexes.flatMap((index) => (slots[index]!.kind === "tab" ? [slots[index]!.tab.id] : [])),
+	].filter((id) => id !== menu.editingId);
+	const pageTab = (index: number, style: CSSProperties, pointerDown: typeof drag.pointerDown) => {
 		const tab = tabs[index]!;
 		return (
 			<PageTab
@@ -149,9 +167,10 @@ export function PageTabs({
 				tab={tab}
 				index={index}
 				count={tabs.length}
+				id={tabId(tab.id)}
+				tabStop={tab.id === tabStop}
 				style={style}
 				active={tab.id === activeId}
-				separator={separator}
 				onClose={() => close(tab.id)}
 				editing={menu.editingId === tab.id}
 				menuOpen={menu.context.open}
@@ -169,23 +188,29 @@ export function PageTabs({
 	);
 	return (
 		<ContextMenu {...menu.context}>
-			<div className="relative flex min-w-0 items-end bg-surface px-1 text-sm before:absolute before:inset-x-0 before:bottom-0 before:h-px before:bg-border/60">
+			<div className="relative flex min-w-0 items-center bg-pane py-1 text-sm">
 				<TabsRoot
 					value={activeId}
 					onValueChange={(value) => onSelect(value as string)}
 					className="flex min-w-0 flex-1 items-end"
 				>
+					{ownedTabs.length > 0 && (
+						<div role="tablist" aria-label={ariaLabel} aria-owns={ownedTabs.map(tabId).join(" ")} />
+					)}
 					<TabsList
 						ref={listRef}
+						role="presentation"
 						items={items}
-						value={activeId}
+						value={menu.focusedId ?? tabStop ?? ""}
 						onValueChange={select}
-						aria-label={ariaLabel}
 						className="flex h-8 min-w-0 flex-1 max-sm:h-11 pointer-coarse:h-11"
 						{...menu.list}
 					>
-						<div
+						<section
 							ref={pinnedLayout.ref}
+							aria-label="Pinned pages"
+							onKeyDown={stopControlKey}
+							tabIndex={activePinned ? -1 : 0}
 							className={cx(
 								regionClass,
 								"mr-1 max-w-1/2 shrink-0 border-r border-border/60 pr-1",
@@ -194,29 +219,25 @@ export function PageTabs({
 							onScroll={pinnedLayout.onScroll}
 							{...pinnedDrag.listHandlers}
 						>
-							<div className="relative h-full" style={{ width: pinnedCount * pinnedWidth }}>
-								{pinnedIndexes.map((index) =>
-									pageTab(
-										index,
-										{ left: index * pinnedWidth, width: pinnedWidth },
-										pinnedDrag.pointerDown,
-										index !== activeIndex && index + 1 !== activeIndex && index < pinnedCount - 1,
-									),
-								)}
+							<div className="relative h-full" style={{ width: pinnedLayout.width }}>
+								{pinnedIndexes.map((index) => pageTab(index, pinnedLayout.boxes[index]!, pinnedDrag.pointerDown))}
 								{pinnedDrag.dropIndex !== null &&
-									dropMarker(Math.min(pinnedDrag.dropIndex * pinnedWidth, pinnedCount * pinnedWidth - 2))}
+									dropMarker(pinnedLayout.boxes[pinnedDrag.dropIndex]?.left ?? pinnedLayout.width - 2)}
 							</div>
-						</div>
-						<div
+						</section>
+						<section
 							ref={layout.ref}
+							aria-label="Other pages"
+							onKeyDown={stopControlKey}
+							tabIndex={activePinned && slots.length > 0 ? 0 : -1}
 							className={cx(regionClass, "min-w-0 flex-1")}
 							onScroll={layout.onScroll}
 							{...drag.listHandlers}
 						>
-							<div className="relative h-full" style={{ width: slots.length * layout.width }}>
+							<div className="relative h-full" style={{ width: layout.width }}>
 								{renderedIndexes.map((index) => {
 									const slot = slots[index]!;
-									const style = { left: index * layout.width, width: layout.width };
+									const style = layout.boxes[index]!;
 									if (slot.kind === "group")
 										return (
 											<TabGroupHeader
@@ -231,20 +252,11 @@ export function PageTabs({
 												onCollapse={onGroupCollapse!}
 											/>
 										);
-									return pageTab(
-										slot.tabIndex,
-										style,
-										drag.pointerDown,
-										index !== activeSlot &&
-											index + 1 !== activeSlot &&
-											index < slots.length - 1 &&
-											slots[index + 1]!.kind === "tab",
-									);
+									return pageTab(slot.tabIndex, style, drag.pointerDown);
 								})}
-								{drag.dropIndex !== null &&
-									dropMarker(Math.min(drag.dropIndex * layout.width, slots.length * layout.width - 2))}
+								{drag.dropIndex !== null && dropMarker(layout.boxes[drag.dropIndex]?.left ?? layout.width - 2)}
 							</div>
-						</div>
+						</section>
 					</TabsList>
 				</TabsRoot>
 				<TabStripControls

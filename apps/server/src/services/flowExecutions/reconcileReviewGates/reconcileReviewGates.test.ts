@@ -67,6 +67,8 @@ for (const [frontend, backend] of [
 			evaluate: async (_ctx, input) => {
 				_ctx.log("provider.evaluate.result", { status: 200, choices: { area: "test" } });
 				expect(input.state).toEqual({ changedFilePaths: paths });
+				expect(input.questions.area!.instructions).toContain("filtered production file list");
+				expect(input.questions.area!.instructions).not.toContain("Include tests");
 				expect(Object.keys(input.questions.area!.criteria)).toEqual(["frontend", "backend", "both", "neither"]);
 				evaluations++;
 				return {
@@ -95,6 +97,47 @@ for (const [frontend, backend] of [
 			(await h.db.execute(sql`SELECT * FROM flow_execution_tasks WHERE execution_id=${f.execution.id}`)).rows,
 		).toHaveLength(0);
 	});
+
+test("filters changed paths before one Jev request", async () => {
+	const f = await fixture();
+	const paths = [
+		"apps/web/src/AccountPage.tsx",
+		"apps/server/src/account.ts",
+		"apps/server/drizzle/0151_account.sql",
+		"vite.config.ts",
+		"apps/web/src/AccountPage.test.tsx",
+		"apps/server/src/fixtures/account.fixture.ts",
+		"apps/web/src/__snapshots__/AccountPage.snap",
+		"apps/web/src/AccountPage.stories.tsx",
+		"docs/account.md",
+		"docs/account-flow.svg",
+		"docs/account-guide.mdx",
+		"bun.lock",
+		"apps/web/dist/assets/account.js",
+		"apps/web/src/AccountPage.tsx",
+		"tests/migrations/fixture.sql",
+	];
+	let evaluations = 0;
+	await reconcileReviewGates(f.ctx, f.execution.id, {
+		pullRequestChangedFilePaths: async () => paths,
+		evaluate: async (_ctx, input) => {
+			evaluations++;
+			expect(input.state).toEqual({
+				changedFilePaths: [
+					"apps/web/src/AccountPage.tsx",
+					"apps/server/src/account.ts",
+					"apps/server/drizzle/0151_account.sql",
+					"vite.config.ts",
+				],
+			});
+			return { answers: { area: { type: "choice", choice: "both" } } };
+		},
+	});
+	expect(evaluations).toBe(1);
+	expect(JSON.stringify(f.logs)).toContain('"inputPathCount":15');
+	expect(JSON.stringify(f.logs)).toContain('"retainedPathCount":4');
+	for (const path of paths) expect(JSON.stringify(f.logs)).not.toContain(path);
+});
 
 test("skips both review areas without Jev when all changed files are unrelated", async () => {
 	const f = await fixture();

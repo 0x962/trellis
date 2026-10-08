@@ -11,32 +11,42 @@ import {
 } from "@phosphor-icons/react";
 import { Link } from "@tanstack/react-router";
 import type { PageDetail as PageRecord, Project } from "@trellis/api";
-import { Badge, ConfirmDialog, EmptyState, InlineEdit, Menu, Tooltip } from "@trellis/ui";
+import { Badge, ConfirmDialog, EmptyState, InlineEdit, Menu, Tooltip, useMediaQuery } from "@trellis/ui";
 import { useEffect, useRef, useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
 import { useLiveStatus } from "../../../../../lib/liveStatus";
 import { ArchivedBanner } from "../../../../project-actions";
+import { usePageSheet } from "../../../../shell/PageSheet";
 import { PageTitle } from "../../../../shell/PageTitle";
 import { ProjectBreadcrumb } from "../../../../shell/ProjectBreadcrumb";
 import { Topbar, TopbarActionButton } from "../../../../shell/Topbar";
 import { PageComments } from "../../../PageComments";
+import { usePageVersionNavigation } from "../../../usePageVersionNavigation";
 import { usePageActions } from "../../usePageActions";
 import { PageHistory } from "../PageHistory";
 import { PageShare } from "../PageShare";
 import { PageWatcher } from "../PageWatcher";
+import { pageHistoryLabel, pageShareLabel, pageVersionStatus } from "./pageVersionText";
 
 export function PageDetailView({
 	page,
 	project,
 	historical,
 	offline,
+	selectedThread,
+	onSelectedThreadChange,
 }: {
 	page: PageRecord;
 	project: Project;
 	historical: boolean;
 	offline: boolean;
+	selectedThread: string | null;
+	onSelectedThreadChange: (thread: string | null) => void;
 }) {
 	const { live } = useApp();
+	const inSheet = usePageSheet() !== null;
+	const phone = useMediaQuery("(max-width: 767px)");
+	const { onVersionClick } = usePageVersionNavigation(page.ref);
 	const status = useLiveStatus(live);
 	const disconnected = offline || status !== "live";
 	const menuTrigger = useRef<HTMLButtonElement>(null);
@@ -46,36 +56,57 @@ export function PageDetailView({
 	const { mutation, rename } = usePageActions(page, disconnected, project.archivedAt !== null);
 	const deleted = page.deletedAt !== null;
 	const blocked = disconnected || project.archivedAt !== null || mutation.isPending;
+	const historyLabel = pageHistoryLabel(page.requestedVersion.number, page.latestVersion);
+	const shareLabel = pageShareLabel(historical);
 	useEffect(() => {
-		document.title = `${page.title} · trellis`;
-	}, [page.title]);
+		if (!inSheet) document.title = `${page.title} · trellis`;
+	}, [inSheet, page.title]);
 	return (
 		<>
 			<Topbar
 				actions={
 					<>
-						<Tooltip content={page.pinned ? "Unpin Page" : "Pin Page"}>
-							<TopbarActionButton
-								pressed={page.pinned}
-								label={page.pinned ? "Unpin Page" : "Pin Page"}
-								icon={<PushPinSimple weight={page.pinned ? "fill" : "regular"} />}
-								disabled={blocked || deleted}
-								onClick={() => mutation.mutate("pin")}
-							/>
-						</Tooltip>
-						<Tooltip content="Share Page">
-							<TopbarActionButton
-								ref={shareTrigger}
-								label="Share Page"
-								icon={<ShareNetwork />}
-								onClick={() => setPanel("share")}
-							/>
-						</Tooltip>
+						{!phone && (
+							<Tooltip content={page.pinned ? "Unpin Page" : "Pin Page"}>
+								<TopbarActionButton
+									pressed={page.pinned}
+									label={page.pinned ? "Unpin Page" : "Pin Page"}
+									icon={<PushPinSimple weight={page.pinned ? "fill" : "regular"} />}
+									disabled={blocked || deleted}
+									onClick={() => mutation.mutate("pin")}
+								/>
+							</Tooltip>
+						)}
+						{!phone && (
+							<Tooltip content={shareLabel}>
+								<TopbarActionButton
+									ref={shareTrigger}
+									label={shareLabel}
+									icon={<ShareNetwork />}
+									onClick={() => setPanel("share")}
+								/>
+							</Tooltip>
+						)}
 						<Menu
 							trigger={<TopbarActionButton ref={menuTrigger} label="Page actions" icon={<DotsThree />} />}
 							label="Page actions"
 							triggerTooltip="Page actions"
 							items={[
+								...(phone
+									? [
+											{
+												label: page.pinned ? "Unpin Page" : "Pin Page",
+												icon: <PushPinSimple weight={page.pinned ? "fill" : "regular"} />,
+												disabled: blocked || deleted,
+												onSelect: () => mutation.mutate("pin"),
+											},
+											{
+												label: shareLabel,
+												icon: <ShareNetwork />,
+												onSelect: () => setPanel("share"),
+											},
+										]
+									: []),
 								{
 									label: "Rename",
 									icon: <PencilSimple />,
@@ -83,7 +114,7 @@ export function PageDetailView({
 									onSelect: () => setEditing(true),
 								},
 								{
-									label: "Version history",
+									label: historyLabel,
 									icon: <ClockCounterClockwise />,
 									disabled: deleted,
 									onSelect: () => setPanel("history"),
@@ -114,7 +145,7 @@ export function PageDetailView({
 				}
 			>
 				<PageTitle
-					parent={<ProjectBreadcrumb project={project} />}
+					parent={phone ? undefined : <ProjectBreadcrumb project={project} />}
 					title={
 						<InlineEdit
 							label="Page title"
@@ -123,7 +154,9 @@ export function PageDetailView({
 							onEditingChange={setEditing}
 							onSave={rename}
 						>
-							<span className="block truncate">{page.title}</span>
+							<span className="block truncate" title={page.title}>
+								{page.title}
+							</span>
 						</InlineEdit>
 					}
 				/>
@@ -136,19 +169,27 @@ export function PageDetailView({
 					</p>
 				)}
 				<div className="flex flex-wrap items-center gap-3 border-b border-border px-5 py-2 text-sm text-fg-muted">
-					<Badge>
-						Version {page.requestedVersion.number}
-						{historical ? ", read-only" : ""}
-					</Badge>
+					<Badge>{pageVersionStatus(page.requestedVersion.number, page.latestVersion, historical)}</Badge>
 					<span>{page.requestedVersion.actor.displayName ?? page.requestedVersion.actor.name}</span>
 					<PageWatcher page={page} disabled={blocked || deleted || historical} />
-					<span className="tabular">{page.openThreadCount} open threads</span>
+					<span className="tabular">
+						{page.openThreadCount} open {page.openThreadCount === 1 ? "comment" : "comments"}
+					</span>
 					{historical && (
 						<Tooltip content="Back to current">
 							<TopbarActionButton
 								label="Back to current"
 								icon={<ArrowUUpLeft />}
-								render={<Link to="/p/$" params={{ _splat: page.ref }} search={{}} />}
+								render={
+									<Link
+										to="/p/$"
+										params={{ _splat: page.ref }}
+										search={{}}
+										onClick={(event) => onVersionClick(event)}
+									/>
+								}
+								nativeButton={false}
+								role="link"
 							/>
 						</Tooltip>
 					)}
@@ -178,11 +219,15 @@ export function PageDetailView({
 						title={page.title}
 						historical={historical}
 						blocked={blocked}
+						selectedThread={selectedThread}
+						onSelectedThreadChange={onSelectedThreadChange}
 					/>
 				)}
 			</div>
 			{panel === "history" && <PageHistory finalFocus={menuTrigger} page={page} onClose={() => setPanel(null)} />}
-			{panel === "share" && <PageShare finalFocus={shareTrigger} page={page} onClose={() => setPanel(null)} />}
+			{panel === "share" && (
+				<PageShare finalFocus={phone ? menuTrigger : shareTrigger} page={page} onClose={() => setPanel(null)} />
+			)}
 			<ConfirmDialog
 				open={panel === "delete"}
 				finalFocus={menuTrigger}

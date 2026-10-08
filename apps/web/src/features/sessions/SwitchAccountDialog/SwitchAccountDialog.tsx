@@ -1,6 +1,6 @@
 import { useQueries, useQuery } from "@tanstack/react-query";
 import type { AgentRun } from "@trellis/api";
-import { Command, ConfirmDialog, Dialog } from "@trellis/ui";
+import { Button, Command, ConfirmDialog, Dialog, FailureState } from "@trellis/ui";
 import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { useSessionRestart } from "../useSessionRestart";
@@ -15,6 +15,8 @@ export function SwitchAccountDialog({ run, onClose }: { run: AgentRun; onClose: 
 	const [selected, setSelected] = useState<{ id: string; label: string; terminalId: string; requestId: string } | null>(
 		null,
 	);
+	const [activeAccount, setActiveAccount] = useState(run.accountId ?? "");
+	const [search, setSearch] = useState("");
 	const [launchError, setLaunchError] = useState<string | null>(null);
 	const change = useSessionRestart(run, {
 		mutationFn: () =>
@@ -36,26 +38,33 @@ export function SwitchAccountDialog({ run, onClose }: { run: AgentRun; onClose: 
 	const failure = change.error?.message ?? launchError;
 	const items = choices.map((account, index) => {
 		const quota = quotas[index]!;
+		const quotaLabel = quota.data?.windows.length
+			? quota.data.windows
+					.filter(
+						(window) =>
+							!["claude", "codex"].includes(account.harness) ||
+							["five_hour", "seven_day", "primary", "secondary"].includes(window.id),
+					)
+					.map((window) => `${window.label}: ${window.usedPercent}% used`)
+					.join(" · ")
+			: quota.isPending
+				? "Load quota…"
+				: (quota.data?.detail ?? quota.data?.status ?? "Quota unavailable");
 		return {
 			id: account.id,
-			label: quota.data?.email ?? account.name,
-			keywords: [account.name],
-			current: account.id === run.accountId,
+			label: account.name,
+			email: quota.data?.email,
+			quotaLabel,
+			keywords: [account.name, quota.data?.email ?? ""],
 			checked: account.id === run.accountId,
-			hint: quota.data?.windows.length
-				? quota.data.windows
-						.filter(
-							(window) =>
-								!["claude", "codex"].includes(account.harness) ||
-								["five_hour", "seven_day", "primary", "secondary"].includes(window.id),
-						)
-						.map((window) => `${window.label}: ${window.usedPercent}% used`)
-						.join(" · ")
-				: quota.isPending
-					? "Load quota…"
-					: (quota.data?.detail ?? quota.data?.status ?? "Quota unavailable"),
+			sub: [quota.data?.email, quotaLabel].filter(Boolean).join(" · "),
 		};
 	});
+	const query = search.trim().toLowerCase();
+	const visibleItems = items.filter((item) =>
+		[item.label, ...item.keywords].some((value) => value.toLowerCase().includes(query)),
+	);
+	const activeItem = items.find((item) => item.id === activeAccount);
 	return (
 		<>
 			<Dialog
@@ -66,26 +75,68 @@ export function SwitchAccountDialog({ run, onClose }: { run: AgentRun; onClose: 
 				title="Switch account"
 				size="lg"
 			>
-				<Command
-					autoFocus
-					label="Search accounts"
-					placeholder="Search accounts"
-					items={items}
-					empty={accounts.isPending ? "Load accounts…" : "No accounts for this harness."}
-					onSelect={(id) => {
-						if (id === run.accountId) return;
-						setSelected({
-							id,
-							label: items.find((item) => item.id === id)!.label,
-							terminalId: run.terminalId!,
-							requestId: crypto.randomUUID(),
-						});
-					}}
-				/>
 				{accounts.error && (
-					<p role="alert" className="text-sm text-danger">
-						{accounts.error.message}
-					</p>
+					<FailureState
+						title="Accounts did not load"
+						detail={accounts.error.message}
+						action={
+							<Button size="md" processing={accounts.isFetching} onClick={() => void accounts.refetch()}>
+								Retry
+							</Button>
+						}
+					/>
+				)}
+				{(!accounts.error || accounts.data) && (
+					<Command.Root
+						label="Search accounts"
+						value={activeAccount}
+						onValueChange={setActiveAccount}
+						shouldFilter={false}
+					>
+						<Command.Field
+							autoFocus
+							label="Search accounts"
+							placeholder="Search accounts"
+							value={search}
+							onValueChange={setSearch}
+						/>
+						<Command.List>
+							{visibleItems.length === 0 && (
+								<Command.Empty>
+									{accounts.isPending
+										? "Load accounts…"
+										: query
+											? "No matching accounts."
+											: "No accounts for this harness."}
+								</Command.Empty>
+							)}
+							{visibleItems.map((item) => (
+								<Command.Row
+									key={item.id}
+									value={item.id}
+									label={item.label}
+									leading={<span className="sr-only">{item.sub}</span>}
+									keywords={item.keywords}
+									checked={item.checked}
+									onSelect={() => {
+										if (item.id === run.accountId) return;
+										setSelected({
+											id: item.id,
+											label: item.label,
+											terminalId: run.terminalId!,
+											requestId: crypto.randomUUID(),
+										});
+									}}
+								/>
+							))}
+						</Command.List>
+						{activeItem && (
+							<Command.Footer>
+								<span>{activeItem.email}</span>
+								<span>{activeItem.quotaLabel}</span>
+							</Command.Footer>
+						)}
+					</Command.Root>
 				)}
 			</Dialog>
 			<ConfirmDialog
@@ -96,7 +147,7 @@ export function SwitchAccountDialog({ run, onClose }: { run: AgentRun; onClose: 
 						? "This stops the current process and interrupts any running turn. The session resumes with the same conversation and workspace."
 						: "The session resumes with the same conversation and workspace."
 				}
-				confirmLabel="Switch account"
+				confirmLabel={failure ? "Retry switch" : "Switch account"}
 				processing={change.isPending}
 				onConfirm={() => {
 					setLaunchError(null);
@@ -110,11 +161,7 @@ export function SwitchAccountDialog({ run, onClose }: { run: AgentRun; onClose: 
 					}
 				}}
 			>
-				{failure && (
-					<p role="alert" className="mb-2 text-sm text-danger">
-						{failure}
-					</p>
-				)}
+				{failure && <FailureState title="The account did not switch" detail={failure} />}
 			</ConfirmDialog>
 		</>
 	);

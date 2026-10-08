@@ -4,7 +4,7 @@ import { ulid } from "ulid";
 import type { ServiceCtx } from "../../context.ts";
 import { createCache } from "../../db/cache.ts";
 import { openTestDb } from "../../db/testDb.ts";
-import { create, get, list, update } from "./notes.ts";
+import { activeNotes, create, get, list, update } from "./notes.ts";
 
 let db: Awaited<ReturnType<typeof openTestDb>>;
 const projectId = ulid();
@@ -46,6 +46,24 @@ test("create, edit, get, and list retain complete multibyte note bodies", async 
 	await expect(db.execute(sql`UPDATE notes SET body = '' WHERE id = ${note.id}`)).rejects.toThrow("notes_body_check");
 	await expect(db.transaction((tx) => update(ctx, tx, { id: note.id, body: " \n " }))).rejects.toThrow();
 	expect((await db.transaction((tx) => get(ctx, tx, { id: note.id }))).body).toBe(edited);
+});
+
+test("an edit preserves creation order in the list and the agent context", async () => {
+	const older = await db.transaction((tx) => create(ctx, tx, { project: "TST", title: "Older", body: "Original" }));
+	const later = { ...ctx, now: new Date("2026-09-30T00:00:00Z") };
+	const newer = await db.transaction((tx) => create(later, tx, { project: "TST", title: "Newer", body: "New" }));
+	await db.transaction((tx) =>
+		update({ ...ctx, now: new Date("2026-10-01T00:00:00Z") }, tx, { id: older.id, body: "Edited" }),
+	);
+	const listed = await db.transaction((tx) => list(ctx, tx, { project: "TST" }));
+	const active = await db.transaction((tx) => activeNotes(ctx, tx, { projectId, audience: "worker" }));
+	for (const notes of [listed, active]) {
+		expect(notes.filter((note) => [older.id, newer.id].includes(note.id)).map((note) => note.id)).toEqual([
+			newer.id,
+			older.id,
+		]);
+		expect(notes.find((note) => note.id === older.id)?.body).toBe("Edited");
+	}
 });
 
 test("long notes still require an actor and an active project", async () => {

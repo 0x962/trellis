@@ -1,11 +1,11 @@
 import { ChatText } from "@phosphor-icons/react";
-import { useNavigate } from "@tanstack/react-router";
 import type { PageCommentAnchor } from "@trellis/api";
 import { ConfirmDialog, IconButton, Sheet, Tooltip, useMediaQuery } from "@trellis/ui";
 import { ReviewCommentEditor } from "@trellis/ui/review";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ReadOnlyMarkdown } from "../../../components/ReadOnlyMarkdown";
 import { errorMessage } from "../../../lib/conflict";
+import { usePageVersionNavigation } from "../usePageVersionNavigation";
 import { LeasedPageViewer } from "./components/LeasedPageViewer";
 import { PageCommentThreads } from "./PageCommentThreads";
 import { numberPageComments, pageCommentPins, pageCommentSearch } from "./pageCommentFilters";
@@ -23,6 +23,8 @@ export function PageComments({
 	title,
 	historical,
 	blocked,
+	selectedThread,
+	onSelectedThreadChange,
 }: {
 	page: string;
 	version: number;
@@ -30,14 +32,15 @@ export function PageComments({
 	title: string;
 	historical: boolean;
 	blocked: boolean;
+	selectedThread: string | null;
+	onSelectedThreadChange: (thread: string | null) => void;
 }) {
 	const comments = usePageComments(page);
-	const navigate = useNavigate();
+	const { openVersion } = usePageVersionNavigation(page);
 	const wide = useMediaQuery(WIDE_QUERY);
 	const trigger = useRef<HTMLButtonElement>(null);
 	const [sheetOpen, setSheetOpen] = useState(false);
 	const [showResolved, setShowResolved] = useState(false);
-	const [selected, setSelected] = useState<string | null>(null);
 	const [pendingAnchor, setPendingAnchor] = useState<PageCommentAnchor | null>(null);
 	const [body, setBody] = useState("");
 	const [saveError, setSaveError] = useState<string | null>(null);
@@ -48,24 +51,25 @@ export function PageComments({
 		() => pageCommentPins(numbered, version, showResolved),
 		[numbered, showResolved, version],
 	);
+	useEffect(() => {
+		const target = numbered.find(({ thread }) => thread.id === selectedThread)?.thread;
+		if (target?.resolved !== null) setShowResolved(true);
+		if (target?.version === version && !wide) setSheetOpen(true);
+	}, [numbered, selectedThread, version, wide]);
 	const select = (id: string) => {
 		const target = numbered.find(({ thread }) => thread.id === id)?.thread;
+		onSelectedThreadChange(id);
 		if (target !== undefined && target.version !== version) {
-			void navigate({
-				to: "/p/$",
-				params: { _splat: page },
-				search: pageCommentSearch(target.version, latestVersion),
-			});
+			openVersion(pageCommentSearch(target.version, latestVersion).version);
 			return;
 		}
 		if (target?.resolved !== null) setShowResolved(true);
-		setSelected(id);
 		if (!wide) setSheetOpen(true);
 	};
 	const openPendingAnchor = (anchor: PageCommentAnchor) => {
 		if (blocked || historical) return;
 		setPendingAnchor(anchor);
-		setSelected(null);
+		onSelectedThreadChange(null);
 		setSaveError(null);
 		if (!wide) setSheetOpen(true);
 	};
@@ -82,7 +86,7 @@ export function PageComments({
 		try {
 			const thread = await comments.create(version, pendingAnchor, body.trim());
 			closePendingAnchor();
-			setSelected(thread.id);
+			onSelectedThreadChange(thread.id);
 		} catch (error) {
 			setSaveError(errorMessage(error));
 		} finally {
@@ -108,7 +112,7 @@ export function PageComments({
 			)}
 			<PageCommentThreads
 				threads={numbered}
-				selected={selected}
+				selected={selectedThread}
 				showResolved={showResolved}
 				readOnly={blocked || historical}
 				loading={comments.pending}
@@ -116,6 +120,7 @@ export function PageComments({
 				actions={comments}
 				onSelect={select}
 				onShowResolved={setShowResolved}
+				onRetry={comments.retry}
 			/>
 		</div>
 	);
@@ -124,25 +129,27 @@ export function PageComments({
 			<div role="status" aria-live="polite" className="sr-only">
 				{comments.status}
 			</div>
-			<div className="relative flex min-h-0 min-w-0 flex-1">
-				<LeasedPageViewer
-					page={page}
-					version={version}
-					title={title}
-					comments={currentPins}
-					selectedThread={selected}
-					onCommentAnchor={openPendingAnchor}
-					onOpenThread={select}
-				/>
-				{wide ? (
-					<aside className="flex w-80 shrink-0 flex-col overflow-y-auto border-l border-border">{threadList}</aside>
-				) : (
-					<>
-						<div className="absolute right-3 top-3 z-20">
-							<Tooltip content="Comments">
-								<IconButton ref={trigger} label="Comments" icon={<ChatText />} onClick={() => setSheetOpen(true)} />
-							</Tooltip>
-						</div>
+			<div className="flex min-h-0 min-w-0 flex-1 flex-col">
+				{!wide && (
+					<div className="flex shrink-0 justify-end border-b border-border px-3 py-2">
+						<Tooltip content="Comments">
+							<IconButton ref={trigger} label="Comments" icon={<ChatText />} onClick={() => setSheetOpen(true)} />
+						</Tooltip>
+					</div>
+				)}
+				<div className="relative flex min-h-0 min-w-0 flex-1">
+					<LeasedPageViewer
+						page={page}
+						version={version}
+						title={title}
+						comments={currentPins}
+						selectedThread={selectedThread}
+						onCommentAnchor={openPendingAnchor}
+						onOpenThread={select}
+					/>
+					{wide ? (
+						<aside className="flex w-80 shrink-0 flex-col overflow-y-auto border-l border-border">{threadList}</aside>
+					) : (
 						<Sheet
 							open={sheetOpen}
 							onOpenChange={(open) => {
@@ -155,14 +162,13 @@ export function PageComments({
 							}}
 							title="Comments"
 							titleClassName="text-md font-medium"
-							modal={false}
 							width={360}
 							finalFocus={trigger}
 						>
 							{threadList}
 						</Sheet>
-					</>
-				)}
+					)}
+				</div>
 			</div>
 			<ConfirmDialog
 				open={warnCancel}

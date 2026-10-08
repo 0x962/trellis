@@ -13,7 +13,6 @@ export type ComposerDraft = {
 	wave?: string | null;
 	labels?: TicketLabel[];
 	assignment?: AssignChoice | null;
-	createMore?: boolean;
 	editing?: boolean;
 	automatic?: Array<"epic" | "wave" | "priority">;
 };

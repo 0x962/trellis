@@ -68,12 +68,15 @@ export function EpicResources({ epic, description, readOnly, resourceId }: EpicR
 	};
 	const saveDoc = async (id: string, fields: { name: string } | { body: string }) => {
 		await client.resources.update({ id, ...fields });
+		queryClient.setQueryData<Resource>(orpc.resources.get.queryOptions({ input: { id } }).queryKey, (current) =>
+			current === undefined ? current : { ...current, ...fields },
+		);
 		await queryClient.invalidateQueries({ queryKey: orpc.resources.key() });
 	};
 
 	return (
 		<div className="flex min-h-0 flex-1 max-md:flex-col">
-			<div className="flex w-60 shrink-0 flex-col gap-1 overflow-y-auto border-r border-border px-2 py-3 max-md:max-h-1/3 max-md:w-full max-md:border-r-0 max-md:border-b">
+			<div className="flex min-h-0 w-60 shrink-0 flex-col gap-1 border-r border-border px-2 py-3 max-md:h-1/2 max-md:min-h-72 max-md:w-full max-md:border-r-0 max-md:border-b">
 				<ResourceList
 					resources={resources}
 					planTitle={planTitle(description)}
@@ -83,11 +86,15 @@ export function EpicResources({ epic, description, readOnly, resourceId }: EpicR
 					onOpenDoc={setOpenDocId}
 					loading={list.isPending}
 					error={list.error === null ? null : errorMessage(list.error)}
+					onRetry={() => void list.refetch()}
+					openError={target.error === null ? null : errorMessage(target.error)}
+					onRetryOpen={() => void target.refetch()}
 					onNewDocument={readOnly ? undefined : () => create.mutate()}
 					newDocumentPending={create.isPending}
+					newDocumentError={create.error?.message}
 				/>
 				{(offset > 0 || (list.data?.length ?? 0) > 50) && (
-					<div className="flex items-center justify-between py-2">
+					<div className="flex shrink-0 items-center justify-between py-2">
 						<Tooltip content="Previous resources">
 							<IconButton
 								label="Previous resources"
@@ -106,16 +113,6 @@ export function EpicResources({ epic, description, readOnly, resourceId }: EpicR
 							/>
 						</Tooltip>
 					</div>
-				)}
-				{target.isError && (
-					<p role="alert" className="px-2 text-sm text-danger">
-						{errorMessage(target.error)}
-					</p>
-				)}
-				{create.isError && (
-					<p role="alert" className="px-2 text-sm text-danger">
-						Could not create the document. {create.error.message}
-					</p>
 				)}
 			</div>
 			{openDoc === null ? (

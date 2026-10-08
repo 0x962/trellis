@@ -1,70 +1,35 @@
 import type { UsageTotals as Totals } from "@trellis/api";
-import { StackedBar, StatTile } from "@trellis/ui";
-import { formatShare, formatTokens, formatUsd } from "../../../formatUsage";
+import { StatTile } from "@trellis/ui";
+import { formatTokens, formatUsd } from "../../../formatUsage";
+import { CostDetails } from "./components/CostDetails";
 
-// The figures of the range: four numbers, then how the tokens split. The
-// cost is what the same tokens cost at the API list rate; a subscription
-// bills none of it per token.
-export function UsageTotals({ totals, pricingTableUpdated }: { totals: Totals; pricingTableUpdated: string }) {
+export function UsageTotals({ totals, pricingDate }: { totals: Totals; pricingDate: string }) {
 	return (
-		<section aria-label="Totals" className="flex flex-col gap-4">
-			<div className="grid grid-cols-2 gap-x-4 gap-y-3 xl:grid-cols-4">
+		<div>
+			<div className="grid grid-cols-3 gap-6 px-7 py-6 max-sm:grid-cols-2 max-sm:px-4">
 				<StatTile
+					size="large"
 					label="API-rate cost"
 					value={`${totals.approximate ? "~" : ""}${formatUsd(totals.usd)}`}
-					detail={`${formatUsd(totals.cacheSavingsUsd)} net cache savings`}
+					detail="API list-price estimate"
+					className="max-sm:col-span-2"
 				/>
 				<StatTile
-					label="Trellis agent cost"
-					value={formatUsd(totals.trellisUsd)}
-					detail={`${formatShare(totals.trellisUsd, totals.usd) || "0%"} of the API-rate cost · ${totals.runs.toLocaleString("en-US")} runs`}
+					size="large"
+					label="Tokens"
+					value={formatTokens(totals.tokens)}
+					detail="All models and harnesses"
+					className="border-l border-border pl-6 max-sm:border-0 max-sm:pl-0"
 				/>
 				<StatTile
-					label="Agent cost per ticket"
-					value={totals.tickets > 0 ? formatUsd(totals.trellisUsd / totals.tickets) : formatUsd(0)}
-					detail={
-						totals.tickets > 0
-							? `${totals.tickets.toLocaleString("en-US")} tickets with agent work`
-							: "No ticket took agent work"
-					}
-				/>
-				<StatTile
+					size="large"
 					label="Sessions"
 					value={totals.sessions.toLocaleString("en-US")}
-					detail={`${formatTokens(totals.tokens)} tokens`}
+					detail="With usage in this range"
+					className="border-l border-border pl-6 max-sm:border-0 max-sm:pl-0"
 				/>
 			</div>
-			<StackedBar
-				label="Tokens by kind"
-				segments={[
-					{
-						key: "cached",
-						label: "Cached input",
-						value: totals.cachedInput,
-						valueLabel: formatTokens(totals.cachedInput),
-						tone: "agent",
-					},
-					{
-						key: "uncached",
-						label: "Uncached input",
-						value: totals.uncachedInput,
-						valueLabel: formatTokens(totals.uncachedInput),
-						tone: "success",
-					},
-					{
-						key: "write",
-						label: "Cache write",
-						value: totals.cacheWrite,
-						valueLabel: formatTokens(totals.cacheWrite),
-						tone: "warning",
-					},
-					{ key: "output", label: "Output", value: totals.output, valueLabel: formatTokens(totals.output), tone: "fg" },
-				]}
-			/>
-			<p className="max-w-prose text-xs text-fg-faint text-pretty">
-				Priced at the API list rate of {pricingTableUpdated}. A subscription does not bill per token. A ~ marks a model
-				priced with a fallback rate.
-			</p>
-		</section>
+			<CostDetails totals={totals} pricingDate={pricingDate} />
+		</div>
 	);
 }

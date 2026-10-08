@@ -24,9 +24,13 @@ export type ResourceListProps = {
 	onOpenDoc: (id: string) => void;
 	loading: boolean;
 	error: string | null;
+	onRetry?: () => void;
+	openError?: string | null;
+	onRetryOpen?: () => void;
 	// Absent on a page that takes no write.
 	onNewDocument?: () => void;
 	newDocumentPending: boolean;
+	newDocumentError?: string | null;
 };
 
 // A document opens beside the list. A link opens in the in-app browser, an
@@ -40,8 +44,12 @@ export function ResourceList({
 	onOpenDoc,
 	loading,
 	error,
+	onRetry,
+	openError,
+	onRetryOpen,
 	onNewDocument,
 	newDocumentPending,
+	newDocumentError,
 }: ResourceListProps) {
 	const openLink = useOpenLink();
 	const [image, setImage] = useState<Resource | null>(null);
@@ -97,10 +105,14 @@ export function ResourceList({
 				rows={rows}
 				loading={loading}
 				error={error}
+				onRetry={onRetry}
+				openError={openError}
+				onRetryOpen={onRetryOpen}
 				onOpen={onOpen}
 				selectedId={openDocId}
 				onNewDocument={onNewDocument}
 				newDocumentPending={newDocumentPending}
+				newDocumentError={newDocumentError}
 			/>
 			{image !== null && <ImageSheet name={image.name} url={resourceUrl(image)} onClose={() => setImage(null)} />}
 		</>

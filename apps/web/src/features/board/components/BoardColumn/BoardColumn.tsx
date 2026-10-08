@@ -1,7 +1,7 @@
 import { CaretRight } from "@phosphor-icons/react";
 import type { TicketSummary } from "@trellis/api";
-import { Button, cx, IconButton, StatusIcon } from "@trellis/ui";
-import { type KeyboardEvent, type MouseEvent, useCallback, useRef } from "react";
+import { Button, cx, GroupHeader, IconButton, StatusIcon, Tooltip, useMediaQuery } from "@trellis/ui";
+import { type KeyboardEvent, type MouseEvent, useCallback, useId, useLayoutEffect, useMemo, useRef } from "react";
 import { workingGroupInsertIndex } from "../../columns";
 import { useBoardAutoScroll, useColumnDnd } from "../../hooks/useBoardDnd";
 import type { BoardColumnModel } from "../../types";
@@ -13,6 +13,8 @@ export type BoardColumnProps = {
 	column: BoardColumnModel;
 	collapsed: boolean;
 	showAllDone: boolean;
+	hasMore: boolean;
+	loadingMore: boolean;
 	categoryMode: boolean;
 	// The CSS width of an open column. The board computes it, so every open
 	// column has the same width.
@@ -33,12 +35,13 @@ export type BoardColumnProps = {
 	onAnnounce: (message: string) => void;
 };
 
-// One board column: a fixed 36 px header and a list of cards that scrolls
-// under it. The header never scrolls, so every header stays at the same y.
+// The header stays outside the card list so its disclosure remains reachable during vertical scroll.
 export function BoardColumn({
 	column,
 	collapsed,
 	showAllDone,
+	hasMore,
+	loadingMore,
 	categoryMode,
 	width,
 	well,
@@ -55,17 +58,36 @@ export function BoardColumn({
 }: BoardColumnProps) {
 	const target = useRef<HTMLElement>(null);
 	const list = useRef<HTMLUListElement>(null);
+	const controls = useId();
+	const heading = useId();
+	const focusAfterToggle = useRef(false);
+	const phone = useMediaQuery("(max-width: 767px)");
+	const toggle = () => {
+		focusAfterToggle.current = true;
+		onToggle();
+	};
+	useLayoutEffect(() => {
+		if (!focusAfterToggle.current) return;
+		focusAfterToggle.current = false;
+		const control = target.current!.querySelector<HTMLButtonElement>(collapsed ? "button" : "button[aria-expanded]")!;
+		control.focus({ preventScroll: true });
+		control.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "instant" });
+	}, [collapsed]);
 	const expand = useCallback(() => {
 		if (collapsed) onToggle();
 	}, [collapsed, onToggle]);
 	const over = useColumnDnd(target, column, collapsed, expand);
 	useBoardAutoScroll(list, !collapsed);
-	const visible = visibleCards(column, { collapsed, showAllDone });
-	// The rail of a collapsed column prints the number of cards the open
-	// column draws, so the number stays the same when the person opens it.
-	const open = visibleCards(column, { collapsed: false, showAllDone });
-	const count = column.category === "done" && !showAllDone ? open.length : column.count;
-	const dropIndex = over === null ? null : workingGroupInsertIndex(visible, over.ticketId, workingTicketIds);
+	const open = useMemo(() => visibleCards(column, { collapsed: false, showAllDone }), [column, showAllDone]);
+	const visible = useMemo(() => (collapsed ? [] : open), [collapsed, open]);
+	const count = column.count;
+	const dropIndex = useMemo(
+		() =>
+			over === null
+				? null
+				: workingGroupInsertIndex(visible, { id: over.ticketId, createdAt: over.createdAt }, workingTicketIds),
+		[visible, over, workingTicketIds],
+	);
 
 	if (collapsed) {
 		return (
@@ -81,7 +103,9 @@ export function BoardColumn({
 				)}
 			>
 				<li role="none" className="contents">
-					<IconButton label={`Expand ${column.name}`} icon={<CaretRight />} size="xs" onClick={onToggle} />
+					<Tooltip content={`Expand ${column.name}`}>
+						<IconButton label={`Expand ${column.name}`} icon={<CaretRight />} size="xs" onClick={toggle} />
+					</Tooltip>
 					<StatusIcon category={column.category} />
 					<span className="mt-2 [writing-mode:vertical-rl] text-sm font-medium text-fg-muted">
 						{column.name} <span className="tabular">{count}</span>
@@ -94,16 +118,29 @@ export function BoardColumn({
 	return (
 		<section
 			ref={target}
+			aria-labelledby={heading}
 			data-category={column.category}
 			style={{ width }}
 			className={cx("flex min-h-0 shrink-0 snap-start flex-col rounded-lg", well && "bg-band")}
 		>
-			<header className="flex h-9 shrink-0 items-center gap-2 px-2 text-fg pointer-coarse:h-12">
-				<StatusIcon category={column.category} />
-				<h2 className="min-w-0 truncate text-base font-medium">{column.name}</h2>
-				<span className="text-sm tabular text-fg-faint">{count}</span>
+			<header className="shrink-0">
+				<h2 id={heading} className="sr-only">
+					{column.name}
+				</h2>
+				<GroupHeader
+					group={column.id}
+					label={column.name}
+					count={count}
+					icon={<StatusIcon category={column.category} />}
+					expanded
+					controls={controls}
+					layout="section"
+					phone={phone}
+					onToggle={toggle}
+				/>
 			</header>
 			<ul
+				id={controls}
 				ref={list}
 				aria-label={`${column.name}, ${count} tickets`}
 				data-category={column.category}
@@ -137,9 +174,15 @@ export function BoardColumn({
 						<DragIndicator />
 					</li>
 				)}
-				{visible.length < column.count && column.category !== "done" && (
+				{hasMore && (column.category !== "done" || showAllDone) && (
 					<li role="none" className="self-start">
-						<Button variant="quiet" size="sm" onClick={() => void onShowMore()}>
+						<Button
+							variant="quiet"
+							size="sm"
+							disabled={loadingMore}
+							aria-busy={loadingMore}
+							onClick={() => void onShowMore()}
+						>
 							Show more
 						</Button>
 					</li>

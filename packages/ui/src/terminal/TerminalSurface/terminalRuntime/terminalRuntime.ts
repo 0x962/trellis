@@ -48,6 +48,15 @@ export async function createTerminalRuntime(
 		linkHandler: { activate, hover, leave, allowNonHttpProtocols: true },
 		theme: { background: appearance.background, foreground: appearance.foreground, cursor: appearance.foreground },
 	});
+	const updateAppearance = (next: TerminalAppearance) => {
+		terminal.options.fontFamily = next.fontFamily;
+		terminal.options.fontSize = next.fontSize;
+		terminal.options.theme = {
+			background: next.background,
+			foreground: next.foreground,
+			cursor: next.foreground,
+		};
+	};
 	const fit = new FitAddon();
 	terminal.loadAddon(fit);
 	terminal.loadAddon(new WebLinksAddon(activate, { hover, leave }));
@@ -100,7 +109,11 @@ export async function createTerminalRuntime(
 			publish({ gap: true });
 		},
 	});
-	terminal.attachCustomKeyEventHandler(terminalKeys(() => view?.onLeave()));
+	const handleKeys = terminalKeys(() => view?.onLeave());
+	terminal.attachCustomKeyEventHandler((event) => {
+		if (snapshot.error && event.key === "Tab") return false;
+		return handleKeys(event);
+	});
 	const data = terminal.onData((text) => {
 		const userInput = source.isUserInput(text);
 		if (snapshot.connection !== "open" || !snapshot.controllable || snapshot.error || view?.readOnly) return;
@@ -155,7 +168,6 @@ export async function createTerminalRuntime(
 		listeners.clear();
 		onDispose();
 	};
-	connect();
 	return {
 		getSnapshot: () => snapshot,
 		subscribe(listener: () => void) {
@@ -166,20 +178,16 @@ export async function createTerminalRuntime(
 			if (disposed) return;
 			view = next;
 			host.append(wrapper);
-			terminal.options.fontFamily = nextAppearance.fontFamily;
-			terminal.options.fontSize = nextAppearance.fontSize;
-			terminal.options.theme = {
-				background: nextAppearance.background,
-				foreground: nextAppearance.foreground,
-				cursor: nextAppearance.foreground,
-			};
+			updateAppearance(nextAppearance);
 			terminal.options.screenReaderMode = next.screenReaderMode;
 			terminal.textarea?.setAttribute("aria-label", next.label);
 			disposeWebgl = terminalWebgl(terminal, () => new WebglAddon());
 			resize.attach(host);
+			if (!connection) connect();
 		},
-		update(next: TerminalView) {
+		update(next: TerminalView, appearance: TerminalAppearance) {
 			if (disposed) return;
+			updateAppearance(appearance);
 			const becameWritable = view?.readOnly === true && !next.readOnly;
 			view = next;
 			terminal.options.screenReaderMode = next.screenReaderMode;

@@ -26,6 +26,7 @@ const segments: readonly SegmentedOption<Segment>[] = [
 ];
 
 const sorts: readonly SegmentedOption<SortValue>[] = [
+	{ value: "created", label: "Created" },
 	{ value: "updated", label: "Updated" },
 	{ value: "priority", label: "Priority" },
 ];
@@ -46,7 +47,7 @@ const styles = StyleSheet.create({
 // refused shows the reason the server sent.
 export function ProjectTicketList({ project }: ProjectTicketListProps) {
 	const [segment, setSegment] = useState<Segment>("active");
-	const [sort, setSort] = useState<SortValue>("updated");
+	const [sort, setSort] = useState<SortValue>("created");
 	const list = useInfiniteQuery(
 		getQueries().tickets.list.infiniteOptions({
 			input: (cursor: string | undefined) => listQueryInput({ project, segment, sort, cursor }),

@@ -1,6 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import type { Session } from "@trellis/api";
-import { ConfirmDialog, toast } from "@trellis/ui";
+import { ConfirmDialog, FailureState, toast } from "@trellis/ui";
 import { useApp } from "../../../lib/appContext";
 
 export type DeleteSessionDialogProps = {
@@ -25,7 +25,6 @@ export function DeleteSessionDialog({ session, open, onOpenChange, onDeleted }: 
 			await queryClient.invalidateQueries({ queryKey: orpc.sessions.key() });
 			toast(`Deleted ${session.name}`);
 		},
-		onError: (error) => toast.error(`Could not delete ${session.name}`, { description: error.message }),
 	});
 	return (
 		<ConfirmDialog
@@ -39,8 +38,13 @@ export function DeleteSessionDialog({ session, open, onOpenChange, onDeleted }: 
 				if (!remove.isPending) remove.mutate();
 			}}
 			onCancel={() => {
-				if (!remove.isPending) onOpenChange(false);
+				if (!remove.isPending) {
+					remove.reset();
+					onOpenChange(false);
+				}
 			}}
-		/>
+		>
+			{remove.error && <FailureState title="The session was not deleted" detail={remove.error.message} />}
+		</ConfirmDialog>
 	);
 }

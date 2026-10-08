@@ -20,7 +20,7 @@ const requirePerson = (ctx: IoCtx) => {
 const invalidateUsage = (ctx: IoCtx) =>
 	ctx.afterCommit(async () => {
 		invalidateUsageAccounts(ctx.home);
-		invalidateUsageReports(ctx.home);
+		await invalidateUsageReports(ctx.home);
 	});
 
 const nameIsUsed = async (tx: Tx, account: { id: string; name: string }) => {
