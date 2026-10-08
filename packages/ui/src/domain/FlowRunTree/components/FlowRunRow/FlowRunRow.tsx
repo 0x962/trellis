@@ -164,7 +164,9 @@ export function FlowRunRow({
 					onClick={(event) => event.stopPropagation()}
 					onKeyDown={(event) => event.stopPropagation()}
 				>
-					<summary className="cursor-pointer">{row.detailsLabel ?? "Identifiers"}</summary>
+					<summary className="min-h-7 content-center cursor-pointer rounded-sm focus-visible:outline-2 focus-visible:outline-accent pointer-coarse:min-h-11 max-md:min-h-11">
+						{row.detailsLabel ?? "Identifiers"}
+					</summary>
 					<dl className="mt-1 grid min-w-0 grid-cols-[auto_minmax(0,1fr)] gap-x-2">
 						{row.details.map((detail) => (
 							<div className="contents" key={detail.label}>
@@ -184,7 +186,9 @@ export function FlowRunRow({
 					onClick={(event) => event.stopPropagation()}
 					onKeyDown={(event) => event.stopPropagation()}
 				>
-					<summary className="cursor-pointer text-fg-muted">Output</summary>
+					<summary className="min-h-7 content-center cursor-pointer rounded-sm text-fg-muted focus-visible:outline-2 focus-visible:outline-accent pointer-coarse:min-h-11 max-md:min-h-11">
+						Output
+					</summary>
 					<pre className="mt-1 max-h-80 overflow-auto whitespace-pre-wrap break-words font-mono">{row.output}</pre>
 				</details>
 			)}

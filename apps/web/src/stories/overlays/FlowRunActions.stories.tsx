@@ -1,14 +1,18 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { FlowDecisionDialog } from "../../features/reviews/FlowRuns/components/FlowRun/components/FlowDecisionDialog";
-import { flowExecution, flowHistoryResponses } from "../pages/fixtures/flowHistory";
+import { decisionStepKey, flowExecution } from "../pages/fixtures/flowHistory";
+import { flowHistoryJourney } from "../pages/fixtures/flowHistoryJourney";
 import { failure, noop, pending } from "./fixtures";
 import { clickButton } from "./interactions";
+
+const journey = flowHistoryJourney();
 
 const meta = {
 	title: "Overlays/FlowRunActions",
 	component: FlowDecisionDialog,
-	args: { execution: flowExecution, actionKey: "approve-review", onClose: noop },
-	parameters: { trellis: { responses: flowHistoryResponses } },
+	args: { execution: flowExecution, actionKey: decisionStepKey, onClose: noop },
+	parameters: { trellis: { responses: journey.responses } },
+	beforeEach: () => journey.reset(),
 } satisfies Meta<typeof FlowDecisionDialog>;
 export default meta;
 type Story = StoryObj<typeof meta>;

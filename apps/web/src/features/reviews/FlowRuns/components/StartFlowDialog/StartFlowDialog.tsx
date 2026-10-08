@@ -81,10 +81,11 @@ export function StartFlowDialog({
 					/>
 				)}
 				<p className="text-sm text-fg-muted">
-					The flow uses its saved version. Each step retains its prompt, result, and required decisions.
+					{flow && <span className="font-medium tabular-nums">Saved version {flow.version}. </span>}
+					Each step retains its prompt, result, and required decisions.
 				</p>
 				<details className="text-xs text-fg-muted">
-					<summary className="cursor-pointer rounded-sm focus-visible:outline-2 focus-visible:outline-accent">
+					<summary className="min-h-7 content-center cursor-pointer rounded-sm focus-visible:outline-2 focus-visible:outline-accent pointer-coarse:min-h-11 max-md:min-h-11">
 						Technical details
 					</summary>
 					<dl className="mt-2 min-w-0 break-all">

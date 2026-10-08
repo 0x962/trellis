@@ -10,11 +10,11 @@ type NodePaletteProps = { onAdd: (kind: FlowNodeKind) => void };
 // tooltip names each kind, because the buttons show only an icon.
 export function NodePalette({ onAdd }: NodePaletteProps) {
 	return (
-		<div role="toolbar" aria-label="Add a step" aria-orientation="vertical" className="flex flex-col gap-1">
+		<div role="toolbar" aria-label="Add a step" aria-orientation="horizontal" className="flex items-center gap-1">
 			{flowKindOrder.map((kind) => {
 				const meta = flowKinds[kind];
 				return (
-					<Tooltip key={kind} side="right" content={meta.label} description={meta.description} delay={0}>
+					<Tooltip key={kind} side="bottom" content={meta.label} description={meta.description} delay={0}>
 						<IconButton
 							label={`Add ${meta.label.toLowerCase()}`}
 							icon={<meta.icon />}

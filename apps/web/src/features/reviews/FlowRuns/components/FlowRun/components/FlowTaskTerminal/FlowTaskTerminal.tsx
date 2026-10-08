@@ -43,7 +43,7 @@ export function FlowTaskTerminal({
 				</p>
 			</div>
 			<details className="text-xs text-fg-muted">
-				<summary className="cursor-pointer rounded-sm focus-visible:outline-2 focus-visible:outline-accent">
+				<summary className="min-h-7 content-center cursor-pointer rounded-sm focus-visible:outline-2 focus-visible:outline-accent pointer-coarse:min-h-11 max-md:min-h-11">
 					Technical details
 				</summary>
 				<dl className="mt-2 grid min-w-0 grid-cols-[auto_minmax(0,1fr)] gap-x-2">

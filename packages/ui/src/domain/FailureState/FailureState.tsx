@@ -135,7 +135,7 @@ export function FailureState({
 						)}
 						{detail && (
 							<details className="max-w-xl text-xs text-fg-muted">
-								<summary className="cursor-pointer rounded-sm focus-visible:outline-2 focus-visible:outline-accent">
+								<summary className="min-h-7 min-w-7 content-center cursor-pointer rounded-sm focus-visible:outline-2 focus-visible:outline-accent pointer-coarse:min-h-11 pointer-coarse:min-w-11 max-md:min-h-11 max-md:min-w-11">
 									Details
 								</summary>
 								<OutputBlock text={detail} className="mt-1 break-all" />

@@ -180,10 +180,17 @@ export function FlowCanvas(props: FlowCanvasProps) {
 			onDragOver={onDragOver}
 			onDrop={onDrop}
 		>
+			<p id="flow-connection-instructions" className="sr-only">
+				Press Enter or Space on a connection control to choose the source. Choose a destination control and press Enter
+				or Space again. Press Escape to cancel.
+			</p>
 			<ReactFlow<CanvasNode, CanvasEdge>
 				className="flow-canvas"
 				nodes={nodes}
-				edges={edges}
+				edges={edges.map((edge) => ({
+					...edge,
+					ariaLabel: `Connection from ${nodes.find((node) => node.id === edge.source)!.data.fields.title} to ${nodes.find((node) => node.id === edge.target)!.data.fields.title}${edge.data!.branch === "out" ? "" : `, ${edge.data!.branch === "yes" ? "Yes" : "No"}`}`,
+				}))}
 				nodeTypes={nodeTypes}
 				edgeTypes={edgeTypes}
 				onNodesChange={onNodesChange}

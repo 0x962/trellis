@@ -66,6 +66,7 @@ const meta = {
 } satisfies Meta<typeof FlowEditor>;
 export default meta;
 type Story = StoryObj<typeof meta>;
+let recoveryRequests = 0;
 
 export const Canvas: Story = {
 	play: async ({ canvasElement }) => {
@@ -80,6 +81,67 @@ export const Canvas: Story = {
 };
 export const EmptyCanvas: Story = {
 	parameters: { trellis: { responses: { "flows.get": { ...flowDoc, nodes: [], edges: [] } } } },
+};
+export const KeyboardConnections: Story = {
+	parameters: { trellis: { responses: { "flows.get": { ...flowDoc, edges: [] } } } },
+	play: async ({ canvasElement }) => {
+		const canvas = within(canvasElement);
+		const source = await canvas.findByRole("button", { name: "Review the interface, connection, bottom" });
+		const target = await canvas.findByRole("button", { name: "Does the review pass?, input, top" });
+		source.focus();
+		await userEvent.keyboard("{Enter}");
+		await expect(source).toHaveAttribute("aria-pressed", "true");
+		target.focus();
+		await userEvent.keyboard(" ");
+		await waitFor(() => expect(canvasElement.querySelectorAll(".react-flow__edge")).toHaveLength(1));
+		const branch = canvas.getByRole("button", { name: "Does the review pass?, No, bottom" });
+		branch.focus();
+		await userEvent.keyboard("{Enter}");
+		canvas.getByRole("button", { name: "Approve the result, connection, top" }).focus();
+		await userEvent.keyboard("{Enter}");
+		await waitFor(() => expect(canvasElement.querySelectorAll(".react-flow__edge")).toHaveLength(2));
+		await expect(
+			canvasElement.querySelector('[aria-label="Connection from Does the review pass? to Approve the result, No"]'),
+		).toBeInTheDocument();
+		source.focus();
+		await userEvent.keyboard("{Enter}{Escape}");
+		await expect(source).toHaveAttribute("aria-pressed", "false");
+		await expect(getComputedStyle(source).outlineWidth).toBe("2px");
+		const edge = canvasElement.querySelector<SVGGElement>(
+			'.react-flow__edge[aria-label="Connection from Does the review pass? to Approve the result, No"]',
+		)!;
+		edge.focus();
+		await expect(getComputedStyle(edge.querySelector(".react-flow__edge-path")!).strokeWidth).toBe("3px");
+		const node = canvasElement.querySelector<HTMLElement>(".react-flow__node")!;
+		node.focus();
+		await expect(getComputedStyle(node.firstElementChild!).outlineWidth).toBe("2px");
+		await userEvent.keyboard("{Enter}");
+		await expect(
+			await within(canvasElement.ownerDocument.body).findByRole("dialog", { name: "Edit agent" }),
+		).toBeVisible();
+	},
+};
+export const RequestRecovery: Story = {
+	beforeEach: () => {
+		recoveryRequests = 0;
+	},
+	parameters: {
+		trellis: {
+			responses: {
+				"flows.get": () => {
+					recoveryRequests += 1;
+					if (recoveryRequests === 1) throw new Error("The synthetic flow request fails once.");
+					return flowDoc;
+				},
+			},
+		},
+	},
+	play: async ({ canvasElement }) => {
+		const canvas = within(canvasElement);
+		await userEvent.click(await canvas.findByRole("button", { name: "Retry" }));
+		await expect(await canvas.findByText("Review the interface", { exact: true })).toBeVisible();
+		await expect(recoveryRequests).toBe(2);
+	},
 };
 export const KeyboardDeleteRequiresConfirmation: Story = {
 	play: async ({ canvasElement }) => {
@@ -121,6 +183,10 @@ export const Missing: Story = {
 	},
 	play: async ({ canvasElement }) => {
 		await expect(await within(canvasElement).findByRole("heading", { name: "No flow with this name" })).toBeVisible();
+		await expect(await within(canvasElement).findByRole("link", { name: "Back to flows" })).toHaveAttribute(
+			"href",
+			"/ai/flows",
+		);
 	},
 };
 export const InvalidNodes: Story = {

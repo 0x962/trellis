@@ -73,7 +73,7 @@ export function FlowRunSummary({
 							type="button"
 							aria-expanded={expanded}
 							onClick={onToggle}
-							className="-ml-1 flex min-w-0 items-center gap-2 rounded-md px-1 text-fg-muted transition-colors duration-hover ease-out hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2 pointer-coarse:h-11"
+							className="-ml-1 flex min-h-7 min-w-0 items-center gap-2 rounded-md px-1 text-fg-muted transition-colors duration-hover ease-out hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2 pointer-coarse:min-h-11 max-md:min-h-11"
 						>
 							<Caret aria-hidden="true" className="size-3 shrink-0 text-fg-faint" />
 							{title}
