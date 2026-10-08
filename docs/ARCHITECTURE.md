@@ -1027,7 +1027,11 @@ a collision takes the next free suffix: `review`, `review-2`.
 
 A node is one step. An `agent` node runs one agent. A `gate` runs one agent that
 answers YES or NO. A gate can instead select a Jev frontend or backend review area.
-Jev receives every changed file path from the linked diff, with its file name and extension.
+Jev receives the unique production paths from the linked diff.
+The host removes tests, fixtures, snapshots, stories, explicit documentation paths, conventional document names, lockfiles, and clear build output.
+It retains production source, executable configuration, and database migrations.
+If no relevant path remains, the host returns neither without a Jev request.
+The complete diff remains available to review agents.
 The host checks the reviewed commit and the complete file count before classification.
 One classification per flow execution gives independent frontend and backend decisions.
 A mixed change selects both review branches. The neither result skips both review branches.
