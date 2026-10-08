@@ -53,7 +53,7 @@ export function ResourceRow({ row, onOpen, selected = false }: ResourceRowProps)
 				aria-current={selected ? "page" : undefined}
 				title={title}
 				className={cx(
-					"sidebar-row group/resource w-full pl-2 text-left text-sm text-fg-muted hover:bg-elevated hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2",
+					"sidebar-row group/resource w-full pl-2 text-left text-sm text-fg-muted hover:bg-elevated hover:text-fg focus-visible:h-auto! focus-visible:min-h-8 focus-visible:py-1.5 focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2 pointer-coarse:focus-visible:min-h-11 max-md:h-auto! max-md:min-h-8 max-md:py-1.5 pointer-coarse:max-md:min-h-11",
 					selected && "sidebar-selected font-medium",
 				)}
 			>
@@ -62,7 +62,9 @@ export function ResourceRow({ row, onOpen, selected = false }: ResourceRowProps)
 						{row.plan === true ? <BookOpenText /> : icons[row.kind]}
 					</span>
 				</span>
-				<span className="sidebar-label">{row.name}</span>
+				<span className="sidebar-label group-focus-visible/resource:overflow-visible group-focus-visible/resource:whitespace-normal group-focus-visible/resource:wrap-anywhere max-md:overflow-visible max-md:whitespace-normal max-md:wrap-anywhere">
+					{row.name}
+				</span>
 				<span aria-hidden="true" className="sidebar-trailing text-fg-faint">
 					{trailing[row.kind] !== undefined && (
 						<span className="inline-flex size-3.5 opacity-0 transition-opacity duration-hover group-hover/resource:opacity-100 group-focus-visible/resource:opacity-100 *:size-full [@media(hover:none)]:opacity-100">

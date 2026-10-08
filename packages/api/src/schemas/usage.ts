@@ -122,7 +122,7 @@ export type UsageReport = z.infer<typeof UsageReportSchema>;
 
 // The range as a query string carries digits, so the input accepts the
 // number and its text form.
-const UsageDaysInputSchema = z.union([
+export const UsageDaysInputSchema = z.union([
 	UsageDaysSchema,
 	z.enum(["7", "30", "90"]).transform((value) => Number(value) as UsageDays),
 ]);

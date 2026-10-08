@@ -1,1 +1,0 @@
-export { authorityPermitBinding } from "./authorityPermit";

@@ -101,7 +101,13 @@ export function StatusIcon({
 		"aria-hidden": label ? undefined : ("true" as const),
 		tabIndex: label && tooltip && focusable ? 0 : undefined,
 	};
-	const icon = mark({ category, shape: reviewShape, tone, progress, shared, className });
+	// A mark that takes focus draws the ring every other control draws. Without
+	// this class the browser draws its own ring: a thick square around a round mark.
+	const focusRing =
+		shared.tabIndex === 0
+			? "rounded-round focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2"
+			: undefined;
+	const icon = mark({ category, shape: reviewShape, tone, progress, shared, className: cx(focusRing, className) });
 	return label === undefined || !tooltip ? icon : <Tooltip content={label}>{icon}</Tooltip>;
 }
 

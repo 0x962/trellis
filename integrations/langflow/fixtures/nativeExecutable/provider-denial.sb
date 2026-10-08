@@ -1,7 +1,0 @@
-(version 1)
-(allow default)
-(deny network*)
-(allow network-outbound
-    (remote unix-socket (path-literal (param "RUNTIME_SOCKET"))))
-(allow network-bind network-inbound
-    (local unix-socket (path-literal (param "CONTROL_SOCKET"))))

@@ -11,7 +11,7 @@ export type {
 	RuntimeHarnessActivitySignal,
 	RuntimeHarnessObservation,
 } from "./harnessEvents/index.ts";
-export const RUNTIME_PROTOCOL_VERSION = 16;
+export const RUNTIME_PROTOCOL_VERSION = 17;
 export const MAX_TERMINAL_DIMENSION = 0xffff;
 export type RuntimeStream = "stdout" | "stderr" | "events";
 export interface RuntimeAgentMetadata {

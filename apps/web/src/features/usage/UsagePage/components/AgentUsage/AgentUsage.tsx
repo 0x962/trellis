@@ -45,6 +45,15 @@ const groupOptions = [
 	{ value: "harness", label: "Harness" },
 ] as const;
 
+const formatFullDate = (value: string) => {
+	const [year, month, day] = value.slice(0, 10).split("-").map(Number);
+	return new Date(year!, month! - 1, day!).toLocaleDateString("en-US", {
+		month: "short",
+		day: "numeric",
+		year: "numeric",
+	});
+};
+
 export function AgentUsage() {
 	const [explanationOpen, setExplanationOpen] = useState(false);
 	const explanationId = useId();
@@ -79,6 +88,7 @@ export function AgentUsage() {
 		metric,
 		total: report.data?.totals[metric] ?? 0,
 		pending: report.isPending,
+		reportAvailable: Boolean(report.data),
 	};
 
 	return (
@@ -88,7 +98,7 @@ export function AgentUsage() {
 					<h2 className="text-2xl font-semibold tracking-tight text-fg">Usage overview</h2>
 					<p className="mt-2 text-sm text-fg-muted">
 						{chartDays.length > 0
-							? `${formatDayLabel(chartDays[0]!)}–${formatDayLabel(chartDays.at(-1)!)} · ${new Date(report.data!.computedAt).getFullYear()}`
+							? `${formatFullDate(chartDays[0]!)} to ${formatFullDate(chartDays.at(-1)!)}`
 							: `Last ${days} days`}
 					</p>
 				</div>
@@ -109,7 +119,7 @@ export function AgentUsage() {
 			</div>
 			{report.data && (
 				<p role="status" className="text-xs text-fg-muted">
-					Saved {new Date(report.data.computedAt).toLocaleString()}. Select Refresh usage to update the report.
+					Saved {formatFullDate(report.data.computedAt)}. Use the Refresh usage control to update the report.
 					{report.isFetching && " The selected report is loading."}
 				</p>
 			)}

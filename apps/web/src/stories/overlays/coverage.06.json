@@ -4,14 +4,11 @@
 		"export": "FlowDecisionDialog",
 		"stories": [
 			"Overlays/FlowRunActions/DecisionOpen",
-			"Overlays/FlowRunActions/DecisionEmpty",
-			"Overlays/FlowRunActions/DecisionDisabled",
 			"Overlays/FlowRunActions/DecisionPending",
 			"Overlays/FlowRunActions/DecisionError",
-			"Overlays/FlowRunActions/DecisionSuccess",
-			"Overlays/FlowRunActions/DecisionUnknown"
+			"Overlays/FlowRunActions/DecisionSuccess"
 		],
-		"states": ["open", "empty", "disabled", "pending", "error", "success", "default"],
+		"states": ["open", "pending", "error", "success"],
 		"notes": "Stories mount the production component with synthetic props and API responses."
 	},
 	{
@@ -19,25 +16,15 @@
 		"export": "StartFlowDialog",
 		"stories": [
 			"Overlays/StartFlowDialog/Open",
-			"Overlays/StartFlowDialog/Selected",
 			"Overlays/StartFlowDialog/Empty",
 			"Overlays/StartFlowDialog/Loading",
-			"Overlays/StartFlowDialog/Disabled",
-			"Overlays/StartFlowDialog/AdmissionPending",
 			"Overlays/StartFlowDialog/RequestError",
 			"Overlays/StartFlowDialog/Pending",
 			"Overlays/StartFlowDialog/Success",
-			"Overlays/StartFlowDialog/UnknownResult",
-			"Overlays/StartFlowDialog/Repeat",
-			"Overlays/StartFlowDialog/Unpublished",
-			"Overlays/StartFlowDialog/Published",
-			"Overlays/StartFlowDialog/DocumentLoading",
-			"Overlays/StartFlowDialog/DocumentError",
-			"Overlays/StartFlowDialog/VersionConflict",
-			"Overlays/StartFlowDialog/HeadConflict",
-			"Overlays/StartFlowDialog/PreflightError"
+			"Overlays/StartFlowDialog/StartError",
+			"Overlays/StartFlowDialog/VersionConflict"
 		],
-		"states": ["open", "selected", "empty", "loading", "disabled", "pending", "error", "success", "default"],
+		"states": ["open", "empty", "loading", "pending", "error", "success", "version conflict"],
 		"notes": "Stories mount the production component with synthetic props and API responses."
 	},
 	{

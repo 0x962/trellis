@@ -1,0 +1,1 @@
+export { checkAccountNames } from "./checkAccountNames";

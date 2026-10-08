@@ -1,47 +1,17 @@
 [
 	{
-		"source": "apps/web/src/features/flows/LangflowEditor/components/FlowEditorRoute/FlowEditorRoute.tsx",
-		"export": "FlowEditorRoute",
-		"stories": [
-			"Pages/Flow editor/LegacyCanvas",
-			"Pages/Flow editor/EmptyCanvas",
-			"Pages/Flow editor/Loading",
-			"Pages/Flow editor/RequestError",
-			"Pages/Flow editor/EditorHostUnavailable",
-			"Pages/Flow editor/EditorHostLoading",
-			"Pages/Flow editor/Narrow",
-			"Pages/Flow editor/LegacyLoading",
-			"Pages/Flow editor/LegacyRequestError",
-			"Pages/Flow editor/LegacyMissing",
-			"Pages/Flow editor/EditorHostError"
-		],
-		"states": [
-			"legacy canvas",
-			"empty canvas",
-			"loading",
-			"error",
-			"unavailable host",
-			"narrow",
-			"legacy loading",
-			"legacy error",
-			"missing flow",
-			"host error"
-		],
-		"notes": ""
-	},
-	{
 		"source": "apps/web/src/features/flows/FlowEditor/FlowEditor.tsx",
 		"export": "FlowEditor",
 		"stories": [
-			"Pages/Flow editor/LegacyCanvas",
+			"Pages/Flow editor/Canvas",
 			"Pages/Flow editor/EmptyCanvas",
-			"Pages/Flow editor/LegacyLoading",
-			"Pages/Flow editor/LegacyRequestError",
-			"Pages/Flow editor/LegacyMissing",
+			"Pages/Flow editor/Loading",
+			"Pages/Flow editor/RequestError",
+			"Pages/Flow editor/Missing",
 			"Pages/Flow editor/Narrow"
 		],
-		"states": ["legacy canvas", "empty canvas", "loading", "error", "missing flow", "narrow"],
-		"notes": "The legacy document selects FlowEditor. Its request states use flows.get responses."
+		"states": ["canvas", "empty canvas", "loading", "error", "missing flow", "narrow"],
+		"notes": "The canvas and request states use flows.get responses."
 	},
 	{
 		"source": "apps/web/src/features/pages/PageList/PageList.tsx",

@@ -102,7 +102,7 @@ describe("ResourceList", () => {
 	test("groups the resources under Documents, Links, Images and Files", async () => {
 		const html = await render(<ResourceList resources={resources} {...controls} />);
 
-		const headings = [...html.matchAll(/<h3>([^<]+)<\/h3>/g)].map((match) => match[1]);
+		const headings = [...html.matchAll(/<section aria-label="([^"]+)"/g)].map((match) => match[1]);
 		expect(headings).toEqual(["Documents", "Links", "Images", "Files"]);
 		expect(html.indexOf("The routine runtime")).toBeLessThan(html.indexOf(">Links<"));
 		expect(html.indexOf("canary#55569")).toBeLessThan(html.indexOf(">Images<"));
@@ -171,11 +171,17 @@ describe("ResourceList", () => {
 		expect(html).not.toContain("The epic holds no resource.");
 	});
 
-	test("prints the words of the server when the read fails", async () => {
-		const html = await render(<ResourceList resources={[]} {...controls} error="The server did not answer." />);
+	test("keeps the server error in a closed disclosure and offers a retry", async () => {
+		const html = await render(
+			<ResourceList resources={[]} {...controls} error="The server did not answer." onRetry={() => {}} />,
+		);
 
 		expect(html).toContain('role="alert"');
 		expect(html).toContain("The server did not answer.");
+		expect(html).toContain("The resources do not load.");
+		expect(html).toContain(">Retry</span>");
+		expect(html).toContain("<details");
+		expect(html).not.toContain("<details open");
 		expect(html).not.toContain("The epic holds no resource.");
 	});
 });

@@ -1,8 +1,7 @@
 import { type TicketPr, type TicketSummary, ticketWaitsCell } from "@trellis/api";
 import type { TicketAgentLine } from "../../../../utils/agentLines";
 
-// The second line of a ticket row on the epic table below 768 px. It holds
-// one fact, so the row stays two lines of 56 px.
+// The epic phone row places one secondary fact below its title.
 export type PhoneLine =
 	| { kind: "agent"; line: TicketAgentLine }
 	| { kind: "pr"; pr: TicketPr }

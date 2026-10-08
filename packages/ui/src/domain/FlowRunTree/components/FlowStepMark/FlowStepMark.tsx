@@ -1,4 +1,4 @@
-import { StopCircle, WarningCircle, XCircle } from "@phosphor-icons/react";
+import { WarningCircle, XCircle } from "@phosphor-icons/react";
 import { StatusIcon } from "../../../StatusIcon";
 import type { FlowRunState } from "../../types";
 
@@ -9,7 +9,6 @@ export const flowStateLabels: Record<FlowRunState, string> = {
 	running: "Running",
 	waiting_human: "Needs your decision",
 	unknown: "Needs attention",
-	exited: "Exited",
 	succeeded: "Succeeded",
 	skipped: "Skipped",
 	failed: "Failed",
@@ -35,8 +34,6 @@ export function FlowStepMark({ state }: { state: FlowRunState }) {
 			return <StatusIcon category="review" label={label} tooltip={false} focusable={false} />;
 		case "succeeded":
 			return <StatusIcon category="done" label={label} tooltip={false} focusable={false} />;
-		case "exited":
-			return <StopCircle role="img" aria-label={label} className="size-3.5 shrink-0 text-fg-muted" />;
 		case "skipped":
 		case "canceled":
 			return <StatusIcon category="canceled" label={label} tooltip={false} focusable={false} />;

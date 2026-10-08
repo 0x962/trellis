@@ -7,10 +7,11 @@ const browserTimers: Timers = { set: (run, ms) => setTimeout(run, ms), clear: (t
 
 // Saves a text while a person types in it. `change` waits `delayMs` after the
 // last keystroke, and `flush` saves at once, for a blur or a closed document.
-// `save` runs only for a text that differs from the last text it received, so
-// a blur right after the pause sends nothing twice.
+// `flush` skips unchanged text so blur does not repeat a save after the timer fires.
+// `retry` resends the pending text after a failed save.
 export const typingSaver = (save: (text: string) => void, saved: string, delayMs: number, timers = browserTimers) => {
 	let last = saved;
+	let accepted = saved;
 	let pending = saved;
 	let timer: ReturnType<typeof setTimeout> | null = null;
 	const flush = () => {
@@ -27,5 +28,15 @@ export const typingSaver = (save: (text: string) => void, saved: string, delayMs
 			timer = timers.set(flush, delayMs);
 		},
 		flush,
+		retry: () => {
+			if (timer !== null) timers.clear(timer);
+			timer = null;
+			last = pending;
+			save(pending);
+		},
+		accept: (text: string) => {
+			accepted = text;
+		},
+		dirty: () => pending !== accepted,
 	};
 };

@@ -1,9 +1,4 @@
-import {
-	type FlowDoc,
-	legacyDocumentV1Example,
-	pendingDocumentV1Example,
-	publishedDocumentV1Example,
-} from "@trellis/api";
+import type { FlowDoc } from "@trellis/api";
 import { id, timestamp } from "./project";
 import { projectResponses } from "./responses";
 
@@ -73,40 +68,10 @@ export const flowDoc: FlowDoc = {
 	],
 };
 
-export const legacyFlow = {
-	...legacyDocumentV1Example,
-	flow: flowDoc.flow,
-	revision: flowDoc.flow.version,
-	graphDocument: { nodes: flowDoc.nodes, edges: flowDoc.edges },
-};
-const pendingFlow = {
-	...pendingDocumentV1Example,
-	flow: {
-		...pendingDocumentV1Example.flow,
-		id: id(550),
-		project: "DEMO",
-		slug: "pending-review",
-		name: "Review awaiting publication",
-	},
-};
-const publishedFlow = {
-	...publishedDocumentV1Example,
-	flow: {
-		...publishedDocumentV1Example.flow,
-		id: id(551),
-		project: "DEMO",
-		slug: "published-review",
-		name: "Published review",
-	},
-};
-export const discoveryDocuments = [legacyFlow, pendingFlow, publishedFlow];
+export const flowSummaries = [{ ...flowDoc.flow, nodeCount: 3, edgeCount: 2 }];
 export const flowResponses = {
 	...projectResponses,
-	"flows.list": discoveryDocuments.map((document) => ({ ...document.flow, nodeCount: 3, edgeCount: 2 })),
+	"flows.list": flowSummaries,
 	"flows.get": flowDoc,
-	"flowDocumentsV1.get": (input: { flow: string }) =>
-		discoveryDocuments.find((document) => document.flow.id === input.flow || document.flow.slug === input.flow)!,
-	"flowDocumentsV1.editorHost": { host: null },
-	"flowExecutions.list": { items: [], nextCursor: null },
-	"flowExecutions.indexV1": { items: [], nextCursor: null },
+	"flowExecutions.list": [],
 };

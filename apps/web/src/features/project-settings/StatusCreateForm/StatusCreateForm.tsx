@@ -1,11 +1,13 @@
 import type { StatusCategory } from "@trellis/api";
-import { Button, FormStatus, Input, Select } from "@trellis/ui";
+import { Button, Input, Select } from "@trellis/ui";
 import { type FormEvent, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 
 export type StatusCreateFormProps = {
 	project: string;
 	initialCategory?: StatusCategory;
+	busy: boolean;
+	onWrite: (operation: () => Promise<void>) => Promise<void>;
 	onCreated: () => Promise<void>;
 	onCancel: () => void;
 };
@@ -18,42 +20,60 @@ const categories: { value: StatusCategory; label: string }[] = [
 	{ value: "canceled", label: "Canceled" },
 ];
 
-export function StatusCreateForm({ project, initialCategory = "todo", onCreated, onCancel }: StatusCreateFormProps) {
+export function StatusCreateForm({
+	project,
+	initialCategory = "todo",
+	busy,
+	onWrite,
+	onCreated,
+	onCancel,
+}: StatusCreateFormProps) {
 	const { client } = useApp();
 	const [name, setName] = useState("");
 	const [category, setCategory] = useState<StatusCategory>(initialCategory);
-	const [message, setMessage] = useState<string | null>(null);
+	const [nameError, setNameError] = useState<string | null>(null);
 
 	const submit = async (event: FormEvent) => {
 		event.preventDefault();
 		if (name.trim() === "") {
-			setMessage("Enter a status name.");
+			setNameError("Enter a status name.");
 			return;
 		}
 		try {
-			await client.statuses.create({
-				project,
-				name: name.trim(),
-				category,
+			await onWrite(async () => {
+				await client.statuses.create({
+					project,
+					name: name.trim(),
+					category,
+				});
+				await onCreated();
 			});
-			await onCreated();
 		} catch (error) {
-			setMessage((error as Error).message);
+			setNameError((error as Error).message);
 		}
 	};
 
 	return (
 		<form onSubmit={(event) => void submit(event)} className="status-create-form">
 			<div className="grid gap-3 sm:grid-cols-2">
-				<Input label="Status name" value={name} autoFocus onChange={(event) => setName(event.target.value)} />
-				<Select label="Category" items={categories} value={category} onValueChange={setCategory} />
+				<Input
+					label="Status name"
+					value={name}
+					error={nameError ?? undefined}
+					autoFocus
+					disabled={busy}
+					onChange={(event) => {
+						setName(event.target.value);
+						setNameError(null);
+					}}
+				/>
+				<Select label="Category" items={categories} value={category} disabled={busy} onValueChange={setCategory} />
 			</div>
-			{message !== null && <FormStatus status="error" message={message} />}
 			<div className="flex justify-end gap-2">
-				<Button type="button" onClick={onCancel}>
+				<Button type="button" disabled={busy} onClick={onCancel}>
 					Cancel
 				</Button>
-				<Button type="submit" variant="primary">
+				<Button type="submit" variant="primary" processing={busy}>
 					Create status
 				</Button>
 			</div>

@@ -1,1 +1,0 @@
-export { readIssuedAuthority } from "./issuedBytes";

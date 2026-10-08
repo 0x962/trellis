@@ -13,6 +13,9 @@ export type StatusRowProps = {
 	count: number;
 	ticketCount: number;
 	expanded: boolean;
+	busy: boolean;
+	lastStatus: boolean;
+	onWrite: (operation: () => Promise<void>) => Promise<void>;
 	onChanged: () => Promise<void>;
 	onEdit: () => void;
 	onCancel: () => void;
@@ -38,6 +41,9 @@ export function StatusRow({
 	count,
 	ticketCount,
 	expanded,
+	busy,
+	lastStatus,
+	onWrite,
 	onChanged,
 	onEdit,
 	onCancel,
@@ -50,27 +56,36 @@ export function StatusRow({
 
 	const makeDefault = async () => {
 		try {
-			await client.statuses.update({ project, status: status.id, isDefault: true });
-			setMessage(null);
-			await onChanged();
+			await onWrite(async () => {
+				await client.statuses.update({ project, status: status.id, isDefault: true });
+				setMessage(null);
+				await onChanged();
+			});
 		} catch (error) {
 			setMessage((error as Error).message);
 		}
 	};
 
 	const menuItems = [
-		{ label: "Edit", icon: <PencilSimple />, onSelect: onEdit },
+		{ label: "Edit", icon: <PencilSimple />, disabled: busy, onSelect: onEdit },
 		status.isDefault
 			? { label: "Default status", icon: <CheckCircle />, disabled: true, onSelect: () => {} }
-			: { label: "Make default", icon: <CheckCircle />, onSelect: () => void makeDefault() },
-		{ label: "Move up", icon: <ArrowUp />, disabled: index === 0, onSelect: () => onMove(index, index - 1) },
+			: { label: "Make default", icon: <CheckCircle />, disabled: busy, onSelect: () => void makeDefault() },
+		{ label: "Move up", icon: <ArrowUp />, disabled: busy || index === 0, onSelect: () => onMove(index, index - 1) },
 		{
 			label: "Move down",
 			icon: <ArrowDown />,
-			disabled: index === count - 1,
+			disabled: busy || index === count - 1,
 			onSelect: () => onMove(index, index + 1),
 		},
-		{ label: "Delete", icon: <Trash />, danger: true, onSelect: () => onDelete(status) },
+		{
+			label: "Delete",
+			icon: <Trash />,
+			detail: lastStatus ? "A project keeps at least one status." : undefined,
+			danger: true,
+			disabled: busy || lastStatus,
+			onSelect: () => onDelete(status),
+		},
 	];
 	const summary = (
 		<>
@@ -107,7 +122,14 @@ export function StatusRow({
 			</div>
 			{expanded && (
 				<div id={editorId}>
-					<StatusEditor project={project} status={status} onChanged={onChanged} onCancel={onCancel} />
+					<StatusEditor
+						project={project}
+						status={status}
+						busy={busy}
+						onWrite={onWrite}
+						onChanged={onChanged}
+						onCancel={onCancel}
+					/>
 				</div>
 			)}
 			{message !== null && <FormStatus status="error" message={message} className="status-row-message" />}

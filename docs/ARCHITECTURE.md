@@ -96,7 +96,8 @@ The collapsed rail shows one dot at the highest severity.
 When the last alert clears, the Inspector closes and requests for run details stop.
 
 The Bun host owns PGlite. A separate Node runtime owns agent PTYs.
-Its private Unix socket uses protocol 16. A lifetime file lock permits one runtime owner.
+Its private Unix socket uses protocol 17. A lifetime file lock permits one runtime owner.
+Protocol 17 requires the validator for large prompts. Desktop activation replaces an older runtime before the host resumes saved conversations.
 Each attempt has one immutable identifier, a token hash, retained terminal output, and a process record.
 The runtime keeps complete records for active processes and subscribers. It checks for idle agents every 30 seconds and stops their process trees after more than 30 idle minutes.
 The cutoff requires a saved provider identity, an idle observation, no active tool, no pending question, and no unacknowledged message. Human terminal input restarts the 30-minute clock. Working agents and custom terminals stay active.
@@ -1007,7 +1008,7 @@ Claude transcript snapshots and OpenCode text parts retain context with unproven
 Pi messages without identifiers also retain context with unproven completeness.
 A completion signal states unavailable message coverage without suppressing completed tool counts.
 The reader reports missing journal data separately. Legacy journals reconstruct tool state before the saved position and emit only new completed items.
-The runtime saves activity state in its checkpoint and appends optional annotations to the existing event records under protocol 16.
+The runtime saves activity state in its checkpoint and appends optional annotations to the existing event records under protocol 17.
 
 `isWorking` is true when a controllable live process reports a working turn. It is false for ready or idle turns and exited processes.
 Missing processes, unknown process status, lost process control, and unobserved turn activity produce a null work state.
@@ -1333,62 +1334,15 @@ The schema migrations live in `apps/server/drizzle/`, through `0078_kind_jetstre
 The migrator applies schema changes at boot in one transaction, then runs `ANALYZE` and sets `pg_trgm.word_similarity_threshold`.
 The schema drift check requires `drizzle-kit generate` to leave the migration directory unchanged.
 
+The schema retains the Langflow tables for migration compatibility and record preservation.
+Applied migrations and snapshots retain the schema history.
+Native flows use the original flow services, editor, and execution tables.
+
 PGlite has no autovacuum. A maintenance timer runs `VACUUM (ANALYZE)` on
 tickets and activity after more than 1000 writes, and after a backup
 or a restore.
 
 ## API contract and ref grammars
-
-`clientContract` and the server contract expose the versioned `flowDocumentsV1` methods.
-The methods retain the shared RPC transport, actor headers, and query utilities.
-The shared router sends these methods through the actor-aware service transport.
-The document and execution tables must exist before this router serves requests.
-The document methods use `/api/flows/{flow}/document-v1`.
-Document responses include an ETag for the complete representation.
-Conditional saves evaluate `If-Match` and `If-None-Match` in the save transaction.
-The required `expectedVersion` also checks the saved revision.
-The execution view uses `/api/flow-executions/{id}/view-v1`.
-The execution index uses `/api/flow-executions/index-v1` and returns IDs with their stored engine.
-Its pagination combines both engines in creation order, with the ID as the tie breaker.
-`langflowDispatch.getView` selects the reader from the stored execution association.
-The current document cannot change that selection.
-`langflowDispatch.startLegacy` locks the flow before it checks the saved document format.
-An exact legacy request replay retains its original result after a document conversion.
-New legacy start requests reject a Langflow document with `FLOW_UNSUPPORTED_FORMAT`.
-`flows.changed` invalidates versioned document and execution queries with the legacy flow queries.
-
-The versioned start, decision, and cancel routes acquire a durable permit before their database action.
-The action and its immutable receipt commit together. A known refusal rolls back its savepoint before the outer transaction stores the error bytes.
-The external receipt archive retains the committed receipt before the host gate settles its permit.
-An exact replay reads that receipt and the current view. Changed request bytes return `FLOW_REQUEST_CONFLICT`.
-A permit without a receipt returns `FLOW_ACTION_PENDING` and stays pending until reconciliation.
-These local action permits do not settle the separate permits for engine delivery or native processes.
-
-`flowDocumentsV1.editorSession` issues an editor grant through
-`POST /api/flows/{flow}/editor-session-v1`. `createApp` requires an explicit
-editor configuration with the host identity, separate origins, and installed
-component manifest provider. An absent configuration returns `EDITOR_UNAVAILABLE`.
-The issuer requires the host bearer, the exact parent Origin, and a stored
-`defaultActorName`. An actor header identifies a request; it does not authenticate a person.
-The scoped gateway uses its own cookie authorization under `/api/trellis-editor/v1/`.
-The HTTP adapter calls the plain issuer, sets the credential cookie, and returns the session.
-Its service calls retain the request ID and database timing collector.
-`flowDocumentsV1.editorHost` reads the current host and data-home identifiers from the host control directory.
-It returns their combined identity, or `null` when the editor has no configuration.
-Grant operations reject a changed host identity.
-Version conflicts return 412, concurrent channel saves return 409, and an unconfigured actor returns 503.
-
-A parent save carries `x-trellis-editor-channel` through `flowDocumentsV1.save`.
-The grant service holds the channel until the actual document transaction returns.
-If the response is lost after commit, the next exact request reads the durable
-save receipt before it checks the old HTTP preconditions. The accepted receipt
-advances the grant revision; the original bootstrap identity stays unchanged.
-
-A V1 occurrence carries its archived node `kind`, or `null` when that kind is unknown.
-Its `outputSource` identifies the exact native step, agent run, attempt, and result that supply its output.
-The source must match one retained attempt, even when the occurrence has later attempts.
-A null source means that no native result binding is available.
-Historical text can remain available with a null source.
 
 The contract lives in `packages/api/src/contract/`. Two handlers serve one
 router: `RPCHandler` at `/rpc` for typed clients, and `OpenAPIHandler` at `/api`

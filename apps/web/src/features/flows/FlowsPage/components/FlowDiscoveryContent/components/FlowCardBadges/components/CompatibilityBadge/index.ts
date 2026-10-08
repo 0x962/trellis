@@ -1,1 +1,0 @@
-export { CompatibilityBadge } from "./CompatibilityBadge";

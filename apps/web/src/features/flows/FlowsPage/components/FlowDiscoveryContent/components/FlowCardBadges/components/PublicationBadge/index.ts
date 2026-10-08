@@ -1,1 +1,0 @@
-export { PublicationBadge } from "./PublicationBadge";

@@ -1,0 +1,1 @@
+export { pageShareVersionText } from "./pageShareVersionText";

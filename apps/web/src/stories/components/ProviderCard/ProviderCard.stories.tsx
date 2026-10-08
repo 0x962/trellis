@@ -57,6 +57,31 @@ export const CompactChecking: Story = { args: { variant: "compact", checking: tr
 export const CompactError: Story = { args: { variant: "compact", error: "The gateway is unavailable." } };
 export const CompactAccepted: Story = { args: { ...Balance.args, variant: "compact" } };
 export const CompactRefused: Story = { args: { ...Refused.args, variant: "compact" } };
+export const CompactForbidden: Story = { args: { ...Forbidden.args, variant: "compact" } };
+export const CompactFailurePending: Story = {
+	args: { ...Refused.args, variant: "compact", checking: true },
+};
+export const CompactFailureRecovery: Story = {
+	args: { ...Refused.args, variant: "compact" },
+	play: async ({ canvasElement }) => {
+		const canvas = within(canvasElement);
+		await expect(canvas.getByRole("alert")).toHaveTextContent("Select Edit to replace the key.");
+		await userEvent.click(canvas.getByRole("button", { name: "Check Work gateway" }));
+		await expect(canvas.queryByRole("alert")).not.toBeInTheDocument();
+		await expect(canvas.getByText("Key accepted · $95.50 left · 2 models")).toBeVisible();
+	},
+};
+export const CompactLongFailure: Story = {
+	args: {
+		variant: "compact",
+		provider: { ...meta.args.provider, name: "The shared model gateway for every desktop review agent" },
+		check: {
+			ok: false,
+			balance: null,
+			detail: "Trellis cannot reach gateway-for-desktop-review-agents-in-the-development-region.example.test.",
+		},
+	},
+};
 export const ActionsOpen: Story = {
 	args: { variant: "compact" },
 	play: async ({ canvasElement }) => {

@@ -1,1 +1,0 @@
-export { readNativeRequest } from "./readNativeRequest";

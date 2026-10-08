@@ -5,7 +5,7 @@ import { EpicPage } from "../../features/epics/EpicPage";
 import { documentHeadingNames, documentMarkdown, documentWithContents } from "./fixtures/document";
 import { emptyCounts, epic, waves } from "./fixtures/epic";
 import { archivedProject, failure, pending, project } from "./fixtures/project";
-import { documentResource, resources, resourceThread } from "./fixtures/resources";
+import { denseResources, documentResource, resources, resourceThread } from "./fixtures/resources";
 import { projectResponses, ticketCounts, ticketPage } from "./fixtures/responses";
 import { pageFrame } from "./pageFrame";
 
@@ -91,6 +91,25 @@ export const LongTitleNarrow: Story = {
 	},
 };
 export const Resources: Story = { args: { search: { tab: "resources" } } };
+export const DenseResources: Story = {
+	args: { search: { tab: "resources" } },
+	parameters: { trellis: { responses: { "resources.list": denseResources } } },
+	play: async ({ canvasElement }) => {
+		const canvas = within(canvasElement);
+		const navigation = within(await canvas.findByRole("navigation", { name: "Resources" }));
+		for (const name of ["Documents", "Links", "Images", "Files"]) {
+			await expect(await navigation.findByRole("button", { name })).toBeVisible();
+			await userEvent.click(navigation.getByRole("button", { name }));
+			await expect(navigation.queryAllByRole("button", { expanded: true })).toHaveLength(name === "Documents" ? 0 : 1);
+		}
+		await expect(navigation.getByRole("button", { name: "Files" })).toHaveAttribute("aria-expanded", "true");
+		await expect(
+			navigation.getByRole("button", {
+				name: "Acceptance checks.txt: resource acceptance checks and verification records 1",
+			}),
+		).toBeVisible();
+	},
+};
 export const ResourceDocument: Story = {
 	args: { search: { tab: "resources" } },
 	globals: { viewport: { value: "desktop", isRotated: false } },
@@ -107,8 +126,9 @@ export const ResourceDocument: Story = {
 	},
 	play: async ({ canvasElement }) => {
 		const canvas = within(canvasElement);
-		await expect(await canvas.findByRole("button", { name: "Required states" })).toBeVisible();
-		const contents = within(canvas.getByRole("navigation", { name: "Document contents" }));
+		await expect(await canvas.findByRole("heading", { name: "Required states", level: 2 })).toBeVisible();
+		const contents = within(await canvas.findByRole("navigation", { name: "Document contents" }));
+		await expect(await contents.findByRole("button", { name: "Required states" })).toBeVisible();
 		await expect(contents.queryByRole("button", { name: documentResource.name })).not.toBeInTheDocument();
 	},
 };
@@ -127,8 +147,8 @@ const checkDocumentContents = async (canvasElement: HTMLElement, compact: boolea
 	const body = within(canvasElement.ownerDocument.body);
 	const heading = await canvas.findByRole("heading", { name: "Saved proof", level: 6 });
 	if (compact) await userEvent.click(await canvas.findByRole("button", { name: "Contents" }));
-	await waitFor(() => expect(body.getByRole("button", { name: "Saved proof" })).toBeVisible());
-	const contents = within(body.getByRole("navigation", { name: "Document contents" }));
+	const contents = within(await body.findByRole("navigation", { name: "Document contents" }));
+	await waitFor(() => expect(contents.getByRole("button", { name: "Saved proof" })).toBeVisible());
 	await expect(contents.getAllByRole("button").map((button) => button.textContent)).toEqual(documentHeadingNames);
 	const scroll = heading.closest("article")!.parentElement!;
 	await userEvent.click(contents.getByRole("button", { name: "Saved proof" }));
@@ -139,8 +159,7 @@ const checkDocumentContents = async (canvasElement: HTMLElement, compact: boolea
 		await waitFor(() => expect(body.queryByRole("dialog", { name: "Document contents" })).not.toBeInTheDocument());
 		await userEvent.click(canvas.getByRole("button", { name: "Contents" }));
 	}
-	const selected = await body.findByRole("button", { name: "Saved proof", current: "location" });
-	await waitFor(() => expect(selected).toBeVisible());
+	await waitFor(() => expect(body.getByRole("button", { name: "Saved proof", current: "location" })).toBeVisible());
 };
 
 export const ResourceDocumentContents: Story = {

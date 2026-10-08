@@ -6,6 +6,7 @@ import { SwitchAccountDialog } from "../../features/sessions/SwitchAccountDialog
 import { OverlayTrigger } from "./components/OverlayTrigger";
 import { accounts, failure, noop, pending, projects, responses, run, session } from "./fixtures";
 import { clickButton } from "./interactions";
+import { checkAccountNames } from "./SessionControls/checkAccountNames";
 
 const meta = {
 	title: "Overlays/SessionControls",
@@ -104,7 +105,7 @@ export const AccountPending: Story = {
 		const page = within(context.canvasElement.ownerDocument.body);
 		await expect(page.getByRole("button", { name: "Cancel" })).toBeDisabled();
 		await userEvent.keyboard("{Escape}");
-		await expect(page.getByRole("dialog", { name: "Switch to Team?" })).toBeVisible();
+		await waitFor(() => expect(page.getByRole("dialog", { name: "Switch to Team?" })).toBeVisible());
 	},
 };
 export const AccountSwitchError: Story = {
@@ -114,11 +115,10 @@ export const AccountSwitchError: Story = {
 		await AccountSelected.play!(context);
 		await clickButton("Switch account")(context);
 		const page = within(context.canvasElement.ownerDocument.body);
-		await expect(await page.findByText("The account did not switch")).toBeVisible();
+		await waitFor(() => expect(page.getByText("The account did not switch")).toBeVisible());
 		await expect(page.getByRole("button", { name: "Retry switch" })).toBeEnabled();
 	},
 };
-
 let projectLoads = 0;
 export const MoveLoadRecovery: Story = {
 	...MoveOpen,
@@ -182,30 +182,7 @@ export const MovePendingRecovery: Story = {
 export const MovePendingRecoveryNarrow: Story = { ...MovePendingRecovery, globals: narrow };
 export const AccountNames: Story = {
 	...AccountOpen,
-	play: async ({ canvasElement }) => {
-		const page = within(canvasElement.ownerDocument.body);
-		await expect(await page.findByRole("option", { name: /avery@example.test.*Primary/ })).toBeVisible();
-		await expect(await page.findByRole("option", { name: /avery@example.test.*Team/ })).toBeVisible();
-		const current = page.getByRole("option", { name: /avery@example.test.*Primary/ });
-		await expect(current).toHaveAttribute("data-checked", "true");
-		await expect(current.scrollWidth).toBeLessThanOrEqual(current.clientWidth);
-		await expect(current.querySelector("span.truncate")!.getBoundingClientRect().width).toBeGreaterThan(0);
-		await expect(current.querySelector("svg")!.getBoundingClientRect().right).toBeLessThanOrEqual(
-			current.getBoundingClientRect().right,
-		);
-		for (const detail of ["avery@example.test", "Five hours: 28% used"]) {
-			const text = page.getByText(detail, { exact: true });
-			await expect(text).toBeVisible();
-			await expect(text.getBoundingClientRect().width).toBeGreaterThan(0);
-		}
-		const search = page.getByRole("combobox", { name: "Search accounts" });
-		await userEvent.type(search, "No such account");
-		await expect(await page.findByText("No matching accounts.")).toBeVisible();
-		await userEvent.clear(search);
-		await userEvent.type(search, "Team");
-		await userEvent.keyboard("{ArrowDown}{Enter}");
-		await waitFor(() => expect(page.getByRole("dialog", { name: "Switch to Team?" })).toBeVisible());
-	},
+	play: checkAccountNames,
 };
 export const AccountNamesNarrow: Story = { ...AccountNames, globals: narrow };
 let accountLoads = 0;
@@ -226,11 +203,16 @@ export const AccountLoadRecovery: Story = {
 	},
 	play: async ({ canvasElement }) => {
 		const page = within(canvasElement.ownerDocument.body);
-		await expect(await page.findByText("Accounts did not load")).toBeVisible();
+		await waitFor(() => expect(page.getByText("Accounts did not load")).toBeVisible());
+		const dialog = page.getByRole("dialog", { name: "Switch account" });
+		await waitFor(() => expect(dialog).toHaveFocus());
+		await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
 		const retry = page.getByRole("button", { name: "Retry" });
 		retry.focus();
+		await expect(retry).toHaveFocus();
 		await userEvent.keyboard("{Enter}");
 		await waitFor(() => expect(page.getByRole("option", { name: /Team/ })).toBeVisible());
+		await expect(accountLoads).toBe(2);
 	},
 };
 let switchInputs: { accountId: string; expectedTerminalId: string; requestId: string }[] = [];
@@ -254,7 +236,7 @@ export const AccountRetry: Story = {
 		await AccountSelected.play!(context);
 		await clickButton("Switch account")(context);
 		const page = within(context.canvasElement.ownerDocument.body);
-		await expect(await page.findByText("The account did not switch")).toBeVisible();
+		await waitFor(() => expect(page.getByText("The account did not switch")).toBeVisible());
 		await expect(page.getByRole("dialog", { name: "Switch to Team?" })).toBeVisible();
 		const retry = page.getByRole("button", { name: "Retry switch" });
 		retry.focus();
@@ -288,7 +270,6 @@ export const ArchivePending: Story = {
 		await expect(page.getByRole("menuitem", { name: "Move to project…" })).toHaveAttribute("aria-disabled", "true");
 	},
 };
-
 export const AccountLongNameNarrow: Story = {
 	...AccountNamesNarrow,
 	parameters: response("harnessAccounts.list", [

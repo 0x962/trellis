@@ -26,13 +26,13 @@
 			"Pages/Review/SwitchTabs"
 		],
 		"states": ["populated", "empty", "loading", "error", "narrow", "tab changes"],
-		"notes": "A synthetic execution index and immutable snapshot render the real history, loading, empty, and error states."
+		"notes": "Synthetic execution records provide the history, loading, empty, and error states."
 	},
 	{
 		"source": "apps/web/src/features/reviews/FlowRuns/components/FlowRun/FlowRun.tsx",
 		"export": "FlowRun",
 		"stories": ["Pages/Review/Flows", "Pages/Review/FlowsNarrow", "Pages/Review/SwitchTabs"],
-		"states": ["human decision", "retained output", "attempts", "narrow", "tab changes"],
-		"notes": "The populated review tab shows retained output, attempts, and a human decision. Terminal actions have no live runtime transport."
+		"states": ["human decision", "retained output", "narrow", "tab changes"],
+		"notes": "The populated review tab shows retained output and a human decision."
 	}
 ]

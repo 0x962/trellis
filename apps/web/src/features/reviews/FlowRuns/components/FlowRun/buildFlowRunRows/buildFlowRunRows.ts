@@ -80,12 +80,22 @@ const emptyRow = {
 export function buildFlowRunRows(execution: FlowExecutionRecord): FlowRunRowData[] {
 	const { doc, state, tasks } = execution;
 	const steps = new Map(state.steps.map((step) => [step.key, step]));
-	const taskKeys = new Set(tasks.map((task) => task.key));
+	const tasksByKey = new Map(tasks.map((task) => [task.key, task]));
 	const nodes = new Map(doc.nodes.map((node) => [node.id, node]));
 	const rows: FlowRunRowData[] = [];
 	const childNodes = (node: FlowNode) => doc.nodes.filter((child) => child.parentId === node.id);
 	const childSteps = (key: string, round: number) =>
 		state.steps.filter((child) => child.parentKey === key && child.iteration === round);
+	const taskDetails = (key: string) => {
+		const task = tasksByKey.get(key);
+		if (!task) return undefined;
+		return [
+			{ label: "Step", value: task.key },
+			{ label: "Agent run", value: task.runId },
+			{ label: "Attempt", value: task.attemptId },
+			{ label: "Result", value: task.resultId ?? "Pending" },
+		];
+	};
 
 	// Why a skipped step did not run: the gate before it answered the other way.
 	const skipReason = (node: FlowNode, step: Step) => {
@@ -118,7 +128,8 @@ export function buildFlowRunRows(execution: FlowExecutionRecord): FlowRunRowData
 		return null;
 	};
 
-	// The legacy state retains only the current exit question. Earlier tasks retain their exact terminal bindings.
+	// The exit question of a loop after one round. A past round answered No,
+	// which is why a later round exists.
 	const conditionRow = (step: Step, key: string, round: number, parentKey: string, depth: number) => {
 		const actionKey = `${key}:condition:${round}`;
 		const current = round === step.round;
@@ -130,17 +141,11 @@ export function buildFlowRunRows(execution: FlowExecutionRecord): FlowRunRowData
 			depth,
 			kind: "gate",
 			title: "Exit question",
-			state: current ? (asked ? step.state : "not_started") : "unknown",
-			meta: asked
-				? step.decision === null
-					? null
-					: decisionWord(step.decision)
-				: current
-					? null
-					: "Historical decision unavailable",
-			output: asked ? step.output : null,
-			error: asked ? step.error : null,
-			terminal: taskKeys.has(actionKey),
+			state: current ? (asked ? step.state : "not_started") : "succeeded",
+			meta: asked ? (step.decision === null ? null : decisionWord(step.decision)) : current ? null : "No",
+			detailsLabel: "Result identifiers",
+			details: taskDetails(actionKey),
+			terminal: tasksByKey.has(actionKey),
 			actionKey,
 		});
 	};
@@ -167,13 +172,15 @@ export function buildFlowRunRows(execution: FlowExecutionRecord): FlowRunRowData
 				kind: node.kind,
 				title: node.kind === "group" && node.title === untitledBox ? "Group" : node.title,
 				state: step === null ? "not_started" : step.state,
-				meta: [meta(node, step), step?.needsStop ? "Stop pending" : null].filter(Boolean).join(" · ") || null,
+				meta: meta(node, step),
 				startedAt: step?.startedAt ?? null,
 				endedAt: step?.endedAt ?? null,
 				deadlineAt: step?.deadlineAt ?? null,
-				output: step === null || box ? null : step.output,
+				output: step === null || box || node.kind === "gate" || !step.output ? null : step.output,
 				error: step === null || inherited ? null : step.error,
-				terminal: step !== null && !box && taskKeys.has(step.actionKey),
+				detailsLabel: "Result identifiers",
+				details: step === null || box ? undefined : taskDetails(step.actionKey),
+				terminal: step !== null && !box && tasksByKey.has(step.actionKey),
 				decidable: step?.state === "waiting_human",
 				hasChildren,
 				actionKey: step === null || box ? null : step.actionKey,

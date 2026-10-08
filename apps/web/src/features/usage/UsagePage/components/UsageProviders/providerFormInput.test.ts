@@ -1,6 +1,12 @@
 import { expect, test } from "bun:test";
 import type { Provider } from "@trellis/api";
-import { initialProviderValue, providerFormDirty, providerFormInput } from "./providerFormInput";
+import {
+	initialProviderValue,
+	providerCheckInput,
+	providerCredentialsChanged,
+	providerFormDirty,
+	providerFormInput,
+} from "./providerFormInput";
 
 const provider: Provider = {
 	id: "01M38GH7SAE00S9CSWCAEAP6CW",
@@ -39,6 +45,49 @@ test("Add requires a key and a compatible address", () => {
 			.success,
 	).toBe(true);
 });
+test("checks the stored key only at its saved address", () => {
+	const value = initialProviderValue(provider);
+	expect(providerCheckInput(value, provider)).toEqual({ source: "stored", input: { id: provider.id, refresh: true } });
+	expect(providerCheckInput({ ...value, baseUrl: "https://new.example.test" }, provider)).toBeUndefined();
+});
+
+test("checks an entered key without a stored provider", () => {
+	const value = { ...initialProviderValue(), apiKey: "synthetic-key" };
+	expect(providerCheckInput(value)).toEqual({
+		source: "draft",
+		input: { kind: "vercel-ai-gateway", apiKey: "synthetic-key", baseUrl: "https://ai-gateway.vercel.sh" },
+	});
+	expect(providerCheckInput({ ...value, apiKey: "" })).toBeUndefined();
+});
+
+test("checks replacement credentials at the current address", () => {
+	const value = {
+		...initialProviderValue(provider),
+		apiKey: "synthetic-replacement",
+		baseUrl: "https://new.example.test",
+	};
+	expect(providerCheckInput(value, provider)).toMatchObject({
+		source: "draft",
+		input: { apiKey: "synthetic-replacement", baseUrl: "https://new.example.test" },
+	});
+	expect(
+		providerCheckInput({ ...value, kind: "openai-compatible", baseUrl: "http://invalid.test" }, provider),
+	).toBeUndefined();
+});
+
+test("resets approval for each checked value but retains it for other form fields", () => {
+	const value = initialProviderValue(provider);
+	for (const next of [
+		{ ...value, kind: "openai-compatible" as const },
+		{ ...value, apiKey: "synthetic-replacement" },
+		{ ...value, baseUrl: "https://new.example.test" },
+	])
+		expect(providerCredentialsChanged(value, next)).toBe(true);
+	expect(providerCredentialsChanged(value, { ...value, name: "Renamed", enabled: false, models: ["new/model"] })).toBe(
+		false,
+	);
+});
+
 test("model order does not make an edit dirty but a changed set does", () => {
 	const record = { ...provider, models: ["a", "b"] };
 	expect(providerFormDirty({ ...initialProviderValue(record), models: ["b", "a"] }, record)).toBe(false);

@@ -124,12 +124,11 @@
 		"export": "FlowSettingsSheet",
 		"stories": [
 			"Overlays/FlowEditorControls/Settings",
-			"Overlays/FlowEditorControls/SettingsLoading",
 			"Overlays/FlowEditorControls/SettingsError",
 			"Overlays/FlowEditorControls/SettingsPending",
 			"Overlays/FlowEditorControls/DeleteConfirmation"
 		],
-		"states": ["default", "loading", "error", "pending"],
+		"states": ["default", "error", "pending"],
 		"notes": "Stories mount the production component with synthetic props and API responses."
 	},
 	{
@@ -161,20 +160,6 @@
 		],
 		"states": ["selected", "disabled", "error", "open menu", "interaction"],
 		"notes": "Local state retains the project choice. ChangeProject asserts that the Every project choice updates the selector."
-	},
-	{
-		"source": "apps/web/src/features/flows/FlowsPage/components/FlowDiscoveryFilters/FlowDiscoveryFilters.tsx",
-		"export": "FlowDiscoveryFilters",
-		"stories": [
-			"Overlays/FlowDiscoveryFilters/ClosedTrigger",
-			"Overlays/FlowDiscoveryFilters/Open",
-			"Overlays/FlowDiscoveryFilters/Selected",
-			"Overlays/FlowDiscoveryFilters/Empty",
-			"Overlays/FlowDiscoveryFilters/SearchEmpty",
-			"Overlays/FlowDiscoveryFilters/ChangeFilters"
-		],
-		"states": ["closed-trigger", "open", "selected", "empty", "interaction"],
-		"notes": "Local state retains the query and project. ChangeFilters asserts text entry, a project choice, and removal of its chip. The empty state retains the All projects option."
 	},
 	{
 		"source": "apps/web/src/features/flows/FlowsPage/components/NewFlowDialog/NewFlowDialog.tsx",

@@ -1,5 +1,23 @@
 import { describe, expect, test } from "bun:test";
-import { setupFeedback } from "./setupFeedback";
+import { setupFeedback, setupNameError, setupNameNote } from "./setupFeedback";
+
+const invalidName = "Use letters, numbers, spaces, or punctuation. Do not use a colon.";
+
+describe("setup field messages", () => {
+	test("warns about cached tickets before a server replacement", () => {
+		expect(setupNameNote(false)).toBe("Trellis uses this name on tickets and messages.");
+		expect(setupNameNote(true)).toBe("A new server clears this phone's cached tickets.");
+	});
+
+	test("states that an empty name is required before character guidance", () => {
+		expect(setupNameError({ name: "", validationError: invalidName, revealEmpty: false })).toBeUndefined();
+		expect(setupNameError({ name: "", validationError: invalidName, revealEmpty: true })).toBe(
+			"Enter your name. Use letters, numbers, spaces, or punctuation. Do not use a colon.",
+		);
+		expect(setupNameError({ name: "Dana:agent", validationError: invalidName, revealEmpty: true })).toBe(invalidName);
+		expect(setupNameError({ name: "Dana", validationError: undefined, revealEmpty: true })).toBeUndefined();
+	});
+});
 
 describe("setupFeedback", () => {
 	test("announces connection progress", () => {

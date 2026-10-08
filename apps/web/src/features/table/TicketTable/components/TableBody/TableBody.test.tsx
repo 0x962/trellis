@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import type { TableGroup, TableItem } from "../../../utils/flattenGroups";
-import { gridRowCount } from "./TableBody";
+import { gridRowCount, hasWaveSections } from "./TableBody";
 
 const group = {
 	key: "wave-1",
@@ -23,4 +23,16 @@ test("wave grids add every exposed wave header to aria-rowcount", () => {
 
 test("non-wave grids keep the supplied ticket row count", () => {
 	expect(gridRowCount(3, items, false)).toBe(3);
+});
+
+test("an epic grouped by wave keeps section semantics without wave controls", () => {
+	expect(hasWaveSections("epic", true)).toBe(true);
+});
+
+test("an epic without wave groups does not expose section rows", () => {
+	expect(hasWaveSections("epic", false)).toBe(false);
+});
+
+test("a general ticket list keeps its existing group semantics", () => {
+	expect(hasWaveSections("list", true)).toBe(false);
 });

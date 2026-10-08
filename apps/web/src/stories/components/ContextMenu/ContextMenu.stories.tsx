@@ -42,8 +42,10 @@ export const ToggleCheck: Story = {
 	play: async ({ canvasElement, step }) => {
 		const trigger = within(canvasElement).getByRole("button", { name: "Page tab" });
 		const body = within(canvasElement.ownerDocument.body);
+		const rect = trigger.getBoundingClientRect();
+		const coords = { clientX: rect.left + rect.width / 2, clientY: rect.top + rect.height / 2 };
 		await step("Open the checked Pin menu", async () => {
-			await userEvent.pointer({ target: trigger, keys: "[MouseRight]" });
+			await userEvent.pointer({ target: trigger, keys: "[MouseRight]", coords });
 			const menu = await body.findByRole("menu", { name: "Page actions" });
 			await waitFor(() => expect(menu).toBeVisible());
 			await expect(within(menu).getByRole("menuitemcheckbox", { name: "Pin" })).toHaveAttribute("aria-checked", "true");
@@ -54,7 +56,7 @@ export const ToggleCheck: Story = {
 			await waitFor(() => expect(menu).not.toBeInTheDocument());
 		});
 		await step("Reopen the unchecked Pin menu", async () => {
-			await userEvent.pointer({ target: trigger, keys: "[MouseRight]" });
+			await userEvent.pointer({ target: trigger, keys: "[MouseRight]", coords });
 			const menu = await body.findByRole("menu", { name: "Page actions" });
 			await waitFor(() => expect(menu).toBeVisible());
 			await expect(within(menu).getByRole("menuitemcheckbox", { name: "Pin" })).toHaveAttribute(

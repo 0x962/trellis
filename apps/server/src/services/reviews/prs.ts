@@ -61,11 +61,6 @@ export async function prs(ctx: IoCtx, tx: Tx, input: { project?: string; all?: b
 			SELECT execution.diff_id, execution.flow_id, execution.state->>'status' AS status
 			FROM flow_executions execution
 			JOIN applicable_flows flow ON flow.pr_id = execution.diff_id AND flow.flow_id = execution.flow_id
-			UNION ALL
-			SELECT execution.diff_id, execution.flow_id, projection.view->>'status' AS status
-			FROM langflow_executions execution
-			JOIN applicable_flows flow ON flow.pr_id = execution.diff_id AND flow.flow_id = execution.flow_id
-			JOIN langflow_execution_projections projection ON projection.execution_id = execution.execution_id
 		), flow_totals AS (
 			SELECT flow.pr_id, bool_or(execution.status = 'succeeded') AS succeeded
 			FROM applicable_flows flow

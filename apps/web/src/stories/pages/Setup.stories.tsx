@@ -1,8 +1,10 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import type { ComponentType } from "react";
+import { expect, userEvent, waitFor, within } from "storybook/test";
 import { Route } from "../../routes/setup";
 import { project } from "./fixtures/project";
 import { settingsResponses } from "./fixtures/settings";
+import { settingsJourney } from "./fixtures/settingsJourney";
 
 const SetupPage = Route.options.component as ComponentType;
 
@@ -33,3 +35,22 @@ export const ExistingProjects: Story = {
 	},
 };
 export const Narrow: Story = { globals: { viewport: { value: "phone", isRotated: false } } };
+
+const nameJourney = settingsJourney();
+export const NameToProject: Story = {
+	beforeEach: () => nameJourney.reset(),
+	parameters: { trellis: { responses: nameJourney.responses } },
+	play: async ({ canvasElement }) => {
+		const canvas = within(canvasElement);
+		const field = await canvas.findByRole("textbox", { name: "Your name" });
+		await userEvent.clear(field);
+		await expect(canvas.getByRole("button", { name: /^Continue/ })).toBeDisabled();
+		await userEvent.type(field, "Alex Morgan");
+		await userEvent.click(canvas.getByRole("button", { name: /^Continue/ }));
+		await waitFor(() => expect(nameJourney.writes.at(-1)?.defaultActorName).toBe("Alex Morgan"));
+		await expect(await canvas.findByRole("heading", { name: "Create your first project" })).toBeVisible();
+		await userEvent.type(await canvas.findByRole("textbox", { name: "Project name" }), "Release workspace");
+		await expect(canvas.getByRole("button", { name: /^Create/ })).toBeEnabled();
+		await expect(canvas.getByRole("textbox", { name: "Key" })).not.toHaveValue("");
+	},
+};

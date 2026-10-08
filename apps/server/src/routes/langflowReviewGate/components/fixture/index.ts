@@ -1,1 +1,0 @@
-export { invocationFixture } from "./fixture";

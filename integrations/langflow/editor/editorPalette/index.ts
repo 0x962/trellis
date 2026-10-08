@@ -1,1 +1,0 @@
-export { editorPalette } from "./editorPalette";

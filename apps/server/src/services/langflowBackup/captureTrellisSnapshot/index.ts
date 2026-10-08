@@ -1,1 +1,0 @@
-export { captureTrellisSnapshot } from "./captureTrellisSnapshot";

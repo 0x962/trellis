@@ -7,7 +7,7 @@ import { Field } from "../src/components/Field";
 import { KeyValueRow } from "../src/components/KeyValueRow";
 import { Spinner } from "../src/components/Spinner";
 import { QrScanner } from "../src/features/setup/QrScanner";
-import { setupFeedback } from "../src/features/setup/setupFeedback";
+import { setupFeedback, setupNameError, setupNameNote } from "../src/features/setup/setupFeedback";
 import { queryClient } from "../src/lib/queryClient";
 import { actorHeader, type ProbeResult, probeHealth, validateActorName, validateServerUrl } from "../src/lib/server";
 import { keys } from "../src/lib/store";
@@ -72,7 +72,11 @@ export default function SetupScreen() {
 	// The answer for the URL in the field. Another URL's answer shows nothing
 	// and approves nothing.
 	const answer = current.ok && probe?.url === current.url ? probe.result : undefined;
-	const nameError = !validName.ok && (name.trim() !== "" || answer?.ok === true) ? validName.error : undefined;
+	const nameError = setupNameError({
+		name,
+		validationError: validName.ok ? undefined : validName.error,
+		revealEmpty: answer?.ok === true,
+	});
 
 	const testConnection = async (target: string) => {
 		const valid = validateServerUrl(target);
@@ -130,7 +134,7 @@ export default function SetupScreen() {
 
 	const feedback = scanning ? undefined : setupFeedback({ busy, invalidPairLink, answer });
 	const connected = feedback?.tone === "success" && answer?.ok === true;
-	const replacingServer = connected && current.ok && storedUrl !== undefined && current.url !== storedUrl;
+	const replacingServer = current.ok && storedUrl !== undefined && current.url !== storedUrl;
 	const canSave = connected && validName.ok && !busy;
 	const feedbackColor =
 		feedback?.tone === "danger" ? palette.danger : feedback?.tone === "success" ? palette.success : palette.fgMuted;
@@ -178,7 +182,7 @@ export default function SetupScreen() {
 				returnKeyType="done"
 				onSubmitEditing={canSave ? save : undefined}
 				error={nameError}
-				note="Trellis uses this name on tickets and messages."
+				note={setupNameNote(replacingServer)}
 			/>
 			<Button
 				label="Save server"
@@ -205,11 +209,6 @@ export default function SetupScreen() {
 					<KeyValueRow label="Tickets" value={`${answer.ticketCount} tickets`} />
 					<KeyValueRow label="Server default actor" value={answer.actorName} />
 				</View>
-			)}
-			{replacingServer && (
-				<Text accessibilityLiveRegion="polite" style={[styles.message, { color: palette.warning }]}>
-					Saving replaces the current server and clears its cached tickets from this phone.
-				</Text>
 			)}
 		</ScrollView>
 	);

@@ -1,9 +1,11 @@
 import { ArrowClockwise, DotsThree, PencilSimple, Power, Trash } from "@phosphor-icons/react";
+import { useRef } from "react";
 import { CodeText } from "../../primitives/CodeText";
 import { IconButton } from "../../primitives/IconButton";
 import { Menu } from "../../primitives/Menu";
 import { Skeleton } from "../../primitives/Skeleton";
 import { Tooltip } from "../../primitives/Tooltip";
+import { FailureState } from "../FailureState";
 import { ProviderIcon } from "../ProviderIcon";
 import { SettingsListRow } from "../SettingsListRow";
 
@@ -40,7 +42,10 @@ const providerCheckSummary = ({
 	if (checking) return `Checking the key… · ${modelSummary}`;
 	if (error) return `Key check failed · ${modelSummary}`;
 	if (check?.ok) return `Key accepted${check.balance === null ? "" : ` · $${check.balance} left`} · ${modelSummary}`;
-	if (check) return `Key refused · ${modelSummary}`;
+	if (check) {
+		const result = check.detail === "The provider refused the key." ? "Key refused" : "Key check failed";
+		return `${result} · ${modelSummary}`;
+	}
 	return `Key not checked · ${modelSummary}`;
 };
 
@@ -57,9 +62,11 @@ export function ProviderCard({
 	variant = "card",
 	onActiveChange,
 }: ProviderCardProps) {
+	const menuButton = useRef<HTMLButtonElement>(null);
 	const refused = !error && check?.detail === "The provider refused the key.";
 	const forbidden = !error && check?.detail === "The provider refused the request.";
 	const modelSummary = provider.models.join(", ");
+	const failed = Boolean(error) || check?.ok === false;
 	if (variant === "compact") {
 		return (
 			<SettingsListRow
@@ -74,6 +81,33 @@ export function ProviderCard({
 				}
 				disabled={busy}
 				onEdit={onEdit}
+				message={
+					failed && (
+						<FailureState
+							title={
+								refused
+									? "The provider refused the key"
+									: forbidden
+										? "The provider refused the request"
+										: "Trellis could not check the provider key"
+							}
+							description={
+								refused ? (
+									"Select Edit to replace the key."
+								) : forbidden ? (
+									"Check the key and the plan at the provider. Then select Check."
+								) : error ? (
+									"Select Check to try again."
+								) : (
+									<>{check!.detail} Select Check to try again.</>
+								)
+							}
+							detail={error}
+							recovery={checking ? "retrying" : "none"}
+							className="py-0! [overflow-wrap:anywhere]"
+						/>
+					)
+				}
 				actions={
 					<div className="flex shrink-0 items-center gap-1">
 						<Tooltip content="Check">
@@ -88,16 +122,38 @@ export function ProviderCard({
 						<Menu
 							label={`Actions for ${provider.name}`}
 							triggerTooltip={`Actions for ${provider.name}`}
-							trigger={<IconButton label={`Actions for ${provider.name}`} icon={<DotsThree />} disabled={busy} />}
+							trigger={
+								<IconButton
+									ref={menuButton}
+									label={`Actions for ${provider.name}`}
+									icon={<DotsThree />}
+									disabled={busy}
+								/>
+							}
 							onOpenChange={onActiveChange}
 							items={[
-								{ label: "Edit", icon: <PencilSimple />, onSelect: onEdit },
+								{
+									label: "Edit",
+									icon: <PencilSimple />,
+									onSelect: () => {
+										menuButton.current!.focus();
+										onEdit();
+									},
+								},
 								{
 									label: provider.enabled ? "Turn off" : "Turn on",
 									icon: <Power />,
 									onSelect: onToggle,
 								},
-								{ label: "Remove", icon: <Trash />, danger: true, onSelect: onRemove },
+								{
+									label: "Remove",
+									icon: <Trash />,
+									danger: true,
+									onSelect: () => {
+										menuButton.current!.focus();
+										onRemove();
+									},
+								},
 							]}
 						/>
 					</div>

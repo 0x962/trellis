@@ -1,8 +1,8 @@
 import { ArrowsClockwise, FlowArrow, Stop } from "@phosphor-icons/react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { type FlowExecutionRecord, type FlowExecutionViewV1, flowRunIsLive } from "@trellis/api";
-import { Avatar, FailureState, FlowRunSummary, FlowRunTree, IconButton, Tooltip } from "@trellis/ui";
+import { type FlowExecutionRecord, flowRunIsLive } from "@trellis/api";
+import { Avatar, ConfirmDialog, FlowRunSummary, FlowRunTree, IconButton, Tooltip, toast } from "@trellis/ui";
 import { useMemo, useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
 import { relativeTime } from "../../../../../lib/format";
@@ -10,27 +10,21 @@ import { agentKindOf } from "../../../../agents/agentKindOf";
 import { agentProfileOf } from "../../../../agents/agentProfileOf";
 import { allAgentRunsOptions } from "../../../../agents/allAgentRuns";
 import { isAgentWorking } from "../../../../agents/isAgentWorking";
-import { lastFocusedRun, runTreeStates } from "../../runViewState";
 import { useClock } from "../../useClock";
-import { StartFlowDialog } from "../StartFlowDialog";
 import { buildFlowRunRows } from "./buildFlowRunRows";
-import { buildExecutionViewRows } from "./components/buildExecutionViewRows";
-import { currentTerminalTarget, type TerminalTarget } from "./components/currentTerminalTarget";
-import { executionViewNotice } from "./components/executionViewNotice";
-import { FlowCancelDialog } from "./components/FlowCancelDialog";
 import { FlowDecisionDialog } from "./components/FlowDecisionDialog";
 import { FlowTaskTerminal } from "./components/FlowTaskTerminal";
 import { flowRunNotice } from "./flowRunNotice";
 
-type Execution = FlowExecutionRecord | FlowExecutionViewV1;
+type TerminalTarget = {
+	task: FlowExecutionRecord["tasks"][number];
+	stepTitle: string;
+};
 
-const endOf = (execution: Execution) =>
-	"snapshot" in execution
-		? execution.occurrences.reduce(
-				(end, item) => Math.max(end, item.endedAt === null ? 0 : Date.parse(item.endedAt)),
-				Date.parse(execution.updatedAt),
-			)
-		: execution.state.steps.reduce((end, step) => Math.max(end, step.endedAt ?? 0), execution.state.updatedAt);
+// A run ends when its last step became final. A run stored before steps
+// kept that time ends at its last state write.
+const endOf = (execution: FlowExecutionRecord) =>
+	Math.max(execution.state.updatedAt, ...execution.state.steps.map((step) => step.endedAt ?? 0));
 
 export function FlowRun({
 	execution,
@@ -39,229 +33,153 @@ export function FlowRun({
 	expanded,
 	onToggle,
 	canStart,
-	pendingFlowIds,
 	headSha,
-	readOnly = false,
-	recoveryBlocked = false,
 }: {
-	execution: Execution;
+	execution: FlowExecutionRecord;
 	ticket: string;
 	diffId: string;
 	expanded: boolean;
 	onToggle: () => void;
+	// The diff has no active run, so the user can request another run.
 	canStart: boolean;
-	pendingFlowIds: readonly string[];
+	// The commit the pull request points at now, which a new run stores.
 	headSha: string;
-	readOnly?: boolean;
-	recoveryBlocked?: boolean;
 }) {
-	const { client, orpc } = useApp();
-	const versioned = "snapshot" in execution;
-	const flow = versioned ? execution.snapshot.flow : execution.doc.flow;
-	const status = versioned ? execution.status : execution.state.status;
-	const startedAt = versioned ? Date.parse(execution.createdAt) : execution.state.startedAt;
-	const reviewedHead = versioned ? execution.reviewedHead : execution.headSha;
-	const live = flowRunIsLive(status);
-	const fenced =
-		recoveryBlocked ||
-		(versioned &&
-			execution.submission !== null &&
-			(execution.submission.ownership === "unknown" || execution.submission.admission === "closed"));
-	const immutableOnly = readOnly;
+	const { client, orpc, queryClient } = useApp();
+	const { doc, state } = execution;
+	const live = flowRunIsLive(state.status);
 	const now = useClock(live);
 	const runs = useQuery(allAgentRunsOptions(orpc, client, { ticket }));
-	const rows = useMemo(
-		() =>
-			versioned
-				? buildExecutionViewRows(execution, !immutableOnly && !fenced)
-				: buildFlowRunRows(execution).map((row) => ({
-						...row,
-						attempt: null,
-						decidable: row.decidable && !immutableOnly && !fenced,
-					})),
-		[execution, versioned, immutableOnly, fenced],
-	);
+	const rows = useMemo(() => buildFlowRunRows(execution), [execution]);
 	const [decision, setDecision] = useState<string | null>(null);
 	const [terminal, setTerminal] = useState<TerminalTarget | null>(null);
-	const terminalTarget = currentTerminalTarget(execution, terminal);
 	const [confirmCancel, setConfirmCancel] = useState(false);
-	const [confirmRepeat, setConfirmRepeat] = useState(false);
-	const [opened, setOpened] = useState(expanded);
-	if (expanded && !opened) setOpened(true);
-	const [treeState, setTreeState] = useState(() => runTreeStates.get(execution.id));
-	const targets = useMemo(() => {
-		const result = new Map<string, TerminalTarget>();
-		if (versioned) {
-			for (const row of rows) {
-				if (row.attempt === null) continue;
-				const attempt = row.attempt;
-				result.set(row.key, {
-					attempt,
-					stepTitle: row.occurrence?.title ?? row.title,
-					task: {
-						key: row.actionKey!,
-						runId: attempt.agentRunId,
-						attemptId: attempt.attemptId,
-						resultId: attempt.resultId,
-					},
-				});
-			}
-		} else {
-			const tasks = new Map(execution.tasks.map((task) => [task.key, task]));
-			for (const row of rows) {
-				const task = row.actionKey === null ? undefined : tasks.get(row.actionKey);
-				if (task) result.set(row.key, { task, stepTitle: row.title });
-			}
-		}
-		return result;
-	}, [execution, versioned, rows]);
-	const withActors = useMemo(() => {
-		const byId = new Map(runs.data?.map((run) => [run.id, run]));
-		return rows.map((row) => {
-			const target = targets.get(row.key);
-			const run = target ? byId.get(target.task.runId) : undefined;
-			if (!run || run.terminalId !== target?.task.attemptId) return row;
-			return {
-				...row,
-				actor: (
-					<Avatar
-						kind="agent"
-						name={run.name}
-						agentKind={agentKindOf(run.kind)}
-						agentProfile={agentProfileOf(run.harness)}
-						state={isAgentWorking(run) ? "working" : "static"}
-					/>
-				),
-			};
-		});
-	}, [rows, runs.data, targets]);
-	const completedAt = useMemo(() => endOf(execution), [execution]);
-	const notice = useMemo(
-		() =>
-			versioned ? executionViewNotice(execution, headSha, immutableOnly) : flowRunNotice(execution, rows, headSha),
-		[execution, versioned, headSha, immutableOnly, rows],
-	);
+	const refresh = () => queryClient.invalidateQueries({ queryKey: orpc.flowExecutions.list.key() });
+	const cancel = useMutation({
+		mutationFn: () => client.flowExecutions.cancel({ id: execution.id, expectedRevision: execution.revision }),
+		onSuccess: async () => {
+			setConfirmCancel(false);
+			await refresh();
+		},
+		onError: async (error) => {
+			toast.error(error.message);
+			await refresh();
+		},
+	});
+	// The flow runs at its current saved version, which can be newer than the
+	// version of this run.
+	const runAgain = useMutation({
+		mutationFn: async () => {
+			const current = await client.flows.get({ flow: execution.flowId });
+			return client.flowExecutions.start({
+				flow: execution.flowId,
+				allowRepeat: true,
+				repeatReason: `Run ${doc.flow.name} again for the current pull request.`,
+				ticket,
+				diffId,
+				headSha,
+				requestId: crypto.randomUUID(),
+				expectedVersion: current.flow.version,
+			});
+		},
+		onSuccess: async () => {
+			await refresh();
+			toast.success(`${doc.flow.name} started`);
+		},
+		onError: (error) => toast.error(error.message),
+	});
+	const taskOf = (key: string) => {
+		const row = rows.find((row) => row.key === key);
+		const task = execution.tasks.find((task) => task.key === row?.actionKey);
+		if (!row || !task) return null;
+		return { task, stepTitle: row.title };
+	};
+	const withActors = rows.map((row) => {
+		const task = row.actionKey === null ? null : execution.tasks.find((task) => task.key === row.actionKey);
+		const run = task ? runs.data?.find((run) => run.id === task.runId) : undefined;
+		if (!run) return row;
+		return {
+			...row,
+			actor: (
+				<Avatar
+					kind="agent"
+					name={run.name}
+					agentKind={agentKindOf(run.kind)}
+					agentProfile={agentProfileOf(run.harness)}
+					state={isAgentWorking(run) ? "working" : "static"}
+				/>
+			),
+		};
+	});
 	return (
-		<section
-			aria-label={`${flow.name} run`}
-			className="flex min-w-0 flex-col gap-3"
-			id={`flow-run-${execution.id}`}
-			onFocusCapture={() => {
-				lastFocusedRun.id = execution.id;
-			}}
-		>
+		<section aria-label={`${doc.flow.name} run`} className="flex min-w-0 flex-col gap-3">
 			<FlowRunSummary
-				name={flow.name}
-				version={versioned ? execution.snapshot.revision : execution.state.flowVersion}
-				status={status}
-				startedAt={startedAt}
-				startedLabel={relativeTime(new Date(startedAt).toISOString())}
-				durationMs={(live ? now : completedAt) - startedAt}
-				notice={notice}
+				name={doc.flow.name}
+				version={state.flowVersion}
+				status={state.status}
+				startedAt={state.startedAt}
+				startedLabel={relativeTime(new Date(state.startedAt).toISOString())}
+				durationMs={(live ? now : endOf(execution)) - state.startedAt}
+				notice={flowRunNotice(execution, rows)}
 				expanded={expanded}
 				onToggle={onToggle}
 				actions={
 					<>
-						{live && !immutableOnly && (
+						{live && (
 							<Tooltip content="Cancel this run">
-								<IconButton
-									label="Cancel this run"
-									icon={<Stop />}
-									onClick={() => setConfirmCancel(true)}
-									disabled={fenced}
-								/>
+								<IconButton label="Cancel this run" icon={<Stop />} onClick={() => setConfirmCancel(true)} />
 							</Tooltip>
 						)}
-						{!live && canStart && !immutableOnly && (
-							<Tooltip content={`Run ${flow.name} again`}>
+						{!live && canStart && (
+							<Tooltip content={`Run ${doc.flow.name} again`}>
 								<IconButton
-									label={`Run ${flow.name} again`}
+									label={`Run ${doc.flow.name} again`}
 									icon={<ArrowsClockwise />}
-									disabled={fenced}
-									onClick={() => setConfirmRepeat(true)}
+									disabled={runAgain.isPending}
+									onClick={() => runAgain.mutate()}
 								/>
 							</Tooltip>
 						)}
-						{!readOnly && (
-							<Tooltip content={`Open ${flow.name} in the editor`}>
-								<IconButton
-									label={`Open ${flow.name} in the editor`}
-									icon={<FlowArrow />}
-									render={<Link to="/ai/flows/$slug" params={{ slug: flow.slug }} />}
-								/>
-							</Tooltip>
-						)}
+						<Tooltip content={`Open ${doc.flow.name} in the editor`}>
+							<IconButton
+								label={`Open ${doc.flow.name} in the editor`}
+								icon={<FlowArrow />}
+								render={<Link to="/ai/flows/$slug" params={{ slug: doc.flow.slug }} />}
+							/>
+						</Tooltip>
 					</>
 				}
 			/>
-			{versioned && (execution.error || execution.submission?.error) && (
-				<FailureState
-					variant="section"
-					title="Flow execution error"
-					detail={[execution.error, execution.submission?.error].filter(Boolean).join("\n")}
-				/>
-			)}
-			{opened && (
-				<div hidden={!expanded}>
+			{expanded && (
+				<>
+					{state.steps.some((step) => step.needsStop) && (
+						<p role="status" className="text-sm text-danger">
+							The host has not confirmed that every flow worker stopped.
+						</p>
+					)}
 					<FlowRunTree
-						onViewportChange={(state) => runTreeStates.set(execution.id, state)}
-						label={`${flow.name} steps`}
+						label={`${doc.flow.name} steps`}
 						rows={withActors}
 						now={now}
-						state={treeState}
-						restoreFocus={expanded && lastFocusedRun.id === execution.id}
-						onStateChange={(next) => {
-							runTreeStates.set(execution.id, next);
-							setTreeState(next);
-						}}
 						onDecide={(key) => setDecision(rows.find((row) => row.key === key)?.actionKey ?? null)}
-						onOpenTerminal={(key) => setTerminal(targets.get(key) ?? null)}
+						onOpenTerminal={(key) => setTerminal(taskOf(key))}
 					/>
-				</div>
+					{terminal && <FlowTaskTerminal {...terminal} onClose={() => setTerminal(null)} />}
+					{decision !== null && (
+						<FlowDecisionDialog execution={execution} actionKey={decision} onClose={() => setDecision(null)} />
+					)}
+				</>
 			)}
-			{terminalTarget && (
-				<FlowTaskTerminal
-					executionId={execution.id}
-					task={terminalTarget.task}
-					attempt={terminalTarget.attempt}
-					stepTitle={terminalTarget.stepTitle ?? terminalTarget.task.key}
-					reviewedHead={reviewedHead}
-					recoveryBlocked={fenced || immutableOnly}
-					onClose={() => setTerminal(null)}
-				/>
-			)}
-			{decision !== null && (
-				<FlowDecisionDialog
-					key={JSON.stringify([execution.id, decision])}
-					execution={execution}
-					actionKey={decision}
-					onClose={() => setDecision(null)}
-					recoveryBlocked={fenced || immutableOnly}
-				/>
-			)}
-			{confirmCancel && (
-				<FlowCancelDialog
-					key={execution.id}
-					execution={execution}
-					onClose={() => setConfirmCancel(false)}
-					recoveryBlocked={fenced || immutableOnly}
-				/>
-			)}
-			{confirmRepeat && (
-				<StartFlowDialog
-					key={execution.id}
-					repeatOf={execution.id}
-					pendingFlowIds={pendingFlowIds}
-					submission={versioned ? execution.submission : undefined}
-					ticket={ticket}
-					diffId={diffId}
-					headSha={headSha}
-					initialFlowId={execution.flowId}
-					repeatReason={`Run ${flow.name} again for the current pull request.`}
-					recoveryBlocked={fenced || immutableOnly}
-					onClose={() => setConfirmRepeat(false)}
-				/>
-			)}
+			<ConfirmDialog
+				open={confirmCancel}
+				title="Cancel this run?"
+				description="The host stops the active workers of this run and keeps their files and output."
+				confirmLabel="Cancel run"
+				danger
+				processing={cancel.isPending}
+				onCancel={() => !cancel.isPending && setConfirmCancel(false)}
+				onConfirm={() => cancel.mutate()}
+			/>
 		</section>
 	);
 }

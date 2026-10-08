@@ -40,9 +40,6 @@ export type FlowRunRowProps = {
 	onFocus: () => void;
 	onDecide: () => void;
 	onOpenTerminal: () => void;
-	selected?: boolean;
-	outputExpanded?: boolean;
-	onOutputToggle?: (expanded: boolean) => void;
 };
 
 // One step of a run: the caret of a box, the kind mark, the state mark, the
@@ -65,11 +62,8 @@ export function FlowRunRow({
 	onFocus,
 	onDecide,
 	onOpenTerminal,
-	selected,
-	outputExpanded,
-	onOutputToggle,
 }: FlowRunRowProps) {
-	const KindIcon = row.kind === null ? null : flowKindIcons[row.kind];
+	const KindIcon = flowKindIcons[row.kind];
 	const actorIsKindMark = row.kind === "agent" && row.actor != null;
 	const Caret = expanded ? CaretDown : CaretRight;
 	const time = rowTime(row, now);
@@ -89,14 +83,12 @@ export function FlowRunRow({
 			role="treeitem"
 			aria-level={row.depth + 1}
 			aria-expanded={expanded}
-			aria-selected={selected}
 			tabIndex={tabIndex}
 			data-state={row.state}
 			style={{ "--flow-run-depth": row.depth } as CSSProperties}
 			className={cx(
-				"group flex min-h-9 flex-col justify-center border-b border-border py-1 ps-[calc(var(--spacing)*4*var(--flow-run-depth))] transition-colors duration-hover hover:bg-band focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2 pointer-coarse:min-h-11 max-md:ps-[calc(var(--spacing)*2*var(--flow-run-depth))]",
+				"group flex min-h-9 flex-col justify-center border-b border-border py-1 ps-[calc(var(--spacing)*4*var(--flow-run-depth))] transition-colors duration-hover hover:bg-band focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2 max-md:ps-[calc(var(--spacing)*2*var(--flow-run-depth))] pointer-coarse:min-h-11",
 				row.hasChildren && "cursor-pointer",
-				selected && "bg-accent-soft",
 			)}
 			onClick={row.hasChildren ? onToggle : undefined}
 			onKeyDown={onKeyDown}
@@ -112,19 +104,20 @@ export function FlowRunRow({
 					<span className="inline-flex size-3.5 shrink-0 items-center justify-center">{row.actor}</span>
 				) : (
 					<span aria-hidden="true" className="inline-flex size-3.5 shrink-0 text-fg-muted *:size-full">
-						{KindIcon && <KindIcon />}
+						<KindIcon />
 					</span>
 				)}
 				<FlowStepMark state={row.state} />
 				<span
-					title={row.title}
 					className={cx(
 						"min-w-20 flex-1 truncate text-sm font-medium max-md:overflow-visible max-md:whitespace-normal max-md:break-words",
 						dimStates.has(row.state) ? "text-fg-muted" : "text-fg",
 					)}
+					title={row.title}
 				>
 					{row.title}
 				</span>
+
 				<span className="flex w-5 shrink-0 items-center justify-center max-md:hidden">
 					{actorIsKindMark ? null : row.actor}
 				</span>
@@ -171,14 +164,14 @@ export function FlowRunRow({
 					onClick={(event) => event.stopPropagation()}
 					onKeyDown={(event) => event.stopPropagation()}
 				>
-					<summary className="cursor-pointer rounded-sm focus-visible:outline-2 focus-visible:outline-accent">
-						{row.detailsLabel ?? "Identifiers"}
-					</summary>
+					<summary className="cursor-pointer">{row.detailsLabel ?? "Identifiers"}</summary>
 					<dl className="mt-1 grid min-w-0 grid-cols-[auto_minmax(0,1fr)] gap-x-2">
 						{row.details.map((detail) => (
-							<div key={detail.label} className="contents">
+							<div className="contents" key={detail.label}>
 								<dt>{detail.label}</dt>
-								<dd className="break-all font-mono">{detail.value}</dd>
+								<dd className="truncate font-mono text-fg" title={detail.value}>
+									{detail.value}
+								</dd>
 							</div>
 						))}
 					</dl>
@@ -188,8 +181,6 @@ export function FlowRunRow({
 			{row.output !== null && (
 				<details
 					className="mt-1 ps-8 text-xs"
-					open={outputExpanded}
-					onToggle={(event) => onOutputToggle?.(event.currentTarget.open)}
 					onClick={(event) => event.stopPropagation()}
 					onKeyDown={(event) => event.stopPropagation()}
 				>
