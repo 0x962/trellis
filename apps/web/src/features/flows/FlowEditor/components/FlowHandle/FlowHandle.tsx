@@ -1,14 +1,19 @@
-import { Handle, type HandleProps, useNodeId, useStore, useStoreApi } from "@xyflow/react";
+import { Tooltip } from "@trellis/ui";
+import { Handle, type HandleProps, useNodeId, useStore, useStoreApi, useViewport } from "@xyflow/react";
+import type { CSSProperties } from "react";
 
-export function FlowHandle({ label, ...props }: HandleProps & { label: string }) {
+export function FlowHandle({ label, branch, ...props }: HandleProps & { label: string; branch?: "Yes" | "No" }) {
 	const store = useStoreApi();
 	const nodeId = useNodeId();
+	const { zoom } = useViewport();
 	const active = useStore(
 		(state) => state.connectionClickStartHandle?.nodeId === nodeId && state.connectionClickStartHandle.id === props.id,
 	);
-	return (
+	const handle = (
 		<Handle
 			{...props}
+			style={{ ...props.style, "--flow-zoom": zoom } as CSSProperties}
+			data-branch={branch}
 			role="button"
 			tabIndex={0}
 			aria-label={label}
@@ -42,4 +47,5 @@ export function FlowHandle({ label, ...props }: HandleProps & { label: string })
 			}}
 		/>
 	);
+	return <Tooltip content={label}>{handle}</Tooltip>;
 }

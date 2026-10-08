@@ -1,19 +1,20 @@
 import { CornersOut, MagicWand, Minus, Plus } from "@phosphor-icons/react";
 import { IconButton, Tooltip } from "@trellis/ui";
-import { useReactFlow } from "@xyflow/react";
+import { useReactFlow, useViewport } from "@xyflow/react";
 
 type CanvasControlsProps = { onCleanUp: () => void; canCleanUp: boolean };
 
 // The view controls of the flow canvas, with Clean up beside them.
 export function CanvasControls({ onCleanUp, canCleanUp }: CanvasControlsProps) {
 	const rf = useReactFlow();
+	const { zoom } = useViewport();
 	const controls = [
-		{ label: "Zoom in", icon: <Plus />, onClick: () => void rf.zoomIn(), disabled: false },
-		{ label: "Zoom out", icon: <Minus />, onClick: () => void rf.zoomOut(), disabled: false },
+		{ label: "Zoom in", icon: <Plus />, onClick: () => void rf.zoomIn(), disabled: zoom >= 2 },
+		{ label: "Zoom out", icon: <Minus />, onClick: () => void rf.zoomOut(), disabled: zoom <= 1 },
 		{
 			label: "Fit the flow in view",
 			icon: <CornersOut />,
-			onClick: () => void rf.fitView({ maxZoom: 1 }),
+			onClick: () => void rf.fitView({ minZoom: 1, maxZoom: 1 }),
 			disabled: false,
 		},
 		{ label: "Clean up the layout", icon: <MagicWand />, onClick: onCleanUp, disabled: !canCleanUp },

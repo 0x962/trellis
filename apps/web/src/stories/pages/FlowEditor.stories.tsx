@@ -82,6 +82,50 @@ export const Canvas: Story = {
 export const EmptyCanvas: Story = {
 	parameters: { trellis: { responses: { "flows.get": { ...flowDoc, nodes: [], edges: [] } } } },
 };
+export const ZoomScaledTargets: Story = {
+	play: async ({ canvasElement }) => {
+		const canvas = within(canvasElement);
+		await canvas.findByRole("button", { name: "Review the interface, connection, bottom" });
+		const minimum = matchMedia("(pointer: coarse)").matches ? 44 : 28;
+		const checkTargets = () => {
+			const handles = [...canvasElement.querySelectorAll<HTMLElement>(".react-flow__handle")];
+			for (const handle of handles) {
+				const rect = handle.getBoundingClientRect();
+				expect(rect.width).toBeGreaterThanOrEqual(minimum - 0.05);
+				expect(rect.height).toBeGreaterThanOrEqual(minimum - 0.05);
+				expect(rect.width).toBeLessThanOrEqual(minimum + 0.05);
+				expect(handle).toHaveAttribute("role", "button");
+				expect(handle).toHaveAttribute("tabindex", "0");
+			}
+		};
+		await waitFor(checkTargets);
+		await userEvent.click(canvas.getByRole("button", { name: "Zoom in" }));
+		await waitFor(() => {
+			const handle = canvasElement.querySelector<HTMLElement>(".react-flow__handle")!;
+			const zoom = Number(getComputedStyle(handle).getPropertyValue("--flow-zoom"));
+			expect(zoom).toBeGreaterThan(1);
+		});
+		await waitFor(checkTargets);
+		await userEvent.click(canvas.getByRole("button", { name: "Fit the flow in view" }));
+		await waitFor(() => expect(canvas.getByRole("button", { name: "Zoom out" })).toBeDisabled());
+		await waitFor(checkTargets);
+	},
+};
+export const BranchCues: Story = {
+	play: async ({ canvasElement }) => {
+		const canvas = within(canvasElement);
+		const handle = await canvas.findByRole("button", { name: "Does the review pass?, No, right" });
+		for (const branch of canvasElement.querySelectorAll<HTMLElement>(".react-flow__handle[data-branch]")) {
+			expect(getComputedStyle(branch, "::after").content).toBe(`"${branch.dataset.branch}"`);
+			expect(getComputedStyle(branch).opacity).toBe("1");
+		}
+		await userEvent.hover(handle);
+		await expect(await within(canvasElement.ownerDocument.body).findByRole("tooltip")).toHaveTextContent(
+			"Does the review pass?, No, right",
+		);
+		await userEvent.unhover(handle);
+	},
+};
 export const KeyboardConnections: Story = {
 	parameters: { trellis: { responses: { "flows.get": { ...flowDoc, edges: [] } } } },
 	play: async ({ canvasElement }) => {

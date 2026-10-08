@@ -133,7 +133,7 @@ export function FlowCanvas(props: FlowCanvasProps) {
 	const cleanUp = () => {
 		const before = new Map(nodes.map((node) => [node.id, node]));
 		setNodes(tidyLayout(nodes, edges));
-		requestAnimationFrame(() => void rf.fitView({ maxZoom: 1 }));
+		requestAnimationFrame(() => void rf.fitView({ minZoom: 1, maxZoom: 1 }));
 		toast("Cleaned up the layout.", {
 			action: {
 				label: "Undo",
@@ -205,8 +205,8 @@ export function FlowCanvas(props: FlowCanvasProps) {
 				snapToGrid
 				snapGrid={[8, 8]}
 				fitView
-				fitViewOptions={{ maxZoom: 1 }}
-				minZoom={0.2}
+				fitViewOptions={{ minZoom: 1, maxZoom: 1 }}
+				minZoom={1}
 				maxZoom={2}
 				panOnScroll
 				deleteKeyCode={null}
