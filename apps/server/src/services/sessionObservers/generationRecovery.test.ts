@@ -4,7 +4,7 @@ import { openTestDbFromArchive } from "../../db/testDb.ts";
 import { get as getSessionUpdates } from "../sessionUpdates";
 import {
 	claimSessionObserverGeneration,
-	disableSessionObserverForDeletion,
+	disableSessionObserver,
 	failSessionObserverGeneration,
 	get as getObserver,
 	linkSessionObserverRun,
@@ -58,7 +58,7 @@ test("links one hidden run only while the exact observer claim remains active", 
 			),
 		).toBeNull();
 		expect(
-			await value.db.transaction((tx) => disableSessionObserverForDeletion(tx, { runId: value.ticketRunId, now: at })),
+			await value.db.transaction((tx) => disableSessionObserver(tx, { runId: value.ticketRunId, now: at })),
 		).toEqual({ observerRunId: claim!.observerId, cancelGeneration: true });
 	} finally {
 		await value.db.$client.close();

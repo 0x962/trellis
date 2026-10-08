@@ -73,7 +73,9 @@ import * as search from "./search.ts";
 import {
 	finishSessionObserverGenerations,
 	finishSessionObserverRecovery,
+	finishSessionObserverReset,
 	prepareSessionObserverGenerations,
+	prepareSessionObserverReset,
 	recoverSessionObserverGeneration,
 	setSessionObserverEnabled,
 } from "./sessionObserverGeneration";
@@ -122,6 +124,7 @@ export const services = {
 	"sessions.cleanup": prepared("mutation", cleanupSessions, agentTerminal.result),
 	...sessionObserverServices,
 	"sessionObservers.setEnabled": io("mutation", setSessionObserverEnabled),
+	"sessionObservers.reset": prepared("mutation", prepareSessionObserverReset, finishSessionObserverReset),
 	...sessionUpdateServices,
 	"sessionObservers.dispatch": prepared(
 		"mutation",

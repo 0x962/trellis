@@ -82,3 +82,16 @@ export const SessionObserverSetEnabledInputSchema = SessionObserverGetInputSchem
 	activityThreshold: z.number().int().positive().optional(),
 });
 export type SessionObserverSetEnabledInput = z.infer<typeof SessionObserverSetEnabledInputSchema>;
+
+export const SessionObserverResetInputSchema = SessionObserverGetInputSchema.extend({
+	expectedRunId: UlidSchema.describe("The run the session belongs to, as the caller last read it."),
+	expectedObserverRunId: UlidSchema.describe("The hidden observer run, as the caller last read it."),
+	expectedProviderSessionId: z
+		.string()
+		.min(1)
+		.describe("The Claude conversation the observer holds now. A changed value refuses the reset."),
+	requestId: z.uuid().describe("An identical repeat returns the first result. A changed request conflicts."),
+}).describe(
+	"Give a failed observer a new Claude conversation. The saved messages, status updates, workspace, and consumed activity stay. The observer stays off until a person enables it again.",
+);
+export type SessionObserverResetInput = z.infer<typeof SessionObserverResetInputSchema>;

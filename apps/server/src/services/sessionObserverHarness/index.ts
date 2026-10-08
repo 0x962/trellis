@@ -2,6 +2,11 @@ export { ensureSessionObserverRun } from "./ensureSessionObserverRun/index.ts";
 export { generateSessionObserverReply } from "./generateSessionObserverReply/index.ts";
 export { recoverSessionObserverAttempt } from "./recoverSessionObserverAttempt/index.ts";
 export { removeSessionObserverWorkspace } from "./removeSessionObserverWorkspace/index.ts";
+export {
+	type ResetSessionObserverConversationInput,
+	resetSessionObserverConversation,
+	type SessionObserverReset,
+} from "./resetSessionObserverConversation/index.ts";
 export { rolloverSessionObserverConversation } from "./rolloverSessionObserverConversation/index.ts";
 export type {
 	ObserverHarnessErrorCode,

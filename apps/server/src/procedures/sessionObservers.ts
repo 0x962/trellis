@@ -8,4 +8,5 @@ export const sessionObservers = os.sessionObservers.router({
 	setEnabled: os.sessionObservers.setEnabled.handler(({ context, input }) =>
 		call(context, "sessionObservers.setEnabled", input),
 	),
+	reset: os.sessionObservers.reset.handler(({ context, input }) => call(context, "sessionObservers.reset", input)),
 });
