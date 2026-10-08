@@ -7,9 +7,9 @@ export {
 	type SessionObserverGenerationClaim,
 } from "./claimSessionObserverGeneration";
 export {
-	type DisableSessionObserverForDeletionResult,
-	disableSessionObserverForDeletion,
-} from "./disableSessionObserverForDeletion";
+	type DisableSessionObserverResult,
+	disableSessionObserver,
+} from "./disableSessionObserver";
 export { failSessionObserverGeneration } from "./failSessionObserverGeneration";
 export { get } from "./get";
 export { history } from "./history";

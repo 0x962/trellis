@@ -10,7 +10,7 @@ import type { ServiceCtx } from "../../../context.ts";
 import type { Tx } from "../../../db/tx.ts";
 import { fail } from "../../../errors.ts";
 import { resolveSessionUpdateOwner } from "../../sessionUpdates";
-import { disableSessionObserverForDeletion } from "../disableSessionObserverForDeletion";
+import { disableSessionObserver } from "../disableSessionObserver";
 import { emptySessionObserver, readSessionObserver, sessionObserverByRun } from "../queries";
 
 export type SetSessionObserverEnabledResult = {
@@ -43,7 +43,7 @@ export const setEnabled = async (
 		};
 	}
 	if (!input.enabled) {
-		const disabled = await disableSessionObserverForDeletion(tx, { runId: owner.runId, now: ctx.now });
+		const disabled = await disableSessionObserver(tx, { runId: owner.runId, now: ctx.now });
 		return {
 			observer: await readSessionObserver(tx, owner.runId),
 			cancelGeneration: disabled.cancelGeneration,

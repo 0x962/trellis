@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { sessionOperation } from "../../../agents/sessionOperation/index.ts";
 import { closeObserverRun } from "../../agentRuns/observerRuns/index.ts";
 import { getRun } from "../../agentRuns/queries.ts";
-import { disableSessionObserverForDeletion } from "../../sessionObservers/index.ts";
+import { disableSessionObserver } from "../../sessionObservers/index.ts";
 import type { IoCtx } from "../../support.ts";
 import { recoverSessionObserverAttempt } from "../recoverSessionObserverAttempt/index.ts";
 
@@ -13,7 +13,7 @@ export async function removeSessionObserverWorkspace(
 	deps = { recover: recoverSessionObserverAttempt, remove: rm },
 ) {
 	const { observerRunId } = await ctx.newTx((tx) =>
-		disableSessionObserverForDeletion(tx, { runId: input.sourceRunId, now: ctx.now() }),
+		disableSessionObserver(tx, { runId: input.sourceRunId, now: ctx.now() }),
 	);
 	if (!observerRunId) return;
 	await deps.recover(ctx, { observerRunId });

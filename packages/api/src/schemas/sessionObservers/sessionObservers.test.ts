@@ -1,6 +1,7 @@
 import { expect, test } from "bun:test";
 import {
 	SessionObserverHistorySchema,
+	SessionObserverResetInputSchema,
 	SessionObserverSchema,
 	SessionObserverSetEnabledInputSchema,
 } from "./sessionObservers.ts";
@@ -77,4 +78,22 @@ test("accepts a configurable threshold and rejects invalid values", () => {
 			activityThreshold: 0,
 		}).success,
 	).toBe(false);
+});
+
+test("a reset requires every identity it checks and a request ID", () => {
+	const input = {
+		sessionId: "Observed session",
+		expectedRunId: "01M3NVQ8K3ZBWDFDZ406A4M1D9",
+		expectedObserverRunId: "01M3NVQ8K3ZBWDFDZ406A4M1DB",
+		expectedProviderSessionId: "claude-conversation",
+		requestId: "7c4c1f52-0a1e-4b0d-9f3a-2a0e6f1c8d41",
+	};
+	expect(SessionObserverResetInputSchema.parse(input)).toEqual(input);
+	expect(SessionObserverResetInputSchema.safeParse({ ...input, requestId: "retry-1" }).success).toBe(false);
+	expect(SessionObserverResetInputSchema.safeParse({ ...input, expectedProviderSessionId: "" }).success).toBe(false);
+	expect(SessionObserverResetInputSchema.safeParse({ ...input, expectedObserverRunId: "observer" }).success).toBe(
+		false,
+	);
+	const { expectedRunId: _omitted, ...withoutRun } = input;
+	expect(SessionObserverResetInputSchema.safeParse(withoutRun).success).toBe(false);
 });

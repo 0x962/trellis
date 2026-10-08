@@ -3,6 +3,7 @@ import {
 	SessionObserverGetInputSchema,
 	SessionObserverHistoryInputSchema,
 	SessionObserverHistorySchema,
+	SessionObserverResetInputSchema,
 	SessionObserverSchema,
 	SessionObserverSetEnabledInputSchema,
 } from "../schemas/sessionObservers/index.ts";
@@ -29,5 +30,14 @@ export const sessionObservers = {
 			summary: "Enable or disable a session observer",
 		})
 		.input(SessionObserverSetEnabledInputSchema)
+		.output(SessionObserverSchema),
+	reset: base
+		.errors(pickErrors(["SESSION_OBSERVER_FORBIDDEN", "RUNNER_UNAVAILABLE"]))
+		.route({
+			method: "POST",
+			path: "/session-observers/{sessionId}/reset",
+			summary: "Give a failed session observer a new Claude conversation",
+		})
+		.input(SessionObserverResetInputSchema)
 		.output(SessionObserverSchema),
 };
