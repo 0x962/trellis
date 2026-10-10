@@ -1,13 +1,10 @@
 import type { AriaRole, ReactNode } from "react";
 import { cx } from "../../utils/cx";
-import poster from "./poster.jpg";
+import { AnimalPoster } from "./components/AnimalPoster";
 
 export type EmptyStateProps = {
-	// A small picture above the title, pinned a little crooked like a print
-	// on a wall. It is decoration, so screen readers skip it. The page
-	// variant draws poster.jpg when this is not set, so every page-level
-	// state shows the same picture. `null` draws no picture: a block whose
-	// subject is a failure gives the words the top of the pane.
+	// The page variant selects a random animal on each mount when image is
+	// undefined. An explicit image keeps its source; null hides the picture.
 	image?: string | null;
 	title?: ReactNode;
 	description?: ReactNode;
@@ -33,7 +30,6 @@ export function EmptyState({
 	role,
 }: EmptyStateProps) {
 	const page = variant === "page";
-	const picture = image === null ? undefined : (image ?? (page ? poster : undefined));
 	return (
 		<div
 			role={role}
@@ -43,18 +39,8 @@ export function EmptyState({
 				className,
 			)}
 		>
-			{/* poster.jpg is 192x306 px. Its aspect ratio gives the img its height
-			    before the file loads, so the title under it does not move. */}
-			{picture !== undefined && (
-				<img
-					src={picture}
-					alt=""
-					className={cx(
-						"mb-4 w-24 -rotate-2 rounded-sm shadow-md grayscale",
-						image === undefined && "aspect-[192/306]",
-					)}
-				/>
-			)}
+			{image === undefined && page && <AnimalPoster />}
+			{image != null && <img src={image} alt="" className="mb-4 w-24 -rotate-2 rounded-sm shadow-md grayscale" />}
 			{title !== undefined && (
 				<h3 className={cx("text-fg", page ? "text-xl font-semibold" : "text-sm font-medium")}>{title}</h3>
 			)}

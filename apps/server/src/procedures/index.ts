@@ -20,6 +20,7 @@ import { actors, brief, search, settings, timeline } from "./reads.ts";
 import { resourceComments } from "./resourceComments.ts";
 import { resources } from "./resources.ts";
 import { reviews } from "./reviews";
+import { roles } from "./roles.ts";
 import { sessionObservers } from "./sessionObservers.ts";
 import { sessions } from "./sessions.ts";
 import { sessionUpdates } from "./sessionUpdates.ts";
@@ -53,6 +54,7 @@ export const router = os.router({
 	tickets,
 	timeline,
 	notes,
+	roles,
 	pages,
 	epicChatter,
 	epics,

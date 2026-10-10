@@ -316,7 +316,7 @@ A failure that recovers by itself clears itself. `RouteError` loads the route ag
 The block carries one action, and at most two. `action` is the one that usually works, and it sits beside the words. A screen never puts the only way out in a bar somewhere else.
 `detail` holds the raw text a developer reads. A closed disclosure holds it under the action, the text stays selectable, and the title never shows it.
 The words carry no blame, no apology and no exclamation mark. Red marks one thing: the small sign beside the title.
-`variant="page"` fills a route or a pane and draws no picture. `variant="section"` sits inside a tab or a list.
+`variant="page"` fills a route or a pane and draws the animal card from `EmptyState`. Each new card requests a random photo from Dog CEO, Cataas, or RandomFox. The photo stays fixed during updates to that card. The card reserves space while the request runs. An unavailable photo leaves that space empty. `variant="section"` sits inside a tab or a list and draws no picture.
 
 `EmptyState` stays the block for a list or a page that holds nothing. A state that is not a failure keeps it, such as a session that a person stopped.
 
@@ -401,7 +401,7 @@ The pending request disables edits and Close. A failure keeps the draft and show
 
 Select all text in a multiline field, then press L twice within 300 milliseconds.
 Control+A or Command+A selects the complete field.
-The shortcut covers textareas, ticket and document descriptions, the ticket composer, and the agent prompt template.
+The shortcut covers textareas, ticket and document descriptions, the ticket composer, role bodies, and the agent prompt template.
 A read-only field, terminal, or unregistered editor keeps its normal keys.
 One L, or L followed by another key, enters normal text.
 The rewrite uses the configured Vercel provider and the feature's text model.

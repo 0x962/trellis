@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import { AgentsMenu } from "../../agents/AgentsMenu";
 import { navRows } from "../../navRows";
 
 // ShellSidebar uses the static rows list, so the root route can paint it before route data arrives.
@@ -23,6 +24,7 @@ export function ShellSidebar() {
 					<span className="flex-1 truncate">{row.label}</span>
 				</Link>
 			))}
+			<AgentsMenu />
 			<div className="flex h-7 items-center pt-3 pb-1 pl-2 text-xs font-medium tracking-[0.04em] text-fg-faint uppercase">
 				Projects
 			</div>

@@ -1,0 +1,16 @@
+[
+	{
+		"source": "apps/web/src/routes/agents.roles.tsx",
+		"export": "Route",
+		"stories": [
+			"Pages/Roles/Populated",
+			"Pages/Roles/Empty",
+			"Pages/Roles/Loading",
+			"Pages/Roles/RequestError",
+			"Pages/Roles/Narrow",
+			"Pages/Roles/CreateEditDelete"
+		],
+		"states": ["populated", "empty", "loading", "error", "narrow", "create, edit, delete"],
+		"notes": "Global roles use the shared Markdown editor."
+	}
+]

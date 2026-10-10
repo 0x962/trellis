@@ -299,6 +299,8 @@ The final transaction checks the selected references again.
 Classification creates no ticket, epic, or wave.
 
 Manual field choices and explicit page context constrain automatic selection.
+The New ticket button and keyboard command retain the current epic, including when a saved draft names another epic.
+Automatic selection excludes completed and canceled epics unless the request explicitly selects that epic or one of its waves.
 The composer starts without an existing wave unless the caller or the saved draft selects one.
 Automatic wave and priority changes use one standard text glimmer sweep and respect reduced motion.
 The saved draft identifies automatic fields so later edits can update them after the dialog reopens.
@@ -1286,6 +1288,12 @@ waves of the one epic that every selected ticket belongs to, and the control is 
 ticket rail shows a Wave row after Epic when the ticket has an
 epic.
 
+## Roles
+
+Agents > Roles opens the global role list. Each role has a name and a Markdown body.
+The role sheet creates, edits, and deletes a role. Delete requires confirmation.
+The `roles` API exposes list, get, create, update, and delete. Writes require an actor and emit `roles.changed`.
+
 ## Database schema
 
 The schema lives in `apps/server/src/db/schema.ts` and
@@ -1314,6 +1322,7 @@ are no triggers. Every rule is a constraint or a service function that takes
 | activity | id bigint IDENTITY PK, batch_id, project_id (CASCADE), ticket_id (CASCADE), actor_name, actor_kind, action, field, from_value, to_value, meta jsonb, created_at. FK to actors. CHECK `field <> 'description' OR (from_value IS NULL AND to_value IS NULL)`. Indexes (ticket_id, id), (ticket_id, created_at DESC, id DESC), (project_id, id), (created_at). |
 | actors | name (CHECK nonempty printable ASCII, no `:`), kind (human, agent, or system), first_seen_at, last_seen_at. PK (name, kind). |
 | settings | key PK, value jsonb, updated_at. |
+| roles | id PK, name (CHECK trimmed, nonempty), body text, created_at, updated_at. Roles belong to the host. |
 | flows | id PK, slug (UNIQUE, CHECK slug regex), name (CHECK nonblank), description, briefing, harness (jsonb, NULL means claude), version (CHECK > 0), created_at, updated_at. |
 | flow_nodes | id PK, flow_id (CASCADE), parent_id, kind (CHECK agent, gate, human, group, or loop), title, instruction, review_area (optional frontend or backend, gate without a harness only), parallel (boolean, group only), minutes (optional positive integer, group only), harness (jsonb, agent, gate, or loop only; NULL takes the flow's), max_rounds (positive integer, CHECK `(kind = 'loop') = (max_rounds IS NOT NULL)`), x and y (CHECK finite), width and height (optional, CHECK finite and >= 40). UNIQUE (id, flow_id). FK (parent_id, flow_id) CASCADE, so a group and the nodes inside it stay in one flow. Index (flow_id). |
 | flow_edges | id PK, flow_id (CASCADE), from_node_id, to_node_id, branch (CHECK out, yes, or no). FK (from_node_id, flow_id) and FK (to_node_id, flow_id) to flow_nodes CASCADE. UNIQUE (from_node_id, branch, to_node_id). CHECK `from_node_id <> to_node_id`. Indexes (flow_id) and (to_node_id). |

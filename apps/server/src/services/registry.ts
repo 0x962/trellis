@@ -70,6 +70,7 @@ import * as reviewStatus from "./reviews/status";
 import * as reviewSubmissions from "./reviews/submissions";
 import * as reviewThreads from "./reviews/threads";
 import * as reviewTransfers from "./reviews/transfers";
+import * as roles from "./roles";
 import * as search from "./search.ts";
 import {
 	finishSessionObserverGenerations,
@@ -240,6 +241,11 @@ export const services = {
 	"statuses.delete": core("mutation", statuses.delete),
 	...ticketServices,
 	"timeline.list": core("read", timeline.list),
+	"roles.list": core("read", roles.list),
+	"roles.get": core("read", roles.get),
+	"roles.create": core("mutation", roles.create),
+	"roles.update": core("mutation", roles.update),
+	"roles.delete": core("mutation", roles.remove),
 	"notes.list": core("read", notes.list),
 	"notes.get": core("read", notes.get),
 	"notes.create": core("mutation", notes.create),

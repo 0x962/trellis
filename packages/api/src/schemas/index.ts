@@ -31,6 +31,7 @@ export * from "./resourceComment.ts";
 export * from "./review.ts";
 export * from "./reviewOverview.ts";
 export * from "./reviewReady.ts";
+export * from "./role.ts";
 export * from "./search.ts";
 export * from "./session.ts";
 export * from "./sessionActivity.ts";
