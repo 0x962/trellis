@@ -1,0 +1,1 @@
+export { isRewriteTextarea } from "./isRewriteTextarea";

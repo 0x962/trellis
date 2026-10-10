@@ -242,6 +242,10 @@ button.review-notice:hover {
 	outline: 2px solid var(--accent);
 	outline-offset: 2px;
 }
+.review-page :is(input:not([type="checkbox"], [type="radio"]), textarea, [contenteditable="true"]):focus-visible,
+.review-thread :is(input:not([type="checkbox"], [type="radio"]), textarea, [contenteditable="true"]):focus-visible {
+	outline-color: var(--fg-faint);
+}
 .review-page button:disabled,
 .review-thread button:disabled {
 	opacity: 0.5;
@@ -484,6 +488,6 @@ button.review-notice:hover {
 
 .review-comment-editor textarea:focus-visible {
 	box-shadow: none;
-	outline: 1px solid var(--accent);
+	outline: 1px solid var(--fg-faint);
 	outline-offset: 1px;
 }

@@ -82,6 +82,8 @@ A form uses these four sizes. `FieldHint` supplies the shared hint style for sec
 An error takes precedence over a read-only reason.
 A trailing icon action uses `IconButton` inside `Tooltip`.
 A read-only text value remains selectable and focusable.
+Text fields and document editors use `fg-faint` for visible focus borders and outlines.
+The existing soft ring and danger border retain their roles.
 A hint states what the value does. For example, "Every ticket ID starts with OP."
 A field uses its hint slot for an error or reason, with no second message beneath it.
 `FormStatus` reports a save through `status` and optional `message`.
@@ -186,6 +188,10 @@ A list never navigates to `/t/$identifier`.
 This URL opens the sheet over the home page when a link arrives from outside the app or opens in a new tab.
 It replaces the URL with the home route, so closing the sheet leaves a page to use.
 The table's Enter, Space, and O keys open the same sheet.
+In the project session list, hold T and click a ticket agent to open its ticket sheet directly.
+A plain click selects the conversation. A session without a ticket keeps this behavior with T held.
+Hold S and click a ticket to open its existing agent session. The choice matches the ticket agent line.
+A ticket without a session opens its ticket sheet. S alone opens the status picker on key release.
 Markdown links and resolved ticket record links also open the sheet over the current page.
 Page links inside a session open the complete Page viewer in a sheet above that session.
 The session keeps its content, and the background route stays in place.
@@ -403,3 +409,16 @@ The agent picker holds the harness, model, effort, and account. Automatic accoun
 The footer holds Add attachment and Start session. Paste and drop also add files.
 Escape and Close keep the draft and its files. Command-Enter or Control-Enter starts the session from any field.
 The pending request disables edits and Close. A failure keeps the draft and shows its details through `FailureState`.
+
+## Rewrite a prompt
+
+Select all text in a multiline field, then press L twice within 300 milliseconds.
+Control+A or Command+A selects the complete field.
+The shortcut covers textareas, ticket and document descriptions, the ticket composer, role bodies, and the agent prompt template.
+A read-only field, terminal, or unregistered editor keeps its normal keys.
+One L, or L followed by another key, enters normal text.
+The rewrite uses the configured Vercel provider and the feature's text model.
+The instruction requires the model to preserve every requirement, constraint, identifier, number, and quoted value.
+A status toast reports progress. A successful replacement offers Undo and preserves the editor's undo history.
+A failed request retains the original text.
+An edit, focus change, document switch, or closed editor prevents a late result from replacing the field.

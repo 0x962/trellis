@@ -1,0 +1,1 @@
+export { installRewriteShortcut } from "./rewriteShortcut";

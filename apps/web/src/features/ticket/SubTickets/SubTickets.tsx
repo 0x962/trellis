@@ -12,10 +12,11 @@ import {
 	TicketId,
 	Tooltip,
 } from "@trellis/ui";
+import type { MouseEvent } from "react";
 import { compactRelativeTime } from "../../../lib/format";
-import { pageSheetActions } from "../../../stores/pageSheetStore";
 import { ActorAvatar } from "../../agents/ActorAvatar";
 import { composerActions } from "../../composer";
+import { useTicketClick } from "../../shell/useTicketClick";
 import { statusIconProps } from "../../statusIconProps";
 
 export type SubTicketsProps = {
@@ -46,6 +47,7 @@ const prLabel = (pr: NonNullable<TicketSummary["pr"]>) => {
 // create dialog with this ticket as the parent, so a sub-ticket takes a
 // status, a priority and a description like any other ticket.
 export function SubTickets({ ticket, readOnly = false }: SubTicketsProps) {
+	const clickTicket = useTicketClick();
 	const done = ticket.children.filter((child) => child.status.category === "done").length;
 	const total = ticket.children.length;
 	const fill = total === 0 ? 0 : (done / total) * 100;
@@ -84,7 +86,7 @@ export function SubTickets({ ticket, readOnly = false }: SubTicketsProps) {
 					<ul>
 						{ticket.children.map((child) => (
 							<li key={child.id}>
-								<ChildRow child={child} onOpen={() => pageSheetActions.openTicket(child.identifier)} />
+								<ChildRow child={child} onOpen={(event) => clickTicket(child.identifier, event)} />
 							</li>
 						))}
 					</ul>
@@ -94,7 +96,7 @@ export function SubTickets({ ticket, readOnly = false }: SubTicketsProps) {
 	);
 }
 
-function ChildRow({ child, onOpen }: { child: TicketSummary; onOpen: () => void }) {
+function ChildRow({ child, onOpen }: { child: TicketSummary; onOpen: (event: MouseEvent) => void }) {
 	const { status, pr } = child;
 	return (
 		// biome-ignore lint/a11y/noStaticElementInteractions lint/a11y/useKeyWithClickEvents: The overlay button supplies keyboard access to the row.
