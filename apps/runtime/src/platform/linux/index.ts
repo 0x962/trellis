@@ -15,10 +15,21 @@ import type { RuntimePlatform } from "../runtimePlatform.ts";
 import { createLinuxAttemptProcesses } from "./attemptProcesses.ts";
 import { createLinuxCgroupLifecycle } from "./cgroupLifecycle.ts";
 import { createLinuxProcessInspector } from "./linuxProcessInspector.ts";
-import { LinuxProcessExitWatcher, nodeExitWatcherOperations } from "./processExitWatcher.ts";
+import { exitWatcherSignatures, LinuxProcessExitWatcher, nodeExitWatcherOperations } from "./processExitWatcher.ts";
 
+// The library and its functions stay referenced for the life of the process.
+// Bun test crashes when it finalizes a koffi object.
+const library = load(null);
+const sysconf = library.func("long sysconf(int name)");
+const exitWatcherNatives = {
+	pidfdOpen: library.func(exitWatcherSignatures.pidfdOpen),
+	epollCreate: library.func(exitWatcherSignatures.epollCreate),
+	epollControl: library.func(exitWatcherSignatures.epollControl),
+	epollWait: library.func(exitWatcherSignatures.epollWait),
+	eventfd: library.func(exitWatcherSignatures.eventfd),
+};
 // unistd.h defines _SC_CLK_TCK as 2 on Linux.
-const clockTicks = Number(load(null).func("long sysconf(int name)")(2));
+const clockTicks = Number(sysconf(2));
 
 const accessible = (path: string, mode: number) => {
 	try {
@@ -74,7 +85,7 @@ export const linuxPlatform: RuntimePlatform = {
 		runtimePid: process.pid,
 		processIdentity: inspector.processIdentity,
 	}),
-	createExitWatcher: () => new LinuxProcessExitWatcher(nodeExitWatcherOperations()),
+	createExitWatcher: () => new LinuxProcessExitWatcher(nodeExitWatcherOperations(exitWatcherNatives)),
 	prepareLaunch: linuxCgroupLifecycle.prepareLaunch,
 	stopProcessTree: linuxCgroupLifecycle.stopProcessTree,
 };

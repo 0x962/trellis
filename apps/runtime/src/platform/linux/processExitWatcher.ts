@@ -1,6 +1,6 @@
 import { closeSync, writeSync } from "node:fs";
 import { constants } from "node:os";
-import { errno, load } from "koffi";
+import { errno, type load } from "koffi";
 
 export type LinuxExitWatcherOperations = {
 	createQueue: () => { queue: number; wake: number };
@@ -27,14 +27,21 @@ const eventLayout = () => {
 	throw new Error(`The Linux runtime does not support ${process.arch}`);
 };
 
-export function nodeExitWatcherOperations(): LinuxExitWatcherOperations {
+type NativeFunction = ReturnType<ReturnType<typeof load>["func"]>;
+
+export const exitWatcherSignatures = {
+	pidfdOpen: "int pidfd_open(int pid, unsigned int flags)",
+	epollCreate: "int epoll_create1(int flags)",
+	epollControl: "int epoll_ctl(int epfd, int op, int fd, void *event)",
+	epollWait: "int epoll_wait(int epfd, void *events, int maxevents, int timeout)",
+	eventfd: "int eventfd(unsigned int initval, int flags)",
+};
+
+export function nodeExitWatcherOperations(
+	native: Record<keyof typeof exitWatcherSignatures, NativeFunction>,
+): LinuxExitWatcherOperations {
 	const layout = eventLayout();
-	const library = load(null);
-	const pidfdOpen = library.func("int pidfd_open(int pid, unsigned int flags)");
-	const epollCreate = library.func("int epoll_create1(int flags)");
-	const epollControl = library.func("int epoll_ctl(int epfd, int op, int fd, void *event)");
-	const epollWait = library.func("int epoll_wait(int epfd, void *events, int maxevents, int timeout)");
-	const eventfd = library.func("int eventfd(unsigned int initval, int flags)");
+	const { pidfdOpen, epollCreate, epollControl, epollWait, eventfd } = native;
 	const add = (queue: number, descriptor: number) => {
 		const event = Buffer.alloc(layout.size);
 		event.writeUInt32LE(epollIn, 0);

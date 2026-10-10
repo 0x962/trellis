@@ -25,6 +25,7 @@ import { createLinuxProcessInspector } from "./linuxProcessInspector.ts";
 
 // Node runs this program. `linuxLifecycle.process.test.ts` bundles it.
 // `node fixture.js cases <proof.json>` runs every real process case.
+// `node fixture.js probe` exits 0 when this host can contain a launch.
 // `node fixture.js refusal <proof.json>` expects a refused launch.
 // `node fixture.js runtime-death <directory>` acts as a runtime that dies.
 const [mode, target] = process.argv.slice(2) as [string, string];
@@ -45,6 +46,10 @@ if (mode === "runtime-death") {
 		JSON.stringify({ leader: handle.pid, identity: leader.process.identity }),
 	);
 	process.kill(process.pid, "SIGKILL");
+}
+
+if (mode === "probe") {
+	linuxCgroupLifecycle.prepareLaunch({ id: "probe", command: "/bin/true", args: [], cwd: "/", mode: "stdio" });
 }
 
 if (mode === "refusal") {

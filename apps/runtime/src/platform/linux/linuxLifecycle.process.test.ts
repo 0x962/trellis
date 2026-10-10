@@ -3,30 +3,20 @@ import { mkdtempSync, rmSync, symlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
-// Node runs the real process cases. Bun test crashes when it finalizes a
-// node-pty object, and the desktop runtime runs on Node.
+// Node runs the real process cases, as the desktop runtime does. Bun test
+// crashes when it finalizes a koffi or node-pty object, so this file loads
+// neither module.
 // TRELLIS_REQUIRE_LINUX_LIFECYCLE=1 turns a host without cgroup delegation
 // into a failure. TRELLIS_EXPECT_LINUX_REFUSAL=1 runs only the refusal case,
 // for a runtime in a cgroup that this user cannot write.
 // TRELLIS_LINUX_PROOF names the file that receives the proof record.
 const refusal = process.env.TRELLIS_EXPECT_LINUX_REFUSAL === "1";
 const required = process.env.TRELLIS_REQUIRE_LINUX_LIFECYCLE === "1";
-const delegated = await (async () => {
-	if (process.platform !== "linux" || refusal) return false;
-	const { linuxCgroupLifecycle } = await import("./index.ts");
-	try {
-		linuxCgroupLifecycle.prepareLaunch({ id: "probe", command: "/bin/true", args: [], cwd: "/", mode: "stdio" });
-		return true;
-	} catch (error) {
-		if (required) throw error;
-		return false;
-	}
-})();
-
 const home = mkdtempSync(join(tmpdir(), "trellis-linux-lifecycle-node-"));
 afterAll(() => rmSync(home, { recursive: true, force: true }));
 
-async function runFixture(mode: string) {
+const fixture = await (async () => {
+	if (process.platform !== "linux") return undefined;
 	symlinkSync(resolve(import.meta.dir, "../../../../../node_modules"), join(home, "node_modules"));
 	const build = await Bun.build({
 		entrypoints: [join(import.meta.dir, "linuxLifecycleFixture.ts")],
@@ -34,19 +24,24 @@ async function runFixture(mode: string) {
 		target: "node",
 		external: ["node-pty", "koffi"],
 	});
-	expect(build.success).toBe(true);
+	if (!build.success) throw new AggregateError(build.logs, "Cannot bundle the Linux lifecycle fixture");
+	return join(home, "linuxLifecycleFixture.js");
+})();
+const probe = fixture === undefined || refusal ? undefined : Bun.spawnSync(["node", fixture, "probe", ""]);
+
+async function run(mode: string) {
 	const proof = process.env.TRELLIS_LINUX_PROOF ?? join(home, "proof.json");
-	const child = Bun.spawn(["node", join(home, "linuxLifecycleFixture.js"), mode, proof], {
-		stdout: "inherit",
-		stderr: "pipe",
-	});
+	const child = Bun.spawn(["node", fixture!, mode, proof], { stdout: "inherit", stderr: "pipe" });
 	const [code, stderr] = await Promise.all([child.exited, new Response(child.stderr).text()]);
 	expect(stderr).toBe("");
 	expect(code).toBe(0);
 }
 
-test.skipIf(!delegated)("real process trees stay contained and stop on Linux", () => runFixture("cases"), 120_000);
+test.skipIf(!required)("the host provides a delegated cgroup v2 subtree", () => {
+	expect(probe?.stderr.toString()).toBe("");
+	expect(probe?.exitCode).toBe(0);
+});
 
-test.skipIf(process.platform !== "linux" || !refusal)("a launch without cgroup delegation is refused", () =>
-	runFixture("refusal"),
-);
+test.skipIf(probe?.exitCode !== 0)("real process trees stay contained and stop on Linux", () => run("cases"), 120_000);
+
+test.skipIf(fixture === undefined || !refusal)("a launch without cgroup delegation is refused", () => run("refusal"));
