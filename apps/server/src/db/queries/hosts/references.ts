@@ -46,8 +46,8 @@ export type DeleteHostResult =
 const referenced = (references: HostReferences) =>
 	references.workspaceDefault || Object.values(references).some((value) => typeof value === "number" && value > 0);
 
-// The caller runs this inside one transaction. The foreign keys refuse a
-// reference that another transaction writes between the count and the delete.
+// The caller runs this inside one transaction. If another transaction commits
+// a reference after hostReferences, the foreign key makes this DELETE fail.
 export const deleteHost = async (tx: Tx, input: { id: string }): Promise<DeleteHostResult> => {
 	const host = await rows<{ local: boolean }>(tx, sql`SELECT local FROM hosts WHERE id = ${input.id}`);
 	if (host.length === 0) return { deleted: false, reason: "missing" };

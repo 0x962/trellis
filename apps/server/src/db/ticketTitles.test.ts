@@ -24,7 +24,7 @@ const originalTitle = "Existing title 漢字";
 const title = "漢字 café 𠮷 ".repeat(120).trim();
 const at = "2026-09-29T20:00:00.000Z";
 const run = <T>(fn: (tx: Tx) => Promise<T>) => withTx(db, fn).then(({ result }) => result);
-// A later migration may add columns. The test checks the columns the target migration touched.
+// The comparison checks every column present before the upgrade. Later migrations can add columns.
 const project = (rows: Record<string, unknown>[], shape: Record<string, unknown>[]) =>
 	rows.map((row) => Object.fromEntries(Object.keys(shape[0]!).map((column) => [column, row[column]])));
 

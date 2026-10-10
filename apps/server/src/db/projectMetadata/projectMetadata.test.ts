@@ -53,7 +53,7 @@ const name = `Project ${"界🙂é".repeat(3000)}`;
 const description = "Review the complete result 界🙂é\n".repeat(1000);
 const randomText = Array.from({ length: 400 }, () => crypto.randomUUID().replaceAll("-", "")).join("");
 const statusName = `Review ${randomText} 界🙂é`;
-// A later migration may add columns. The test checks the columns the target migration touched.
+// The comparison checks every column present before the upgrade. Later migrations can add columns.
 const project = (rows: Record<string, unknown>[], shape: Record<string, unknown>[]) =>
 	rows.map((row) => Object.fromEntries(Object.keys(shape[0]!).map((column) => [column, row[column]])));
 

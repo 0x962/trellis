@@ -15,7 +15,7 @@ const journal = JSON.parse(await readFile(join(migrationsDir, "meta/_journal.jso
 };
 const fixturesDir = await mkdtemp(join(tmpdir(), "trellis-session-names-migration-"));
 let db: Db;
-// A later migration may add columns. The test checks the columns the target migration touched.
+// The comparison checks every column present before the upgrade. Later migrations can add columns.
 const project = (rows: Record<string, unknown>[], shape: Record<string, unknown>[]) =>
 	rows.map((row) => Object.fromEntries(Object.keys(shape[0]!).map((column) => [column, row[column]])));
 
