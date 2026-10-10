@@ -51,7 +51,10 @@ export function useTabContextMenu({
 		action();
 	};
 	const canPickGroup =
-		onSetTabGroup !== undefined && pickerTab !== undefined && !pickerTab.pinned && otherGroups.length > 0;
+		onSetTabGroup !== undefined &&
+		pickerTab !== undefined &&
+		!pickerTab.pinned &&
+		(otherGroups.length > 0 || onCreateGroup !== undefined);
 	const items =
 		targetId === null || target.activeTab === undefined
 			? []
@@ -84,7 +87,7 @@ export function useTabContextMenu({
 						onSetTabGroup &&
 						(() => handOffFocus(() => setEditingGroupId(onCreateGroup("New group", targetId)))),
 					onPickGroup:
-						onSetTabGroup && groups.some((group) => group.id !== target.activeGroupId)
+						onSetTabGroup && (onCreateGroup || groups.some((group) => group.id !== target.activeGroupId))
 							? () =>
 									handOffFocus(() => {
 										setPickerId(targetId);
@@ -152,6 +155,13 @@ export function useTabContextMenu({
 		},
 		picker: {
 			otherGroups,
+			groupNames: groups.map((group) => group.name),
+			onGroupCreate: onCreateGroup
+				? (name: string) => {
+						focusAfterChange.current = pickerId ?? activeId;
+						onCreateGroup(name, pickerId ?? activeId);
+					}
+				: undefined,
 			canPickGroup,
 			groupPickerOpen: pickerOpen,
 			onGroupPickerOpenChange: (next: boolean) => {

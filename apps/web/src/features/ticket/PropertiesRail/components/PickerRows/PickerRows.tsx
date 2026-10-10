@@ -136,6 +136,8 @@ export function PickerRows({ ticket }: PickerRowsProps) {
 		<>
 			<PropertyRow compact label="Status">
 				<StatusPicker
+					scope={ticket.identifier}
+					project={ticket.project.key}
 					trigger={
 						<Button variant="quiet" className={triggerClass} disabled={readOnly}>
 							<span className="inline-flex items-center gap-1.5">
@@ -175,6 +177,7 @@ export function PickerRows({ ticket }: PickerRowsProps) {
 			</PropertyRow>
 			<PropertyRow compact label="Parent">
 				<TicketPicker
+					scope={ticket.identifier}
 					trigger={
 						<Button variant="quiet" className={triggerClass} disabled={readOnly}>
 							{ticket.parent === null ? (
@@ -213,6 +216,7 @@ export function PickerRows({ ticket }: PickerRowsProps) {
 					<Tooltip content="Set epic">
 						<span className="inline-flex">
 							<EpicPicker
+								scope={ticket.identifier}
 								trigger={<IconButton label="Set epic" icon={<PencilSimple />} size="sm" variant="quiet" />}
 								project={ticket.project.key}
 								value={ticket.epic?.ref}

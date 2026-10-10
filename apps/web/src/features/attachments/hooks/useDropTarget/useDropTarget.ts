@@ -15,12 +15,14 @@ export const useDropTarget = (onFiles: (files: File[]) => void): DropTargetHandl
 		onDragOver: (event) => {
 			if (!event.dataTransfer.types.includes("Files")) return;
 			event.preventDefault();
+			event.stopPropagation();
 			setOver(true);
 		},
 		onDragLeave: () => setOver(false),
 		onDrop: (event) => {
 			if (!event.dataTransfer.types.includes("Files")) return;
 			event.preventDefault();
+			event.stopPropagation();
 			setOver(false);
 			onFiles([...event.dataTransfer.files]);
 		},

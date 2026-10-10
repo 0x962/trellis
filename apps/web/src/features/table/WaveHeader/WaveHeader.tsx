@@ -46,6 +46,7 @@ export const waveHeaderParts = (group: TableGroup, options: WaveHeaderOptions): 
 		labelField: editing.renamingId === wave.id ? <WaveName wave={wave} editing={editing} /> : undefined,
 		actions: (
 			<WaveActions
+				wave={wave.ref}
 				name={wave.name}
 				project={options.project}
 				exclude={group.rows.map((row) => row.identifier)}

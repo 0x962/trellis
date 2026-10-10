@@ -20,6 +20,7 @@ export type BulkBarProps = {
 	// motion after this turns false.
 	open: boolean;
 	count: number;
+	scope?: string;
 	statuses: readonly StatusSummary[];
 	// The project ref the parent search stays inside. That project owns the
 	// labels and the epics, so a route without a project offers no Labels
@@ -56,9 +57,6 @@ export type BulkBarProps = {
 	// then marks no row, not even None.
 	waveMixed: boolean;
 	onWave: (wave: WaveSummary | null) => void;
-	// Adds a wave with this name to the epic and moves the selection into
-	// it. The wave picker offers New wave only when this is set.
-	onCreateWave?: (name: string) => void;
 	onCopyIds: () => void;
 	onDelete: () => void;
 	onClear: () => void;
@@ -102,6 +100,7 @@ const withKey = (name: string, key: string, control: ReactElement) => (
 export function BulkBar({
 	open,
 	count,
+	scope,
 	statuses,
 	project,
 	labelIds,
@@ -118,7 +117,6 @@ export function BulkBar({
 	waveRef,
 	waveMixed,
 	onWave,
-	onCreateWave,
 	onCopyIds,
 	onDelete,
 	onClear,
@@ -162,6 +160,8 @@ export function BulkBar({
 				"Status",
 				"s",
 				<StatusPicker
+					scope={scope}
+					project={project}
 					statuses={statuses}
 					onPick={onStatus}
 					open={openPicker === "status"}
@@ -200,6 +200,7 @@ export function BulkBar({
 				"Set parent",
 				"⇧P",
 				<TicketPicker
+					scope={scope}
 					project={project}
 					onPick={onParent}
 					open={openPicker === "parent"}
@@ -213,6 +214,7 @@ export function BulkBar({
 					"Set epic",
 					"e",
 					<EpicPicker
+						scope={scope}
 						project={project}
 						value={epicRef}
 						mixed={epicMixed}
@@ -235,11 +237,11 @@ export function BulkBar({
 						"Set wave",
 						"w",
 						<WavePicker
+							scope={scope}
 							epic={epicRef}
 							value={waveRef}
 							mixed={waveMixed}
 							onPick={onWave}
-							onCreate={onCreateWave}
 							open={openPicker === "wave"}
 							onOpenChange={opener("wave")}
 							side="top"

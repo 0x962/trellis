@@ -191,7 +191,7 @@
 			"Overlays/WavePicker/Open",
 			"Overlays/WavePicker/Selected",
 			"Overlays/WavePicker/Mixed",
-			"Overlays/WavePicker/CreateWave",
+			"Overlays/WavePicker/CreateSuccess",
 			"Overlays/WavePicker/Empty",
 			"Overlays/WavePicker/Loading",
 			"Overlays/WavePicker/ChangeSelection"

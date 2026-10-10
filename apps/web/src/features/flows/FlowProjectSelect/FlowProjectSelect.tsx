@@ -1,6 +1,7 @@
-import { Field, Select } from "@trellis/ui";
+import { Field, PickerButton } from "@trellis/ui";
 import type { ReactNode } from "react";
-import { flowProjectItems } from "../flowProject";
+import { ProjectPicker } from "../../pickers/ProjectPicker";
+import { everyProjectValue } from "../flowProject";
 import { useFlowProjects } from "./useFlowProjects";
 
 export type FlowProjectSelectProps = {
@@ -10,12 +11,6 @@ export type FlowProjectSelectProps = {
 	hint?: ReactNode;
 };
 
-// The project field of the flow editor and of the new flow dialog.
-//
-// While the project list loads, and after a load that failed, the select
-// holds one item, "Every project". A save of that item would move the flow
-// to every project, so the select stays disabled until the list arrives, and
-// a failed load says so in place of the hint.
 export function FlowProjectSelect({ value, onChange, disabled = false, hint }: FlowProjectSelectProps) {
 	const projects = useFlowProjects();
 	const loaded = projects.data ?? [];
@@ -32,13 +27,14 @@ export function FlowProjectSelect({ value, onChange, disabled = false, hint }: F
 				)
 			}
 		>
-			<Select
-				label="Project"
-				value={value}
-				items={flowProjectItems(loaded)}
-				disabled={disabled || loaded.length === 0}
-				className="h-8"
-				onValueChange={onChange}
+			<ProjectPicker
+				projects={loaded}
+				allowNoProject
+				noProjectLabel="Every project"
+				trigger={<PickerButton label="Project">{value === everyProjectValue ? "Every project" : value}</PickerButton>}
+				value={value === everyProjectValue ? "" : value}
+				disabled={disabled || !projects.isSuccess}
+				onPick={(key) => onChange(key || everyProjectValue)}
 			/>
 		</Field>
 	);

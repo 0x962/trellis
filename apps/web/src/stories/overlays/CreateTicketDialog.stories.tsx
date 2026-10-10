@@ -2,11 +2,11 @@ import { Plus } from "@phosphor-icons/react";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import type { TicketClassification } from "@trellis/api";
 import { IconButton, Tooltip } from "@trellis/ui";
-import { expect, userEvent, waitFor, within } from "storybook/test";
+import { expect, fn, userEvent, waitFor, within } from "storybook/test";
 import { ComposerHost } from "../../features/composer/ComposerHost";
 import { composerActions } from "../../features/composer/composerStore";
 import { type ComposerDraft, draftKey } from "../../features/composer/hooks/useComposerDraft/useComposerDraft";
-import { epic, failure, pending, responses, run, ticket, wave } from "./fixtures";
+import { epic, failure, pending, responses, run, statuses, ticket, wave } from "./fixtures";
 import { clickButton } from "./interactions";
 
 const draft: ComposerDraft = {
@@ -201,5 +201,80 @@ export const AutomaticSelection: Story = {
 			},
 			{ timeout: 3000 },
 		);
+	},
+};
+
+const nestedTicketCreate = fn(async () => ticket);
+export const NestedStatusKeepsDraft: Story = {
+	parameters: {
+		assignAgent: false,
+		trellis: {
+			responses: {
+				"tickets.create": nestedTicketCreate,
+				"statuses.create": { ...statuses[0]!, id: "01M00000000000000000000999", name: "Release", slug: "release" },
+			},
+		},
+	},
+	play: async ({ canvasElement }) => {
+		nestedTicketCreate.mockClear();
+		const page = within(canvasElement.ownerDocument.body);
+		await userEvent.click(await page.findByRole("button", { name: /^Status:/ }));
+		await userEvent.type(await page.findByRole("combobox", { name: "Search statuses" }), "Release");
+		await userEvent.click(await page.findByRole("option", { name: 'Create status "Release"' }));
+		const form = within(await page.findByRole("dialog", { name: "Create status" }));
+		await userEvent.click(form.getByRole("textbox", { name: "Status name" }));
+		await userEvent.keyboard("{Meta>}{Enter}{/Meta}");
+		await userEvent.keyboard("{Control>}{Enter}{/Control}");
+		await expect(nestedTicketCreate).not.toHaveBeenCalled();
+		await userEvent.click(form.getByRole("button", { name: "Create status" }));
+		await expect(nestedTicketCreate).not.toHaveBeenCalled();
+		await expect(await page.findByRole("button", { name: "Create" })).toBeVisible();
+	},
+};
+
+const relatedCreate = fn(async () => ({ ...ticket, identifier: "DEMO-9", title: "New parent" }));
+export const NestedTicketKeepsDraft: Story = {
+	parameters: {
+		assignAgent: false,
+		trellis: {
+			responses: {
+				"search.query": { tickets: [], projects: [], pages: [], epics: [] },
+				"tickets.create": relatedCreate,
+				"tickets.get": { ...ticket, identifier: "DEMO-9", title: "New parent" },
+				"attachments.upload": {},
+			},
+		},
+	},
+	play: async ({ canvasElement }) => {
+		relatedCreate.mockClear();
+		const page = within(canvasElement.ownerDocument.body);
+		const openChild = async () => {
+			if (!page.queryByRole("button", { name: "Parent: None" })) {
+				await userEvent.click(await page.findByRole("button", { name: "More properties" }));
+			}
+			await userEvent.click(await page.findByRole("button", { name: "Parent: None" }));
+			await userEvent.type(await page.findByRole("combobox", { name: "Search tickets" }), "New parent");
+			await userEvent.click(await page.findByRole("option", { name: 'Create ticket "New parent"' }));
+			const dialog = await page.findByRole("dialog", { name: "New ticket" });
+			return within(dialog);
+		};
+		let child = await openChild();
+		await expect(child.getByLabelText("Title")).toHaveValue("New parent");
+		await userEvent.upload(
+			child
+				.getByRole("button", { name: "Add attachment" })
+				.closest("form")!
+				.querySelector<HTMLInputElement>('input[type="file"]')!,
+			new File(["proof"], "child.txt"),
+		);
+		await userEvent.click(child.getByRole("button", { name: "Close and keep draft" }));
+		await expect(await page.findByLabelText("Title")).toHaveValue("Build the component catalog");
+		child = await openChild();
+		await expect(child.getByLabelText("Title")).toHaveValue("New parent");
+		await expect(child.getByText("child.txt")).toBeVisible();
+		await userEvent.click(child.getByRole("button", { name: "Create" }));
+		await waitFor(() => expect(relatedCreate).toHaveBeenCalledTimes(1));
+		await expect(await page.findByText("Sub-ticket of DEMO-9")).toBeVisible();
+		await expect(page.getByLabelText("Title")).toHaveValue("Build the component catalog");
 	},
 };

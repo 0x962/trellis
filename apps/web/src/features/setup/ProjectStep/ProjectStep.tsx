@@ -1,8 +1,11 @@
 import { Button, FormStatus, Input, type ProjectColor, ProjectColorField, TicketId } from "@trellis/ui";
 import { type FormEvent, useRef, useState } from "react";
+import { errorMessage } from "../../../lib/conflict";
 import { suggestKey } from "../../../lib/projectKey";
 
 export type ProjectStepProps = {
+	initialName?: string;
+	onCancel?: () => void;
 	// The keys already in use.
 	taken: readonly string[];
 	// The names already in use. A new project takes none of them, compared
@@ -18,8 +21,16 @@ const keyPattern = /^[A-Z][A-Z0-9]{1,9}$/;
 // Step 2 of the first run, and the form behind "New project" later. The key
 // follows the name until the person edits it. Every edit is validated live,
 // and a valid key shows the first ticket ID it gives.
-export function ProjectStep({ taken, takenNames, takenColors, onCreate }: ProjectStepProps) {
-	const [name, setName] = useState("");
+export function ProjectStep({
+	taken,
+	takenNames,
+	takenColors,
+	onCreate,
+	initialName = "",
+	onCancel,
+}: ProjectStepProps) {
+	const [name, setName] = useState(initialName);
+	const [error, setError] = useState<string | null>(null);
 	const [color, setColor] = useState<ProjectColor | null>(null);
 	const [editedKey, setEditedKey] = useState<string | null>(null);
 	const [pending, setPending] = useState(false);
@@ -41,14 +52,28 @@ export function ProjectStep({ taken, takenNames, takenColors, onCreate }: Projec
 
 	const submit = async (event: FormEvent) => {
 		event.preventDefault();
+		event.stopPropagation();
 		if (!ready || submitting.current) return;
 		submitting.current = true;
 		setPending(true);
-		await onCreate({ key, name: trimmed, color });
+		setError(null);
+		try {
+			await onCreate({ key, name: trimmed, color });
+		} catch (error) {
+			setError(errorMessage(error));
+			setPending(false);
+			submitting.current = false;
+		}
 	};
 
 	return (
-		<form onSubmit={submit} className="flex flex-col gap-5">
+		<form
+			onSubmit={submit}
+			onKeyDown={(event) => {
+				if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) event.stopPropagation();
+			}}
+			className="flex flex-col gap-5"
+		>
 			<div className="flex flex-col gap-1">
 				<h1 className="text-lg font-semibold text-fg">
 					{taken.length === 0 ? "Create your first project" : "New project"}
@@ -88,7 +113,7 @@ export function ProjectStep({ taken, takenNames, takenColors, onCreate }: Projec
 				)}
 			</div>
 			<ProjectColorField value={color} taken={takenColors} onValueChange={setColor} />
-			<FormStatus status={pending ? "saving" : "idle"} />
+			<FormStatus status={error ? "error" : pending ? "saving" : "idle"} message={error ?? undefined} />
 			<Button
 				type="submit"
 				variant="primary"
@@ -100,6 +125,11 @@ export function ProjectStep({ taken, takenNames, takenColors, onCreate }: Projec
 			>
 				Create
 			</Button>
+			{onCancel && (
+				<Button onClick={onCancel} disabled={pending}>
+					Cancel
+				</Button>
+			)}
 		</form>
 	);
 }

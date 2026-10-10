@@ -4,6 +4,7 @@ import { IconButton, Menu } from "@trellis/ui";
 import { TicketPicker } from "../../../../pickers/TicketPicker";
 
 export type WaveActionsProps = {
+	wave: string;
 	name: string;
 	// The project whose tickets the picker searches.
 	project: string;
@@ -21,6 +22,7 @@ export type WaveActionsProps = {
 // The actions of a wave header: Add tickets to this wave, and the Wave
 // actions menu. The keys beside the menu items work on a focused header.
 export function WaveActions({
+	wave,
 	name,
 	project,
 	exclude,
@@ -35,6 +37,7 @@ export function WaveActions({
 	return (
 		<>
 			<TicketPicker
+				scope={wave}
 				project={project}
 				exclude={exclude}
 				allowNone={false}

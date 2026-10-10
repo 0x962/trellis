@@ -1,12 +1,12 @@
 import { effortForHarness, HARNESS_DEFAULT_MODELS, type HarnessEffort } from "@trellis/api";
 import { Button, ChoiceBoxes, Dialog, FailureState, Field, ProviderIcon, Select } from "@trellis/ui";
 import { type RefObject, useState } from "react";
+import { AccountPicker } from "../../../AccountPicker";
 import { harnessPresets, type NativePreset } from "../../../harnessPresets";
 import { ModelPicker } from "../../../ModelPicker";
 import { modelProviderOf } from "../../../modelProviderOf";
 import { type AssignAccounts, type AssignChoice, modelIdOf, withoutLostValues } from "../../assignChoice";
 
-const DEFAULT_ACCOUNT = "default";
 const DEFAULT_EFFORT = "default";
 
 // Each harness shows the logo of the company that makes its default model.
@@ -19,6 +19,7 @@ const boxes = harnessPresets.map(({ value, label }) => ({
 // Each open dialog starts from its caller's choice. Assign submits the draft.
 export function AssignAgentDialog({
 	initial,
+	scope,
 	accounts,
 	accountError,
 	onReloadAccounts,
@@ -30,6 +31,7 @@ export function AssignAgentDialog({
 	// The choice the dialog opens on: the newest stored choice, or the choice
 	// of the menu row that asked for the dialog.
 	initial: AssignChoice;
+	scope?: string;
 	accounts: AssignAccounts;
 	accountError?: string;
 	onReloadAccounts?: () => void;
@@ -44,7 +46,6 @@ export function AssignAgentDialog({
 }) {
 	const [draft, setDraft] = useState(initial);
 	const effort = effortForHarness(draft.preset, modelIdOf(draft));
-	const harnessAccounts = (accounts ?? []).filter((account) => account.harness === draft.preset);
 	return (
 		<Dialog
 			open
@@ -93,18 +94,13 @@ export function AssignAgentDialog({
 					)}
 				</div>
 				<Field label="Account" hint={accounts === undefined && !accountError ? "Load accounts…" : undefined}>
-					<Select
-						label="Account"
-						className="w-full"
-						disabled={disabled || harnessAccounts.length === 0}
-						value={draft.accountId ?? DEFAULT_ACCOUNT}
-						items={[
-							{ value: DEFAULT_ACCOUNT, label: "Default account" },
-							...harnessAccounts.map((account) => ({ value: account.id, label: account.name })),
-						]}
-						onValueChange={(accountId) =>
-							setDraft({ ...draft, accountId: accountId === DEFAULT_ACCOUNT ? null : accountId })
-						}
+					<AccountPicker
+						scope={scope}
+						harness={draft.preset}
+						accounts={accounts}
+						value={draft.accountId}
+						disabled={disabled}
+						onValueChange={(accountId) => setDraft({ ...draft, accountId })}
 					/>
 				</Field>
 				{accountError && (

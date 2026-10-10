@@ -176,11 +176,9 @@ export function TicketTable({
 		});
 
 	const waveStart = useWaveStart({ groups, assignment: assignedTicketIds });
-	const { waves, createWave } = useWaveWrites({
+	const { waves } = useWaveWrites({
 		waveEditing,
 		project,
-		epicRef: epics.epicRef,
-		selectedTickets,
 		ticketById: (id) => byId.get(id)!,
 		applyChange,
 		mutations,
@@ -250,6 +248,7 @@ export function TicketTable({
 			/>
 			<TableFooter total={total} hidden={hidden} sort={view.sort} />
 			<BulkBar
+				scope={[...selection.selected].sort().join(",")}
 				open={selection.count > 0}
 				count={selection.count}
 				statuses={data.statuses}
@@ -265,7 +264,6 @@ export function TicketTable({
 				onParent={(parent) => void applyChange(selectedTickets(), { parent }, "selection")}
 				onEpic={(epic) => void applyChange(selectedTickets(), { epic }, "selection")}
 				onWave={(picked) => void applyChange(selectedTickets(), { wave: picked }, "selection")}
-				onCreateWave={(name) => void createWave(name)}
 				onCopyIds={rowActions.copyIds}
 				onDelete={() => rowActions.requestDelete(selection.selected)}
 				onClear={clearSelection}

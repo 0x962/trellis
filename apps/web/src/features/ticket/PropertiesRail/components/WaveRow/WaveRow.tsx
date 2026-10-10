@@ -52,6 +52,7 @@ export function WaveRow({ ticket, epic }: WaveRowProps) {
 				nameOf(ticket.wave)
 			) : (
 				<WavePicker
+					scope={ticket.identifier}
 					trigger={
 						<Button variant="quiet" className={triggerClass}>
 							{nameOf(ticket.wave)}

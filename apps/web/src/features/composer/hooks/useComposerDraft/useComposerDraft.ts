@@ -21,26 +21,30 @@ export const draftKey = "trellis-composer-draft";
 
 const empty: ComposerDraft = { title: "", description: "" };
 
-const read = (): ComposerDraft => {
-	const stored = sessionStorage.getItem(draftKey);
-	return stored === null ? empty : (JSON.parse(stored) as ComposerDraft);
+const read = (storageKey: string, initialDraft: ComposerDraft): ComposerDraft => {
+	const stored = sessionStorage.getItem(storageKey);
+	return stored === null ? initialDraft : (JSON.parse(stored) as ComposerDraft);
 };
 
 // The composer's text, kept in sessionStorage until a create or a discard.
 // A closed dialog loses nothing; a reopened one reads the draft back.
-export const useComposerDraft = () => {
-	const [draft, setState] = useState<ComposerDraft>(read);
+export const useComposerDraft = (storageKey: string = draftKey, initialDraft: ComposerDraft = empty) => {
+	const key = useRef(storageKey).current;
+	const [draft, setState] = useState<ComposerDraft>(() => read(key, initialDraft));
 	const current = useRef(draft);
-	const setDraft = useCallback((change: ComposerDraft | ((draft: ComposerDraft) => ComposerDraft)) => {
-		const next = typeof change === "function" ? change(current.current) : change;
-		current.current = next;
-		setState(next);
-		sessionStorage.setItem(draftKey, JSON.stringify(next));
-	}, []);
+	const setDraft = useCallback(
+		(change: ComposerDraft | ((draft: ComposerDraft) => ComposerDraft)) => {
+			const next = typeof change === "function" ? change(current.current) : change;
+			current.current = next;
+			setState(next);
+			sessionStorage.setItem(key, JSON.stringify(next));
+		},
+		[key],
+	);
 	const clearDraft = useCallback(() => {
 		current.current = empty;
 		setState(empty);
-		sessionStorage.removeItem(draftKey);
-	}, []);
+		sessionStorage.removeItem(key);
+	}, [key]);
 	return { draft, setDraft, clearDraft };
 };

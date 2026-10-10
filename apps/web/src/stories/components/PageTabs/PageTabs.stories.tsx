@@ -138,3 +138,17 @@ export const Overflow: Story = {
 		await expect(canvas.getByRole("tab", { name: "Pinned: Project page 1 with a long title" })).toHaveFocus();
 	},
 };
+
+export const CreateGroupFromPicker: Story = {
+	play: async ({ canvasElement }) => {
+		const page = within(canvasElement.ownerDocument.body);
+		await userEvent.click(page.getByRole("button", { name: "Move tab to a group" }));
+		await userEvent.type(await page.findByRole("combobox", { name: "Search groups" }), "Release");
+		await userEvent.click(await page.findByRole("option", { name: 'Create group "Release"' }));
+		await expect(await page.findByText("Release")).toBeVisible();
+		await expect(page.getByRole("tab", { name: "Project view" })).toHaveAttribute("aria-selected", "true");
+		await userEvent.click(page.getByRole("button", { name: "Move tab to a group" }));
+		await userEvent.type(await page.findByRole("combobox", { name: "Search groups" }), "release");
+		await expect(page.queryByRole("option", { name: 'Create group "release"' })).not.toBeInTheDocument();
+	},
+};

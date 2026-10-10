@@ -6,8 +6,9 @@ import {
 	type HarnessPreset,
 	modelsForHarness,
 } from "@trellis/api";
-import { Command, ComposerProperty, Popover, ProviderIcon, Select } from "@trellis/ui";
+import { Command, ComposerProperty, Field, Popover, ProviderIcon, Select } from "@trellis/ui";
 import { useMemo, useRef, useState } from "react";
+import { AccountPicker } from "../AccountPicker";
 import { type AssignAccounts, type AssignChoice, modelIdOf, modelNameOf } from "../AssignAgent/assignChoice";
 import { harnessLabel, harnessPresets, type NativePreset } from "../harnessPresets";
 import { modelProviderOf } from "../modelProviderOf";
@@ -23,6 +24,7 @@ export function ComposerAgentPicker({
 	onClear,
 	description,
 	disabled,
+	scope,
 }: {
 	value: ComposerAgentChoice | null;
 	accounts: AssignAccounts;
@@ -32,6 +34,7 @@ export function ComposerAgentPicker({
 	onClear?: () => void;
 	description?: string;
 	disabled: boolean;
+	scope?: string;
 }) {
 	const [open, setOpen] = useState(false);
 	const search = useRef<HTMLInputElement>(null);
@@ -84,15 +87,6 @@ export function ComposerAgentPicker({
 			})),
 		[options, preset, model],
 	);
-	const accountItems = useMemo(
-		() => [
-			{ value: "default", label: "Default account" },
-			...(accounts ?? [])
-				.filter((account) => account.harness === preset)
-				.map((account) => ({ value: account.id, label: account.name })),
-		],
-		[accounts, preset],
-	);
 	const native = value && value.preset !== "custom" ? { ...value, preset: value.preset } : null;
 	const provider = native && modelProviderOf(modelIdOf(native));
 	const effort = native && effortForHarness(native.preset, modelIdOf(native));
@@ -143,14 +137,16 @@ export function ComposerAgentPicker({
 							onValueChange={(next) => onEffort(next === "default" ? null : (next as HarnessEffort))}
 						/>
 					)}
-					<Select
-						label="Account"
-						hideLabel={false}
-						value={value.accountId ?? "default"}
-						disabled={disabled || accounts === undefined}
-						items={accountItems}
-						onValueChange={(next) => onAccount(next === "default" ? null : next)}
-					/>
+					<Field label="Account">
+						<AccountPicker
+							scope={JSON.stringify([scope, open, disabled])}
+							harness={value.preset}
+							accounts={accounts}
+							value={value.accountId}
+							disabled={disabled}
+							onValueChange={onAccount}
+						/>
+					</Field>
 				</div>
 			)}
 			{description && <p className="border-t border-border px-3 py-2.5 text-xs text-fg-faint">{description}</p>}

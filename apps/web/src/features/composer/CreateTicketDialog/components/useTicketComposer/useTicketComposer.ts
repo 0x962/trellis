@@ -6,6 +6,7 @@ import { rememberChoice, useRecentChoices } from "../../../../agents/AssignAgent
 import { useUploads } from "../../../../attachments/hooks/useUploads";
 import { useLabels } from "../../../../pickers/hooks/useLabels";
 import { toggleLabel } from "../../../../pickers/utils/toggleLabel";
+import type { ComposerInstance } from "../../../composerScope";
 import { composerActions, useComposerStore } from "../../../composerStore";
 import { defaultStatus, useComposerDefaults } from "../../../hooks/useComposerDefaults";
 import { useComposerDraft } from "../../../hooks/useComposerDraft";
@@ -14,12 +15,19 @@ import { useCreatePlacement } from "../../../hooks/useCreatePlacement";
 import { useCreateTicket } from "../../../hooks/useCreateTicket";
 import { useClassifiedDraft } from "../../hooks/useClassifiedDraft";
 
-export function useTicketComposer() {
+export function useTicketComposer(instance?: ComposerInstance) {
 	const { client, orpc, queryClient } = useApp();
-	const options = useComposerStore((state) => state.options);
-	const assignAgent = useComposerStore((state) => state.assignAgent);
-	const createMore = useComposerStore((state) => state.createMore);
-	const { draft, setDraft, clearDraft } = useComposerDraft();
+	const sharedOptions = useComposerStore((state) => state.options);
+	const options = instance?.options ?? sharedOptions;
+	const sharedAssignAgent = useComposerStore((state) => state.assignAgent);
+	const [ownAssignAgent, setOwnAssignAgent] = useState(sharedAssignAgent);
+	const assignAgent = instance ? ownAssignAgent : sharedAssignAgent;
+	const sharedCreateMore = useComposerStore((state) => state.createMore);
+	const createMore = instance ? false : sharedCreateMore;
+	const { draft, setDraft, clearDraft } = useComposerDraft(
+		instance ? `${instance.storagePrefix}-draft` : undefined,
+		instance ? { title: instance.initialTitle, description: "", project: instance.options.project } : undefined,
+	);
 	const defaults = useComposerDefaults(options, draft.project);
 	const recent = useRecentChoices((state) => state.recent);
 	const accounts = useQuery(orpc.harnessAccounts.list.queryOptions({ input: {} }));
@@ -37,17 +45,29 @@ export function useTicketComposer() {
 	const labels = draft.labels ?? [];
 	const { groups } = useLabels(project);
 	const description = draft.editing || draft.description !== "" ? draft.description : defaults.template;
-	const uploads = useUploads(undefined, false);
-	const submission = useComposerSubmission({
-		create: useCreateTicket(),
-		upload: uploads.uploadPending,
-		assign: client.agentRuns.start,
-		onAssigned: (_run, selected) => {
-			rememberChoice(selected);
-			void queryClient.invalidateQueries({ queryKey: orpc.agentRuns.list.key() });
-			void queryClient.invalidateQueries({ queryKey: orpc.tickets.key() });
+	const uploads = useUploads(undefined, false, instance?.storagePrefix);
+	const submission = useComposerSubmission(
+		{
+			create: useCreateTicket(),
+			upload: uploads.uploadPending,
+			assign: client.agentRuns.start,
+			onAssigned: (_run, selected) => {
+				if (!instance) rememberChoice(selected);
+				void queryClient.invalidateQueries({ queryKey: orpc.agentRuns.list.key() });
+				void queryClient.invalidateQueries({ queryKey: orpc.tickets.key() });
+			},
 		},
-	});
+		instance ? `${instance.storagePrefix}-submission` : undefined,
+	);
+	const active = useRef(true);
+	useEffect(() => {
+		active.current = true;
+		return () => {
+			active.current = false;
+		};
+	}, []);
+	const finishing = useRef(false);
+	const [completing, setCompleting] = useState(false);
 	const [asking, setAsking] = useState(false);
 	const [validation, setValidation] = useState<string | null>(null);
 	const [editorKey, setEditorKey] = useState(0);
@@ -57,7 +77,7 @@ export function useTicketComposer() {
 	}, [editorKey]);
 	const titleId = useId();
 	const errorId = useId();
-	const locked = submission.busy || submission.receipt !== null;
+	const locked = submission.busy || completing || submission.receipt !== null;
 	const classification = useClassifiedDraft({
 		draft,
 		setDraft,
@@ -90,22 +110,36 @@ export function useTicketComposer() {
 		assignment: choice,
 	};
 	function close() {
-		if (submission.isRunning()) return;
+		if (submission.isRunning() || finishing.current) return;
 		setDraft(retained);
-		composerActions.close();
+		if (instance) instance.onClose();
+		else composerActions.close();
 	}
-	function finish(stay: boolean) {
-		submission.clear();
-		uploads.clear();
-		clearDraft();
-		setValidation(null);
-		setEditorKey((key) => key + 1);
-		if (stay) {
-			setDraft({ ...retained, title: "", description: "", editing: false });
-		} else composerActions.close();
+	async function finish(stay: boolean, discard = false) {
+		if (!active.current || finishing.current) return;
+		const receipt = submission.getReceipt();
+		finishing.current = true;
+		setCompleting(true);
+		try {
+			if (instance && receipt && !discard && !(await instance.onCreated(receipt.identifier))) return;
+			submission.clear();
+			uploads.clear();
+			clearDraft();
+			setValidation(null);
+			setEditorKey((key) => key + 1);
+			if (stay && !instance) setDraft({ ...retained, title: "", description: "", editing: false });
+			else if (instance) instance.onClose(true);
+			else composerActions.close();
+		} catch (error) {
+			setValidation((error as Error).message);
+		} finally {
+			finishing.current = false;
+			setCompleting(false);
+		}
 	}
+
 	async function create(stay = createMore) {
-		if (submission.isRunning() || asking) return;
+		if (submission.isRunning() || finishing.current || asking) return;
 		if (submission.receipt === null) {
 			if (!draft.title.trim()) {
 				setValidation("Add a ticket title.");
@@ -136,11 +170,12 @@ export function useTicketComposer() {
 				assignAgent ? choice : null,
 			)
 		)
-			finish(stay);
+			await finish(stay);
 	}
-	const retryLabel = uploads.uploads.some((upload) => upload.status !== "complete")
-		? "Retry attachments"
-		: "Retry assignment";
+	const retryLabel =
+		uploads.missingFiles.length > 0 || uploads.uploads.some((upload) => upload.status !== "complete")
+			? "Retry attachments"
+			: "Retry assignment";
 	const action = submission.busy
 		? { creating: "Creating…", uploading: "Uploading…", assigning: "Assigning…", idle: "" }[submission.phase]
 		: submission.receipt
@@ -151,7 +186,7 @@ export function useTicketComposer() {
 	return {
 		assignAgent,
 		createMore,
-		onAssignAgent: composerActions.setAssignAgent,
+		onAssignAgent: instance ? setOwnAssignAgent : composerActions.setAssignAgent,
 		onCreateMore: composerActions.setCreateMore,
 		draft,
 		setDraft,
@@ -176,6 +211,7 @@ export function useTicketComposer() {
 		titleId,
 		errorId,
 		locked,
+		attachmentsLocked: submission.busy || completing || (locked && uploads.missingFiles.length === 0),
 		assignmentError,
 		titleMissing,
 		close,

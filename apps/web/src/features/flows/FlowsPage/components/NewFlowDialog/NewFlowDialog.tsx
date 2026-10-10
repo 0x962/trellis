@@ -1,12 +1,19 @@
 import { useMutation } from "@tanstack/react-query";
 import { type Flow, type FlowCreateInput, FlowCreateInputSchema } from "@trellis/api";
 import { Button, Dialog, Input, Textarea } from "@trellis/ui";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
 import { FlowProjectSelect, useFlowProjects } from "../../../FlowProjectSelect";
 import { everyProjectValue, projectRefOfSelectValue } from "../../../flowProject";
 
-type NewFlowDialogProps = { onClose: () => void; onCreated: (flow: Flow) => void };
+type NewFlowDialogProps = {
+	scope?: string;
+	initialName?: string;
+	initialProject?: string;
+	projectLocked?: boolean;
+	onClose: () => void;
+	onCreated: (flow: Flow) => void;
+};
 
 // The server makes the slug from the name.
 //
@@ -15,23 +22,43 @@ type NewFlowDialogProps = { onClose: () => void; onCreated: (flow: Flow) => void
 // until the project list arrives: with no list the select holds one item,
 // and a person cannot tell a project they did not pick from one that failed
 // to load.
-export function NewFlowDialog({ onClose, onCreated }: NewFlowDialogProps) {
+export function NewFlowDialog({
+	scope: callerScope = "",
+	onClose,
+	onCreated,
+	initialName = "",
+	initialProject = everyProjectValue,
+	projectLocked = false,
+}: NewFlowDialogProps) {
 	const { client, orpc, queryClient } = useApp();
-	const [name, setName] = useState("");
+	const [name, setName] = useState(initialName);
 	const [description, setDescription] = useState("");
-	const [project, setProject] = useState(everyProjectValue);
+	const [project, setProject] = useState(initialProject);
 	const [nameTouched, setNameTouched] = useState(false);
 	const projects = useFlowProjects();
+	const generation = useRef(0);
+	const scope = `${callerScope}:${initialProject}:${projectLocked}`;
+	const previousScope = useRef(scope);
+	if (previousScope.current !== scope) {
+		previousScope.current = scope;
+		generation.current++;
+	}
+	useEffect(
+		() => () => {
+			generation.current++;
+		},
+		[],
+	);
 	const input = FlowCreateInputSchema.safeParse({
 		name,
 		description,
 		project: projectRefOfSelectValue(project) ?? undefined,
 	});
 	const create = useMutation({
-		mutationFn: (fields: FlowCreateInput) => client.flows.create(fields),
-		onSuccess: async (flow) => {
+		mutationFn: ({ fields }: { fields: FlowCreateInput; generation: number }) => client.flows.create(fields),
+		onSuccess: async (flow, request) => {
 			await queryClient.invalidateQueries({ queryKey: orpc.flows.list.key() });
-			onCreated(flow);
+			if (request.generation === generation.current) onCreated(flow);
 		},
 	});
 	const nameError = nameTouched && name.trim() === "" ? "Enter a flow name." : undefined;
@@ -45,8 +72,9 @@ export function NewFlowDialog({ onClose, onCreated }: NewFlowDialogProps) {
 				className="flex flex-col gap-4"
 				onSubmit={(event) => {
 					event.preventDefault();
+					event.stopPropagation();
 					setNameTouched(true);
-					if (input.success && !create.isPending) create.mutate(input.data);
+					if (input.success && !create.isPending) create.mutate({ fields: input.data, generation: generation.current });
 				}}
 			>
 				<Input
@@ -76,7 +104,7 @@ export function NewFlowDialog({ onClose, onCreated }: NewFlowDialogProps) {
 				/>
 				<FlowProjectSelect
 					value={project}
-					disabled={create.isPending}
+					disabled={create.isPending || projectLocked}
 					hint={projectHint}
 					onChange={(value) => {
 						setProject(value);

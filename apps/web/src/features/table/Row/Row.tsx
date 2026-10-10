@@ -113,6 +113,8 @@ export const Row = memo(function Row({
 		),
 		status: (
 			<StatusCell
+				scope={ticket.identifier}
+				project={ticket.project.key}
 				status={ticket.status}
 				statuses={statuses}
 				progress={ticket.childCount === 0 ? undefined : ticket.childDoneCount / ticket.childCount}

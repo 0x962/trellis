@@ -1,10 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
-import type { EpicSummary } from "@trellis/api";
+import { EpicNameSchema, type EpicSummary } from "@trellis/api";
 import { Command, type CommandItem, Popover } from "@trellis/ui";
 import { createElement, type ReactElement, type RefObject, useRef, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { PickerFailure } from "../components/PickerFailure";
 import { RowMarks } from "../components/RowMarks";
+import { usePickerCreate } from "../hooks/usePickerCreate";
+import { createNameItem } from "../utils/createNameItem";
 
 const noneId = "none";
 
@@ -35,6 +37,7 @@ export type EpicPickerProps = {
 	// The project ref whose epics the list holds. The list covers the
 	// project and every project under it.
 	project: string;
+	scope?: string;
 	// The ref of the current epic.
 	value?: string;
 	// True when the picker writes to several tickets that hold different
@@ -55,6 +58,7 @@ export type EpicPickerProps = {
 // option, and a bulk caller writes `epic: null` to every selected ticket.
 export function EpicPicker({
 	project,
+	scope,
 	value,
 	mixed = false,
 	allowNone = true,
@@ -65,7 +69,8 @@ export function EpicPicker({
 	finalFocus,
 	side,
 }: EpicPickerProps) {
-	const { orpc } = useApp();
+	const { client, orpc, queryClient } = useApp();
+	const [search, setSearch] = useState("");
 	const [own, setOwn] = useState(false);
 	const input = useRef<HTMLInputElement>(null);
 	const isOpen = open ?? own;
@@ -75,7 +80,33 @@ export function EpicPicker({
 	const setOpen = (next: boolean) => {
 		setOwn(next);
 		onOpenChange?.(next);
+		if (!next) {
+			setSearch("");
+			creation.reset();
+		}
 	};
+
+	const creation = usePickerCreate({
+		scope: JSON.stringify([project, scope]),
+		create: (name) => client.epics.create({ project, name }),
+		invalidate: () =>
+			Promise.all([
+				queryClient.invalidateQueries({ queryKey: orpc.epics.key() }),
+				queryClient.invalidateQueries({ queryKey: orpc.projects.key() }),
+			]),
+		onCreated: (epic) => {
+			onPick(epic);
+			setOpen(false);
+		},
+	});
+	const createItem = list.isSuccess
+		? createNameItem(
+				"epic",
+				search,
+				epics.map((epic) => epic.name),
+				(name) => EpicNameSchema.safeParse(name).success,
+			)
+		: null;
 
 	// The No epic row waits for the list, so every row mounts at once. cmdk
 	// highlights the first row it mounts and keeps that row when more rows
@@ -106,14 +137,30 @@ export function EpicPicker({
 				inputRef={input}
 				label="Search epics"
 				placeholder="Set epic"
-				items={items}
+				items={createItem ? [...items, createItem] : items}
+				onSearchChange={setSearch}
 				listClassName={list.isError && items.length === 0 ? "hidden" : undefined}
 				empty={list.isError ? "" : list.isPending ? "Load epics…" : "No epics."}
 				onSelect={(id) => {
+					if (creation.pending) return;
+					if (id === createItem?.id) {
+						creation.create(search.trim());
+						return;
+					}
 					setOpen(false);
 					onPick(id === noneId ? null : epics.find((epic) => epic.ref === id)!);
 				}}
 			/>
+			{creation.pending && (
+				<p role="status" className="px-3 py-2 text-sm text-fg-muted">
+					Create epic…
+				</p>
+			)}
+			{creation.error !== null && (
+				<p role="alert" className="m-1 rounded-sm bg-danger-soft px-2 py-1.5 text-sm text-danger">
+					{creation.error}
+				</p>
+			)}
 			<PickerFailure
 				title="Epics could not load."
 				error={list.error}
