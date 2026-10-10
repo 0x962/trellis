@@ -1,5 +1,5 @@
 import { constants } from "node:os";
-import type { SessionProcess } from "../terminateSession.ts";
+import type { SessionProcess } from "../../terminateSession.ts";
 
 type ProcessOperations = {
 	listPids: (type: number, typeinfo: number, buffer: Buffer | null, size: number) => number;

@@ -1,6 +1,7 @@
 import { spawn } from "node:child_process";
 import type { LaunchSpec } from "@trellis/runtime-protocol";
 import { spawn as spawnPty } from "node-pty";
+import { platform } from "./platform/index.ts";
 import { processCompletion } from "./processCompletion.ts";
 import { stopProcessTree } from "./stopProcessTree.ts";
 
@@ -22,8 +23,9 @@ export function createProcessHandle(
 	inputFailed: (error: Error) => void,
 ): ProcessHandle {
 	const env = { ...process.env, ...spec.env };
+	const launch = platform.prepareLaunch(spec);
 	if (spec.mode === "pty") {
-		const child = spawnPty(spec.command, spec.args, {
+		const child = spawnPty(launch.command, launch.args, {
 			cwd: spec.cwd,
 			env,
 			cols: spec.cols ?? 80,
@@ -43,7 +45,7 @@ export function createProcessHandle(
 			stop: completion.stop,
 		};
 	}
-	const child = spawn(spec.command, spec.args, { cwd: spec.cwd, env, detached: true, stdio: "pipe" });
+	const child = spawn(launch.command, launch.args, { cwd: spec.cwd, env, detached: true, stdio: "pipe" });
 	const completion = processCompletion(() => stopProcessTree(child.pid!), exited, unconfirmed);
 	child.stdout.on("data", output);
 	child.stderr.on("data", spec.separateStderr ? stderr : output);
