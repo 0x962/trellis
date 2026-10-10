@@ -8,6 +8,7 @@ import { useLiveStatus } from "../../../../../lib/liveStatus";
 import { projectRefOfPathname } from "../../../../../lib/projectUrl";
 import { projectMoreActions } from "../../../../../stores/projectMoreStore";
 import { uiActions } from "../../../../../stores/uiStore";
+import { AgentsMenu } from "../../../../agents/AgentsMenu";
 import { menuLinkIcons, type NavTarget, navRows } from "../../../../navRows";
 import { sessionComposerActions } from "../../../../sessions/sessionComposerStore";
 import { ActorFooter } from "../../../ActorFooter";
@@ -94,6 +95,7 @@ export function SidebarBody({ collapsed = false, onCollapse }: SidebarBodyProps)
 						trailing={row.to === "/search" && !collapsed ? <Kbd>/</Kbd> : undefined}
 					/>
 				))}
+				<AgentsMenu collapsed={collapsed} />
 				<SidebarMachinePressure collapsed={collapsed} />
 				{menuLinks?.map((link) => (
 					<NavRow

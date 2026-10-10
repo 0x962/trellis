@@ -16,6 +16,7 @@ import { Route as SearchRouteImport } from './routes/search'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SetupRouteImport } from './routes/setup'
 import { Route as UsageRouteImport } from './routes/usage'
+import { Route as AgentsRolesRouteImport } from './routes/agents.roles'
 import { Route as AiFlowsRouteImport } from './routes/ai.flows'
 import { Route as PSplatRouteRouteImport } from './routes/p/$/route'
 import { Route as SessionsIdRouteImport } from './routes/sessions.$id'
@@ -57,6 +58,11 @@ const SetupRoute = SetupRouteImport.update({
 const UsageRoute = UsageRouteImport.update({
   id: '/usage',
   path: '/usage',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AgentsRolesRoute = AgentsRolesRouteImport.update({
+  id: '/agents/roles',
+  path: '/agents/roles',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AiFlowsRoute = AiFlowsRouteImport.update({
@@ -105,6 +111,7 @@ export interface FileRoutesByFullPath {
   '/usage': typeof UsageRoute
   '/p/$': typeof PSplatRouteRoute
   '/t/$identifier': typeof TIdentifierRouteRoute
+  '/agents/roles': typeof AgentsRolesRoute
   '/ai/flows': typeof AiFlowsRoute
   '/sessions/$id': typeof SessionsIdRoute
   '/ai/flows/$slug': typeof AiFlowsSlugRoute
@@ -121,6 +128,7 @@ export interface FileRoutesByTo {
   '/usage': typeof UsageRoute
   '/p/$': typeof PSplatRouteRoute
   '/t/$identifier': typeof TIdentifierRouteRoute
+  '/agents/roles': typeof AgentsRolesRoute
   '/ai/flows': typeof AiFlowsRoute
   '/sessions/$id': typeof SessionsIdRoute
   '/ai/flows/$slug': typeof AiFlowsSlugRoute
@@ -138,6 +146,7 @@ export interface FileRoutesById {
   '/usage': typeof UsageRoute
   '/p/$': typeof PSplatRouteRoute
   '/t/$identifier': typeof TIdentifierRouteRoute
+  '/agents/roles': typeof AgentsRolesRoute
   '/ai/flows': typeof AiFlowsRoute
   '/sessions/$id': typeof SessionsIdRoute
   '/ai/flows_/$slug': typeof AiFlowsSlugRoute
@@ -156,6 +165,7 @@ export interface FileRouteTypes {
     | '/usage'
     | '/p/$'
     | '/t/$identifier'
+    | '/agents/roles'
     | '/ai/flows'
     | '/sessions/$id'
     | '/ai/flows/$slug'
@@ -172,6 +182,7 @@ export interface FileRouteTypes {
     | '/usage'
     | '/p/$'
     | '/t/$identifier'
+    | '/agents/roles'
     | '/ai/flows'
     | '/sessions/$id'
     | '/ai/flows/$slug'
@@ -188,6 +199,7 @@ export interface FileRouteTypes {
     | '/usage'
     | '/p/$'
     | '/t/$identifier'
+    | '/agents/roles'
     | '/ai/flows'
     | '/sessions/$id'
     | '/ai/flows_/$slug'
@@ -205,6 +217,7 @@ export interface RootRouteChildren {
   UsageRoute: typeof UsageRoute
   PSplatRouteRoute: typeof PSplatRouteRoute
   TIdentifierRouteRoute: typeof TIdentifierRouteRoute
+  AgentsRolesRoute: typeof AgentsRolesRoute
   AiFlowsRoute: typeof AiFlowsRoute
   SessionsIdRoute: typeof SessionsIdRoute
   AiFlowsSlugRoute: typeof AiFlowsSlugRoute
@@ -261,6 +274,13 @@ declare module '@tanstack/react-router' {
       path: '/usage'
       fullPath: '/usage'
       preLoaderRoute: typeof UsageRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/agents/roles': {
+      id: '/agents/roles'
+      path: '/agents/roles'
+      fullPath: '/agents/roles'
+      preLoaderRoute: typeof AgentsRolesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/ai/flows': {
@@ -325,6 +345,7 @@ const rootRouteChildren: RootRouteChildren = {
   UsageRoute: UsageRoute,
   PSplatRouteRoute: PSplatRouteRoute,
   TIdentifierRouteRoute: TIdentifierRouteRoute,
+  AgentsRolesRoute: AgentsRolesRoute,
   AiFlowsRoute: AiFlowsRoute,
   SessionsIdRoute: SessionsIdRoute,
   AiFlowsSlugRoute: AiFlowsSlugRoute,
