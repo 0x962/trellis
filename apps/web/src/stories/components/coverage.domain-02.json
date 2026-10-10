@@ -59,6 +59,7 @@
 			"Components/FlowRunTree/Collapsed",
 			"Components/FlowRunTree/SelectedOutput",
 			"Components/FlowRunTree/ExpandAndCollapse",
+			"Components/FlowRunTree/DenseHierarchyNarrow",
 			"Components/FlowRunTree/OutputToggle"
 		],
 		"states": [
@@ -68,6 +69,7 @@
 			"selected output",
 			"pointer expansion",
 			"keyboard navigation",
+			"dense narrow hierarchy",
 			"output toggle"
 		],
 		"notes": "The tree retains its state locally. ExpandAndCollapse checks pointer expansion and arrow keys. OutputToggle checks output expansion and collapse."

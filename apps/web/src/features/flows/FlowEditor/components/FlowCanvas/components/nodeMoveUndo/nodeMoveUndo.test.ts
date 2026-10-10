@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import type { CanvasEdge, CanvasNode } from "../../flowDraft";
+import type { CanvasEdge, CanvasNode } from "../../../../flowDraft";
 import { nodeMoveUndo } from "./nodeMoveUndo";
 
 const moved = {

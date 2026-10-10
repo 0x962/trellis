@@ -10,7 +10,20 @@ import { pageFrame } from "./pageFrame";
 const baseNode = flowDoc.nodes[0]!;
 const invalidFlowDoc: FlowDoc = {
 	...flowDoc,
-	nodes: [{ ...baseNode, instruction: "" }, ...flowDoc.nodes.slice(1)],
+	nodes: [
+		{ ...baseNode, instruction: "" },
+		{
+			...baseNode,
+			id: id(699),
+			kind: "group",
+			title: "",
+			instruction: "",
+			x: 320,
+			width: 320,
+			height: 200,
+		},
+		...flowDoc.nodes.slice(1),
+	],
 };
 const denseLongFlowDoc: FlowDoc = {
 	...flowDoc,
@@ -53,6 +66,7 @@ const meta = {
 } satisfies Meta<typeof FlowEditor>;
 export default meta;
 type Story = StoryObj<typeof meta>;
+let recoveryRequests = 0;
 
 export const Canvas: Story = {
 	play: async ({ canvasElement }) => {
@@ -67,6 +81,122 @@ export const Canvas: Story = {
 };
 export const EmptyCanvas: Story = {
 	parameters: { trellis: { responses: { "flows.get": { ...flowDoc, nodes: [], edges: [] } } } },
+};
+export const ZoomScaledTargets: Story = {
+	play: async ({ canvasElement }) => {
+		const canvas = within(canvasElement);
+		await canvas.findByRole("button", { name: "Review the interface, connection, bottom" });
+		const minimum = matchMedia("(pointer: coarse)").matches ? 44 : 28;
+		const checkTargets = () => {
+			const handles = [...canvasElement.querySelectorAll<HTMLElement>(".react-flow__handle")];
+			for (const handle of handles) {
+				const rect = handle.getBoundingClientRect();
+				expect(rect.width).toBeGreaterThanOrEqual(minimum - 0.05);
+				expect(rect.height).toBeGreaterThanOrEqual(minimum - 0.05);
+				expect(rect.width).toBeLessThanOrEqual(minimum + 0.05);
+				expect(handle).toHaveAttribute("role", "button");
+				expect(handle).toHaveAttribute("tabindex", "0");
+			}
+		};
+		await waitFor(checkTargets);
+		await userEvent.click(canvas.getByRole("button", { name: "Zoom in" }));
+		await waitFor(() => {
+			const handle = canvasElement.querySelector<HTMLElement>(".react-flow__handle")!;
+			const zoom = Number(getComputedStyle(handle).getPropertyValue("--flow-zoom"));
+			expect(zoom).toBeGreaterThan(1);
+		});
+		await waitFor(checkTargets);
+		const center = canvas.getByRole("button", { name: "Center the flow at 100% zoom" });
+		await userEvent.hover(center);
+		await expect(await within(canvasElement.ownerDocument.body).findByRole("tooltip")).toHaveTextContent(
+			"Center the flow at 100% zoom",
+		);
+		await userEvent.click(center);
+		await waitFor(() => expect(canvas.getByRole("button", { name: "Zoom out" })).toBeDisabled());
+		await waitFor(() =>
+			expect(
+				getComputedStyle(canvasElement.querySelector(".react-flow__handle")!).getPropertyValue("--flow-zoom"),
+			).toBe("1"),
+		);
+		await userEvent.unhover(center);
+		await waitFor(checkTargets);
+	},
+};
+export const BranchCues: Story = {
+	play: async ({ canvasElement }) => {
+		const canvas = within(canvasElement);
+		const handle = await canvas.findByRole("button", { name: "Does the review pass?, No, right" });
+		for (const branch of canvasElement.querySelectorAll<HTMLElement>(".react-flow__handle[data-branch]")) {
+			expect(getComputedStyle(branch, "::after").content).toBe(`"${branch.dataset.branch}"`);
+			expect(getComputedStyle(branch).opacity).toBe("1");
+		}
+		await userEvent.hover(handle);
+		await expect(await within(canvasElement.ownerDocument.body).findByRole("tooltip")).toHaveTextContent(
+			"Does the review pass?, No, right",
+		);
+		await userEvent.unhover(handle);
+	},
+};
+export const KeyboardConnections: Story = {
+	parameters: { trellis: { responses: { "flows.get": { ...flowDoc, edges: [] } } } },
+	play: async ({ canvasElement }) => {
+		const canvas = within(canvasElement);
+		const source = await canvas.findByRole("button", { name: "Review the interface, connection, bottom" });
+		const target = await canvas.findByRole("button", { name: "Does the review pass?, input, top" });
+		source.focus();
+		await userEvent.keyboard("{Enter}");
+		await expect(source).toHaveAttribute("aria-pressed", "true");
+		target.focus();
+		await userEvent.keyboard(" ");
+		await waitFor(() => expect(canvasElement.querySelectorAll(".react-flow__edge")).toHaveLength(1));
+		const branch = canvas.getByRole("button", { name: "Does the review pass?, No, bottom" });
+		branch.focus();
+		await userEvent.keyboard("{Enter}");
+		canvas.getByRole("button", { name: "Approve the result, connection, top" }).focus();
+		await userEvent.keyboard("{Enter}");
+		await waitFor(() => expect(canvasElement.querySelectorAll(".react-flow__edge")).toHaveLength(2));
+		await expect(
+			canvasElement.querySelector('[aria-label="Connection from Does the review pass? to Approve the result, No"]'),
+		).toBeInTheDocument();
+		source.focus();
+		await userEvent.keyboard("{Enter}{Escape}");
+		await expect(source).toHaveAttribute("aria-pressed", "false");
+		await expect(getComputedStyle(source).outlineWidth).toBe("2px");
+		const edge = canvasElement.querySelector<SVGGElement>(
+			'.react-flow__edge[aria-label="Connection from Does the review pass? to Approve the result, No"]',
+		)!;
+		edge.focus();
+		await expect(getComputedStyle(edge.querySelector(".react-flow__edge-path")!).strokeWidth).toBe("3px");
+		const node = canvasElement.querySelector<HTMLElement>(".react-flow__node")!;
+		node.focus();
+		await expect(getComputedStyle(node.firstElementChild!).outlineWidth).toBe("2px");
+		await userEvent.keyboard("{Enter}");
+		await expect(
+			await within(canvasElement.ownerDocument.body).findByRole("dialog", { name: "Edit agent" }),
+		).toBeVisible();
+	},
+};
+export const RequestRecovery: Story = {
+	beforeEach: () => {
+		recoveryRequests = 0;
+	},
+	parameters: {
+		trellis: {
+			responses: {
+				"flows.get": () => {
+					recoveryRequests += 1;
+					if (recoveryRequests === 1) throw new Error("The synthetic flow request fails once.");
+					return flowDoc;
+				},
+			},
+		},
+	},
+	play: async ({ canvasElement }) => {
+		const canvas = within(canvasElement);
+		await userEvent.click(await canvas.findByRole("button", { name: "Retry" }));
+		await waitFor(() => expect(canvas.getByText("Review the interface", { exact: true })).toBeVisible());
+		await expect(recoveryRequests).toBe(2);
+	},
 };
 export const KeyboardDeleteRequiresConfirmation: Story = {
 	play: async ({ canvasElement }) => {
@@ -108,15 +238,23 @@ export const Missing: Story = {
 	},
 	play: async ({ canvasElement }) => {
 		await expect(await within(canvasElement).findByRole("heading", { name: "No flow with this name" })).toBeVisible();
+		await expect(await within(canvasElement).findByRole("link", { name: "Back to flows" })).toHaveAttribute(
+			"href",
+			"/ai/flows",
+		);
 	},
 };
 export const InvalidNodes: Story = {
 	parameters: { trellis: { responses: { "flows.get": invalidFlowDoc } } },
 	play: async ({ canvasElement }) => {
-		const issue = await within(canvasElement).findByText("Write an instruction.", { exact: true });
-		await waitFor(() => expect(issue).toBeVisible());
-		await expect(issue.closest("[role=alert]")).toBeVisible();
-		await expect(issue.closest("[aria-invalid=true]")).toHaveAttribute("aria-describedby", issue.parentElement!.id);
+		const canvas = within(canvasElement);
+		for (const message of ["Write an instruction.", "Write a title."]) {
+			const issue = await canvas.findByText(message, { exact: true });
+			await waitFor(() => expect(issue).toBeVisible());
+			const alert = issue.closest("[role=alert]")!;
+			await expect(alert).toBeVisible();
+			await expect(issue.closest("[aria-invalid=true]")).toHaveAttribute("aria-describedby", alert.parentElement!.id);
+		}
 	},
 };
 export const DenseLongGraph: Story = {

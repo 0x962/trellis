@@ -10,6 +10,8 @@ export function FlowDecisionContext({
 	return (
 		<section
 			aria-label="Decision context"
+			// biome-ignore lint/a11y/noNoninteractiveTabindex: Keyboard users need focus on the scrollable decision context.
+			tabIndex={0}
 			className="flex max-h-80 select-text flex-col gap-3 overflow-auto text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
 		>
 			<h3 className="font-medium">{title}</h3>

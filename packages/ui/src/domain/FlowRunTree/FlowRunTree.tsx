@@ -1,4 +1,5 @@
 import { type KeyboardEvent, useMemo, useRef, useState } from "react";
+import { EmptyState } from "../../primitives/EmptyState";
 import { FlowRunRow } from "./components/FlowRunRow";
 import type { FlowRunRow as Row } from "./types";
 import { visibleRows } from "./visibleRows";
@@ -57,6 +58,9 @@ export function FlowRunTree({ label, rows, now, onDecide, onOpenTerminal }: Flow
 	const current = focusKey !== null && visible.some((row) => row.key === focusKey) ? focusKey : visible[0]?.key;
 	return (
 		<div role="tree" aria-label={label} className="flex flex-col">
+			{visible.length === 0 && (
+				<EmptyState title="No execution steps" description="This run has no saved step activity." className="px-1" />
+			)}
 			{visible.map((row, index) => (
 				<FlowRunRow
 					key={row.key}

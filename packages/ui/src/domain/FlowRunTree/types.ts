@@ -29,6 +29,9 @@ export type FlowRunRow = {
 	// A short fact beside the title: "3 at the same time", "12 min limit",
 	// "round 2 of 5", "Yes", "Approved".
 	meta: string | null;
+	// Exact internal identifiers stay in a secondary disclosure.
+	details?: readonly { label: string; value: string }[];
+	detailsLabel?: string;
 	// Unix milliseconds. A row that never started has no start.
 	startedAt: number | null;
 	endedAt: number | null;

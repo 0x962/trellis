@@ -90,6 +90,54 @@ export const ExpandAndCollapse: Story = {
 		await expect(canvas.getAllByRole("treeitem")).toHaveLength(1);
 	},
 };
+const denseRows: FlowRunRow[] = [
+	{
+		...row("release", "running"),
+		title: "Release readiness review for every active project and retained result",
+		kind: "group",
+		parentKey: null,
+		depth: 0,
+		hasChildren: true,
+		meta: "3 steps",
+	},
+	{
+		...row("parallel", "running"),
+		title: "Review the interface at the same time",
+		kind: "group",
+		parentKey: "release",
+		depth: 1,
+		hasChildren: true,
+		meta: "2 at the same time",
+	},
+	{
+		...row("accessibility", "succeeded"),
+		title: "Keyboard and zoom review",
+		parentKey: "parallel",
+		depth: 2,
+		meta: "Supplied this output",
+		output: "The 320-pixel layout preserves the complete hierarchy. ".repeat(8),
+		detailsLabel: "Output provenance",
+		details: [
+			{ label: "Step ID", value: "step-accessibility-review" },
+			{ label: "Run ID", value: "run-01M4A0E47" },
+			{ label: "Attempt ID", value: "attempt-01M4A0E48" },
+			{ label: "Result ID", value: "result-01M4A0E49" },
+		],
+	},
+	{
+		...row("decision", "waiting_human"),
+		title: "Choose whether this reviewed result can continue",
+		parentKey: "parallel",
+		depth: 2,
+		meta: "Needs you",
+	},
+];
+
+export const DenseHierarchyNarrow: Story = {
+	args: { rows: denseRows },
+	globals: { viewport: { value: "narrow", isRotated: false } },
+};
+
 export const OutputToggle: Story = {
 	play: async ({ canvasElement }) => {
 		const row = within(canvasElement).getByText("Review step: succeeded").closest('[role="treeitem"]')!;

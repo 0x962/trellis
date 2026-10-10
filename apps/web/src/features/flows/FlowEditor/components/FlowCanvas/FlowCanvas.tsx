@@ -35,7 +35,7 @@ import { CanvasControls } from "../CanvasControls";
 import { FlowEdge } from "../FlowEdge";
 import { NodePalette } from "../NodePalette";
 import { StepNode } from "../StepNode";
-import { nodeMoveUndo } from "./nodeMoveUndo";
+import { nodeMoveUndo } from "./components/nodeMoveUndo";
 
 // React Flow draws every node and edge again when one of these objects
 // changes, so they live outside the component.
@@ -133,7 +133,7 @@ export function FlowCanvas(props: FlowCanvasProps) {
 	const cleanUp = () => {
 		const before = new Map(nodes.map((node) => [node.id, node]));
 		setNodes(tidyLayout(nodes, edges));
-		requestAnimationFrame(() => void rf.fitView({ maxZoom: 1 }));
+		requestAnimationFrame(() => void rf.fitView({ minZoom: 1, maxZoom: 1 }));
 		toast("Cleaned up the layout.", {
 			action: {
 				label: "Undo",
@@ -180,10 +180,17 @@ export function FlowCanvas(props: FlowCanvasProps) {
 			onDragOver={onDragOver}
 			onDrop={onDrop}
 		>
+			<p id="flow-connection-instructions" className="sr-only">
+				Press Enter or Space on a connection control to choose the source. Choose a destination control and press Enter
+				or Space again. Press Escape to cancel.
+			</p>
 			<ReactFlow<CanvasNode, CanvasEdge>
 				className="flow-canvas"
 				nodes={nodes}
-				edges={edges}
+				edges={edges.map((edge) => ({
+					...edge,
+					ariaLabel: `Connection from ${nodes.find((node) => node.id === edge.source)!.data.fields.title} to ${nodes.find((node) => node.id === edge.target)!.data.fields.title}${edge.data!.branch === "out" ? "" : `, ${edge.data!.branch === "yes" ? "Yes" : "No"}`}`,
+				}))}
 				nodeTypes={nodeTypes}
 				edgeTypes={edgeTypes}
 				onNodesChange={onNodesChange}
@@ -198,8 +205,8 @@ export function FlowCanvas(props: FlowCanvasProps) {
 				snapToGrid
 				snapGrid={[8, 8]}
 				fitView
-				fitViewOptions={{ maxZoom: 1 }}
-				minZoom={0.2}
+				fitViewOptions={{ minZoom: 1, maxZoom: 1 }}
+				minZoom={1}
 				maxZoom={2}
 				panOnScroll
 				deleteKeyCode={null}

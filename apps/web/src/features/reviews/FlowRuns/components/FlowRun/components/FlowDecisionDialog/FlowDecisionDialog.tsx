@@ -67,10 +67,20 @@ export function FlowDecisionDialog({
 				/>
 				{decide.error && <FailureState title="The decision request did not complete" detail={decide.error.message} />}
 				<div className="flex justify-end gap-2">
-					<Button type="button" disabled={decide.isPending} onClick={() => decide.mutate(false)}>
+					<Button
+						type="button"
+						processing={decide.isPending && decide.variables === false}
+						disabled={decide.isPending}
+						onClick={() => decide.mutate(false)}
+					>
 						Reject step
 					</Button>
-					<Button type="submit" variant="primary" disabled={decide.isPending}>
+					<Button
+						type="submit"
+						variant="primary"
+						processing={decide.isPending && decide.variables === true}
+						disabled={decide.isPending}
+					>
 						Approve step
 					</Button>
 				</div>

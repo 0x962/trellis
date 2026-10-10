@@ -1,5 +1,6 @@
+import { DotsThree, X } from "@phosphor-icons/react";
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { FlowRunSummary } from "@trellis/ui";
+import { FlowRunSummary, IconButton } from "@trellis/ui";
 import { useStoryState } from "../useStoryState";
 
 const meta = {
@@ -31,3 +32,15 @@ export const Failed: Story = { args: { status: "failed", notice: "The code revie
 export const Canceled: Story = { args: { status: "canceled", notice: "The user cancels the run." } };
 export const Collapsed: Story = { args: { expanded: false } };
 export const LongName: Story = { args: { name: "Review the current release across every configured project" } };
+export const LongNameNarrowWithActions: Story = {
+	args: {
+		name: "Review the current release across every configured project and retained workspace result",
+		actions: (
+			<>
+				<IconButton label="Run actions" icon={<DotsThree />} />
+				<IconButton label="Cancel run" icon={<X />} />
+			</>
+		),
+	},
+	globals: { viewport: { value: "narrow", isRotated: false } },
+};

@@ -180,6 +180,12 @@ test("puts the error on the failed step and only the limit on its box", () => {
 		startedAt: 2000,
 		endedAt: 5000,
 	});
+	expect(rows.find((row) => row.title === "summary")?.details).toEqual([
+		{ label: "Step", value: "root/1/review/1/budget/1/summary:step:1" },
+		{ label: "Agent run", value: "run" },
+		{ label: "Attempt", value: "attempt" },
+		{ label: "Result", value: "Pending" },
+	]);
 });
 
 test("names the gate answer on a skipped branch", () => {

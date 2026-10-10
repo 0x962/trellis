@@ -1,7 +1,7 @@
 import { Play } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { flowRunIsLive } from "@trellis/api";
-import { EmptyState, IconButton, SectionHeader, Skeleton, Tooltip } from "@trellis/ui";
+import { Button, EmptyState, FailureState, IconButton, SectionHeader, Skeleton, Tooltip } from "@trellis/ui";
 import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { FlowRun } from "./components/FlowRun";
@@ -40,9 +40,26 @@ export function FlowRuns({ ticket, headSha, diffId }: { ticket: string; headSha:
 					<Skeleton lines={3} height="h-9" />
 				</div>
 			) : executions.isError ? (
-				<EmptyState title="Could not load flow runs" description={executions.error.message} />
+				<FailureState
+					variant="section"
+					title="Could not load flow runs"
+					detail={executions.error.message}
+					action={
+						<Button size="md" processing={executions.isFetching} onClick={() => void executions.refetch()}>
+							Try again
+						</Button>
+					}
+				/>
 			) : executions.data.length === 0 ? (
-				<EmptyState title="No flow runs" description="Start a saved flow to run its steps against this ticket." />
+				<EmptyState
+					title="No flow runs"
+					description="Start a saved flow to run its steps against this ticket."
+					action={
+						<Button size="md" onClick={() => setStart(true)}>
+							Start a flow
+						</Button>
+					}
+				/>
 			) : (
 				<div className="flex flex-col gap-6">
 					{executions.data.map((execution, index) => {

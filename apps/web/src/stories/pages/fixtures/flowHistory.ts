@@ -1,10 +1,12 @@
-import type { FlowExecutionRecord } from "@trellis/api";
+import type { AgentRun, FlowExecutionRecord } from "@trellis/api";
+import { buildFlowRunRows } from "../../../features/reviews/FlowRuns/components/FlowRun/buildFlowRunRows";
 import { flowDoc, flowResponses } from "./flow";
 import { actor, id, project, ticket, timestamp } from "./project";
 import { pullRequest, reviewResponses, reviewStatus } from "./review";
+import { run } from "./session";
 
 const startedAt = Date.parse(timestamp);
-export const flowExecution: FlowExecutionRecord = {
+const emptyExecution: FlowExecutionRecord = {
 	id: id(560),
 	flowId: flowDoc.flow.id,
 	ticketId: ticket.id,
@@ -19,47 +21,59 @@ export const flowExecution: FlowExecutionRecord = {
 	state: {
 		version: 1,
 		flowId: flowDoc.flow.id,
-		flowVersion: 1,
+		flowVersion: flowDoc.flow.version,
 		status: "waiting",
 		startedAt,
 		updatedAt: startedAt,
 		error: null,
-		steps: [
-			{
-				key: "interface-review",
-				actionKey: "interface-review",
-				nodeId: id(501),
-				parentKey: null,
-				iteration: 0,
-				round: 0,
-				state: "succeeded",
-				phase: "step",
-				output: "The interface checks pass.",
-				decision: null,
-				error: null,
-				startedAt,
-				endedAt: startedAt,
-				deadlineAt: null,
-				needsStop: false,
-			},
-			{
-				key: "approve-review",
-				actionKey: "approve-review",
-				nodeId: id(503),
-				parentKey: null,
-				iteration: 0,
-				round: 0,
-				state: "waiting_human",
-				phase: "step",
-				output: null,
-				decision: null,
-				error: null,
-				startedAt,
-				endedAt: null,
-				deadlineAt: null,
-				needsStop: false,
-			},
-		],
+		steps: [],
+	},
+};
+const rowKeys = buildFlowRunRows(emptyExecution).map((row) => row.key);
+export const reviewStepKey = `${rowKeys[0]!}:step:1`;
+export const decisionStepKey = `${rowKeys[2]!}:step:1`;
+export const retainedReviewOutput = "The interface checks pass. Layout and keyboard evidence remains available.";
+export const originalAttemptId = "storybook-flow-attempt-1";
+export const replacementAttemptId = "storybook-flow-attempt-2";
+export const flowTaskRun: AgentRun = {
+	...run,
+	id: id(561),
+	name: "Review the interface",
+	kind: "flow",
+	ticketId: ticket.id,
+	ticketIdentifier: ticket.identifier,
+	ticketTitle: ticket.title,
+	terminalId: originalAttemptId,
+	sessionId: "storybook-flow-review",
+	state: "running",
+	processStatus: "running",
+	pinnedAt: null,
+};
+export const replacementFlowTaskRun = { ...flowTaskRun, terminalId: replacementAttemptId };
+export const flowExecution: FlowExecutionRecord = {
+	...emptyExecution,
+	tasks: [
+		{ key: reviewStepKey, runId: flowTaskRun.id, attemptId: originalAttemptId, resultId: "storybook-flow-result-1" },
+	],
+	state: {
+		...emptyExecution.state,
+		steps: flowDoc.nodes.map((node, index) => ({
+			key: rowKeys[index]!,
+			actionKey: `${rowKeys[index]!}:step:1`,
+			nodeId: node.id,
+			parentKey: null,
+			iteration: 1,
+			round: 1,
+			state: node.kind === "human" ? "waiting_human" : "succeeded",
+			phase: "step",
+			output: node.kind === "agent" ? retainedReviewOutput : null,
+			decision: node.kind === "gate" ? "yes" : null,
+			error: null,
+			startedAt,
+			endedAt: node.kind === "human" ? null : startedAt + 1000,
+			deadlineAt: null,
+			needsStop: false,
+		})),
 	},
 };
 export const flowHistoryResponses = {
@@ -69,7 +83,7 @@ export const flowHistoryResponses = {
 		...reviewStatus,
 		prRow: { ...pullRequest, source: "manual", linkedBy: actor, linkedAt: timestamp },
 	},
+	"agentRuns.list": { items: [flowTaskRun], nextCursor: null },
+	"agentRuns.seen": { id: flowTaskRun.id },
 	"flowExecutions.list": [flowExecution],
-	"flowExecutions.cancel": { ...flowExecution, revision: 2, state: { ...flowExecution.state, status: "canceled" } },
-	"flowExecutions.decide": { ...flowExecution, revision: 2, state: { ...flowExecution.state, status: "running" } },
 };

@@ -1,6 +1,7 @@
 import { ORPCError } from "@orpc/client";
 import { useQuery } from "@tanstack/react-query";
-import { EmptyState, Skeleton } from "@trellis/ui";
+import { Link } from "@tanstack/react-router";
+import { Button, EmptyState, FailureState, Skeleton } from "@trellis/ui";
 import { ReactFlowProvider } from "@xyflow/react";
 import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
@@ -15,12 +16,25 @@ export function FlowEditor({ slug }: { slug: string }) {
 
 	if (doc.isError) {
 		const missing = doc.error instanceof ORPCError && doc.error.code === "NOT_FOUND";
-		return (
+		return missing ? (
 			<EmptyState
 				variant="page"
 				className="page-card"
-				title={missing ? "No flow with this name" : "Could not load the flow"}
-				description={missing ? `No flow has the slug “${slug}”.` : doc.error.message}
+				title="No flow with this name"
+				description={`No flow has the slug “${slug}”.`}
+				action={<Button render={<Link to="/ai/flows" />}>Back to flows</Button>}
+			/>
+		) : (
+			<FailureState
+				variant="page"
+				className="page-card"
+				title="Could not load the flow"
+				detail={doc.error.message}
+				action={
+					<Button processing={doc.isFetching} onClick={() => void doc.refetch()}>
+						Retry
+					</Button>
+				}
 			/>
 		);
 	}

@@ -1,8 +1,10 @@
 import { ORPCError } from "@orpc/client";
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { expect, within } from "storybook/test";
 import { StartFlowDialog } from "../../features/reviews/FlowRuns/components/StartFlowDialog";
 import { flowResponses } from "../pages/fixtures/flow";
 import { flowExecution } from "../pages/fixtures/flowHistory";
+import { pullRequest } from "../pages/fixtures/review";
 import { failure, id, noop, pending } from "./fixtures";
 import { clickButton } from "./interactions";
 
@@ -14,6 +16,7 @@ const meta = {
 		trellis: {
 			responses: {
 				...flowResponses,
+				"pullRequests.list": [{ ...pullRequest, id: id(90), owner: "example", repo: "catalog", number: 12 }],
 				"flowExecutions.start": flowExecution,
 			},
 		},
@@ -22,7 +25,11 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 const submit = clickButton("Start flow");
-export const Open: Story = {};
+export const Open: Story = {
+	play: async ({ canvasElement }) => {
+		await expect(await within(canvasElement.ownerDocument.body).findByText("Saved version 1.")).toBeVisible();
+	},
+};
 export const Empty: Story = { parameters: { trellis: { responses: { "flows.list": [] } } } };
 export const Loading: Story = { parameters: { trellis: { responses: { "flows.list": pending } } } };
 export const RequestError: Story = { parameters: { trellis: { responses: { "flows.list": failure } } } };

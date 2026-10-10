@@ -1,5 +1,4 @@
 import { WarningCircle, XCircle } from "@phosphor-icons/react";
-import { Tooltip } from "../../../../primitives/Tooltip";
 import { StatusIcon } from "../../../StatusIcon";
 import type { FlowRunState } from "../../types";
 
@@ -27,34 +26,20 @@ export function FlowStepMark({ state }: { state: FlowRunState }) {
 	switch (state) {
 		case "not_started":
 		case "pending":
-			return <StatusIcon category="todo" label={label} />;
+			return <StatusIcon category="todo" label={label} tooltip={false} focusable={false} />;
 		case "ready":
 		case "running":
-			return <StatusIcon category="started" label={label} />;
+			return <StatusIcon category="started" label={label} tooltip={false} focusable={false} />;
 		case "waiting_human":
-			return <StatusIcon category="review" label={label} />;
+			return <StatusIcon category="review" label={label} tooltip={false} focusable={false} />;
 		case "succeeded":
-			return <StatusIcon category="done" label={label} />;
+			return <StatusIcon category="done" label={label} tooltip={false} focusable={false} />;
 		case "skipped":
 		case "canceled":
-			return <StatusIcon category="canceled" label={label} />;
+			return <StatusIcon category="canceled" label={label} tooltip={false} focusable={false} />;
 		case "failed":
-			return (
-				<Tooltip content={label}>
-					<XCircle role="img" aria-label={label} tabIndex={0} weight="fill" className="size-3.5 shrink-0 text-danger" />
-				</Tooltip>
-			);
+			return <XCircle role="img" aria-label={label} weight="fill" className="size-3.5 shrink-0 text-danger" />;
 		case "unknown":
-			return (
-				<Tooltip content={label}>
-					<WarningCircle
-						role="img"
-						aria-label={label}
-						tabIndex={0}
-						weight="fill"
-						className="size-3.5 shrink-0 text-warning"
-					/>
-				</Tooltip>
-			);
+			return <WarningCircle role="img" aria-label={label} weight="fill" className="size-3.5 shrink-0 text-warning" />;
 	}
 }

@@ -87,14 +87,14 @@ export function FlowRunRow({
 			data-state={row.state}
 			style={{ "--flow-run-depth": row.depth } as CSSProperties}
 			className={cx(
-				"group flex min-h-9 flex-col justify-center border-b border-border py-1 ps-[calc(var(--spacing)*5*var(--flow-run-depth))] transition-colors duration-hover hover:bg-band focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2 pointer-coarse:min-h-11",
+				"group flex min-h-9 flex-col justify-center border-b border-border py-1 ps-[calc(var(--spacing)*4*var(--flow-run-depth))] transition-colors duration-hover hover:bg-band focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2 max-md:ps-[calc(var(--spacing)*2*var(--flow-run-depth))] pointer-coarse:min-h-11",
 				row.hasChildren && "cursor-pointer",
 			)}
 			onClick={row.hasChildren ? onToggle : undefined}
 			onKeyDown={onKeyDown}
 			onFocus={onFocus}
 		>
-			<div className="flex items-center gap-2">
+			<div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
 				<span aria-hidden="true" className="inline-flex size-3 shrink-0 items-center justify-center text-fg-faint">
 					{row.hasChildren && <Caret className="size-3" />}
 				</span>
@@ -110,13 +110,14 @@ export function FlowRunRow({
 				<FlowStepMark state={row.state} />
 				<span
 					className={cx(
-						"min-w-0 flex-1 truncate text-sm font-medium",
+						"min-w-20 flex-1 truncate text-sm font-medium max-md:overflow-visible max-md:whitespace-normal max-md:break-words",
 						dimStates.has(row.state) ? "text-fg-muted" : "text-fg",
 					)}
+					title={row.title}
 				>
 					{row.title}
 				</span>
-				{row.meta !== null && <span className="truncate text-xs text-fg-faint max-md:hidden">{row.meta}</span>}
+
 				<span className="flex w-5 shrink-0 items-center justify-center max-md:hidden">
 					{actorIsKindMark ? null : row.actor}
 				</span>
@@ -126,7 +127,7 @@ export function FlowRunRow({
 				>
 					{time}
 				</span>
-				<span className="flex w-16 shrink-0 items-center justify-end gap-1">
+				<span className="ml-auto flex min-w-24 shrink-0 items-center justify-end gap-1">
 					{row.decidable && (
 						<Tooltip content={`Decide ${row.title}`}>
 							<IconButton
@@ -156,10 +157,38 @@ export function FlowRunRow({
 					)}
 				</span>
 			</div>
-			{row.error !== null && <p className="mt-1 ps-16 break-words text-xs text-danger">{row.error}</p>}
+			{row.meta !== null && <p className="ps-8 break-words text-xs text-fg-muted">{row.meta}</p>}
+			{row.details && row.details.length > 0 && (
+				<details
+					className="mt-1 ps-8 text-xs text-fg-muted"
+					onClick={(event) => event.stopPropagation()}
+					onKeyDown={(event) => event.stopPropagation()}
+				>
+					<summary className="min-h-7 content-center cursor-pointer rounded-sm focus-visible:outline-2 focus-visible:outline-accent pointer-coarse:min-h-11 max-md:min-h-11">
+						{row.detailsLabel ?? "Identifiers"}
+					</summary>
+					<dl className="mt-1 grid min-w-0 grid-cols-[auto_minmax(0,1fr)] gap-x-2">
+						{row.details.map((detail) => (
+							<div className="contents" key={detail.label}>
+								<dt>{detail.label}</dt>
+								<dd className="truncate font-mono text-fg" title={detail.value}>
+									{detail.value}
+								</dd>
+							</div>
+						))}
+					</dl>
+				</details>
+			)}
+			{row.error !== null && <p className="mt-1 ps-8 break-words text-xs text-danger">{row.error}</p>}
 			{row.output !== null && (
-				<details className="mt-1 ps-16 text-xs">
-					<summary className="cursor-pointer text-fg-muted">Output</summary>
+				<details
+					className="mt-1 ps-8 text-xs"
+					onClick={(event) => event.stopPropagation()}
+					onKeyDown={(event) => event.stopPropagation()}
+				>
+					<summary className="min-h-7 content-center cursor-pointer rounded-sm text-fg-muted focus-visible:outline-2 focus-visible:outline-accent pointer-coarse:min-h-11 max-md:min-h-11">
+						Output
+					</summary>
 					<pre className="mt-1 max-h-80 overflow-auto whitespace-pre-wrap break-words font-mono">{row.output}</pre>
 				</details>
 			)}

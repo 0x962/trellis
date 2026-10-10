@@ -1,9 +1,9 @@
-import { WarningCircle } from "@phosphor-icons/react";
-import { cx } from "@trellis/ui";
-import { Handle, type NodeProps, Position } from "@xyflow/react";
+import { cx, FailureState } from "@trellis/ui";
+import { type NodeProps, Position } from "@xyflow/react";
 import { flowKinds } from "../../../kinds";
 import { useFlowEditor } from "../../editorContext";
 import type { CanvasNode } from "../../flowDraft";
+import { FlowHandle } from "../FlowHandle";
 
 const sides = [Position.Top, Position.Right, Position.Bottom, Position.Left] as const;
 
@@ -31,7 +31,7 @@ export function StepNode({ id, data, selected }: NodeProps<CanvasNode>) {
 			aria-describedby={issue === undefined ? undefined : issueId}
 			className={cx(
 				"flex w-56 flex-col gap-2 rounded-md border bg-elevated px-3 py-2 shadow-sm transition-colors duration-hover",
-				fields.kind === "gate" && "flow-node-hover-handles",
+				fields.kind === "gate" && "min-h-33",
 				selected ? "border-accent" : issue !== undefined ? "border-danger" : "border-border",
 			)}
 		>
@@ -45,47 +45,70 @@ export function StepNode({ id, data, selected }: NodeProps<CanvasNode>) {
 				</div>
 			</div>
 			{issue !== undefined && (
-				<p id={issueId} role="alert" className="flex items-start gap-1 text-xs text-danger">
-					<WarningCircle aria-hidden="true" className="mt-px size-3.5 shrink-0" />
-					<span>{issue}</span>
-				</p>
+				<div id={issueId}>
+					<FailureState variant="inline" title={issue} />
+				</div>
 			)}
 			{!unconnected.has(id) &&
 				(fields.kind === "gate" ? (
 					<>
-						<Handle type="source" position={Position.Top} id="in-top" isConnectableStart={false} />
-						<Handle type="source" position={Position.Left} id="in-left" isConnectableStart={false} />
-						<Handle
+						<FlowHandle
+							label={`${fields.title}, input, top`}
+							type="source"
+							position={Position.Top}
+							id="in-top"
+							isConnectableStart={false}
+						/>
+						<FlowHandle
+							label={`${fields.title}, input, left`}
+							type="source"
+							position={Position.Left}
+							id="in-left"
+							isConnectableStart={false}
+						/>
+						<FlowHandle
 							type="source"
 							position={Position.Right}
 							id="yes-right"
-							aria-label="Yes"
+							branch="Yes"
+							label={`${fields.title}, Yes, right`}
 							className="top-1/3! border-success!"
 						/>
-						<Handle
+						<FlowHandle
 							type="source"
 							position={Position.Right}
 							id="no-right"
-							aria-label="No"
+							branch="No"
+							label={`${fields.title}, No, right`}
 							className="top-2/3! border-danger!"
 						/>
-						<Handle
+						<FlowHandle
 							type="source"
 							position={Position.Bottom}
 							id="yes-bottom"
-							aria-label="Yes"
+							branch="Yes"
+							label={`${fields.title}, Yes, bottom`}
 							className="left-1/3! border-success!"
 						/>
-						<Handle
+						<FlowHandle
 							type="source"
 							position={Position.Bottom}
 							id="no-bottom"
-							aria-label="No"
+							branch="No"
+							label={`${fields.title}, No, bottom`}
 							className="left-2/3! border-danger!"
 						/>
 					</>
 				) : (
-					sides.map((side) => <Handle key={side} type="source" position={side} id={`out-${side}`} />)
+					sides.map((side) => (
+						<FlowHandle
+							key={side}
+							label={`${fields.title}, connection, ${side}`}
+							type="source"
+							position={side}
+							id={`out-${side}`}
+						/>
+					))
 				))}
 		</div>
 	);

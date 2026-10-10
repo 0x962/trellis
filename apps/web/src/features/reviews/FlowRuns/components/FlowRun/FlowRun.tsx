@@ -16,6 +16,11 @@ import { FlowDecisionDialog } from "./components/FlowDecisionDialog";
 import { FlowTaskTerminal } from "./components/FlowTaskTerminal";
 import { flowRunNotice } from "./flowRunNotice";
 
+type TerminalTarget = {
+	task: FlowExecutionRecord["tasks"][number];
+	stepTitle: string;
+};
+
 // A run ends when its last step became final. A run stored before steps
 // kept that time ends at its last state write.
 const endOf = (execution: FlowExecutionRecord) =>
@@ -47,7 +52,7 @@ export function FlowRun({
 	const runs = useQuery(allAgentRunsOptions(orpc, client, { ticket }));
 	const rows = useMemo(() => buildFlowRunRows(execution), [execution]);
 	const [decision, setDecision] = useState<string | null>(null);
-	const [terminal, setTerminal] = useState<FlowExecutionRecord["tasks"][number] | null>(null);
+	const [terminal, setTerminal] = useState<TerminalTarget | null>(null);
 	const [confirmCancel, setConfirmCancel] = useState(false);
 	const refresh = () => queryClient.invalidateQueries({ queryKey: orpc.flowExecutions.list.key() });
 	const cancel = useMutation({
@@ -69,7 +74,7 @@ export function FlowRun({
 			return client.flowExecutions.start({
 				flow: execution.flowId,
 				allowRepeat: true,
-				repeatReason: "The user selected Run again.",
+				repeatReason: `Run ${doc.flow.name} again for the current pull request.`,
 				ticket,
 				diffId,
 				headSha,
@@ -84,8 +89,10 @@ export function FlowRun({
 		onError: (error) => toast.error(error.message),
 	});
 	const taskOf = (key: string) => {
-		const actionKey = rows.find((row) => row.key === key)?.actionKey;
-		return execution.tasks.find((task) => task.key === actionKey) ?? null;
+		const row = rows.find((row) => row.key === key);
+		const task = execution.tasks.find((task) => task.key === row?.actionKey);
+		if (!row || !task) return null;
+		return { task, stepTitle: row.title };
 	};
 	const withActors = rows.map((row) => {
 		const task = row.actionKey === null ? null : execution.tasks.find((task) => task.key === row.actionKey);
@@ -157,7 +164,7 @@ export function FlowRun({
 						onDecide={(key) => setDecision(rows.find((row) => row.key === key)?.actionKey ?? null)}
 						onOpenTerminal={(key) => setTerminal(taskOf(key))}
 					/>
-					{terminal && <FlowTaskTerminal task={terminal} onClose={() => setTerminal(null)} />}
+					{terminal && <FlowTaskTerminal {...terminal} onClose={() => setTerminal(null)} />}
 					{decision !== null && (
 						<FlowDecisionDialog execution={execution} actionKey={decision} onClose={() => setDecision(null)} />
 					)}
