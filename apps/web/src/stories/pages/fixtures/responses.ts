@@ -47,6 +47,8 @@ export const projectResponses = {
 	"tickets.dependencies": { waitsOn: [], blocks: [] },
 	"epics.list": epics,
 	"epics.get": epic,
+	"epics.whiteboard": { snapshot: null, revision: 0 },
+	"epics.saveWhiteboard": (input: { expectedRevision: number }) => ({ revision: input.expectedRevision + 1 }),
 	"agentRuns.list": { items: [], nextCursor: null },
 	"agentRuns.latestByEpicTicket": [],
 	"agentRuns.workspaceLineStats": [],

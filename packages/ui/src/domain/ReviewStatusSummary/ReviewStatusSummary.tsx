@@ -15,13 +15,14 @@ export type PullRequestReviewStatus = {
 export type ReviewStatusSummaryProps = {
 	reviews: readonly PullRequestReviewStatus[];
 	className?: string;
+	interactive?: boolean;
 };
 
 const visibleLimit = 5;
 
 const reference = (review: PullRequestReviewStatus) => `${review.owner}/${review.repo}#${review.number}`;
 
-export function ReviewStatusSummary({ reviews, className }: ReviewStatusSummaryProps) {
+export function ReviewStatusSummary({ reviews, className, interactive = true }: ReviewStatusSummaryProps) {
 	const visible = reviews.slice(0, visibleLimit);
 	const hidden = reviews.length - visible.length;
 	return (
@@ -36,7 +37,12 @@ export function ReviewStatusSummary({ reviews, className }: ReviewStatusSummaryP
 					size="sm"
 				/>
 			))}
-			{hidden > 0 && (
+			{hidden > 0 && !interactive && (
+				<Badge tone="accent" size="sm">
+					+{hidden}
+				</Badge>
+			)}
+			{hidden > 0 && interactive && (
 				<Tooltip
 					content="Pull request reviews"
 					description={

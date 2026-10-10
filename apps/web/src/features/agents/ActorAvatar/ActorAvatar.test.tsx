@@ -58,7 +58,12 @@ const ticket = {
 	completedAt: null,
 } as TicketSummary;
 
-const render = (runs: AgentRun[] | undefined, category = "todo", archived: boolean | null = false) => {
+const render = (
+	runs: AgentRun[] | undefined,
+	category = "todo",
+	archived: boolean | null = false,
+	interactive = true,
+) => {
 	const queryClient = new QueryClient();
 	if (runs !== undefined) queryClient.setQueryData(assignedQueryKey, { items: runs, nextCursor: null });
 	if (archived !== null) queryClient.setQueryData(["archived"], archived ? [{ key: "TRL" }] : []);
@@ -67,6 +72,7 @@ const render = (runs: AgentRun[] | undefined, category = "todo", archived: boole
 		<QueryClientProvider client={queryClient}>
 			<AppProvider value={app}>
 				<ActorAvatar
+					interactive={interactive}
 					ticket={{
 						...ticket,
 						status: { ...ticket.status, category: category as TicketSummary["status"]["category"] },
@@ -106,5 +112,13 @@ describe("ActorAvatar", () => {
 		expect(html).toContain("GPT-6 Astra");
 		expect(html).toContain("Max");
 		expect(html).not.toContain('aria-label="Start TRL-281"');
+	});
+
+	test("a display-only ticket retains its assigned avatar without a start control or tab stop", () => {
+		expect(render([], "todo", false, false)).not.toContain('aria-label="Start TRL-281"');
+		const html = render([crispFjord], "todo", false, false);
+		expect(html).toContain('data-provider="openai"');
+		expect(html).toContain("crisp-fjord");
+		expect(html).not.toContain('tabindex="0"');
 	});
 });

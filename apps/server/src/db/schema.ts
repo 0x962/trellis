@@ -1,5 +1,6 @@
 export * from "./tables/chatterMessages";
 export * from "./tables/epicChatterSettings";
+export * from "./tables/epicWhiteboards";
 
 import { sql } from "drizzle-orm";
 import {

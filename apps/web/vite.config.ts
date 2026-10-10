@@ -1,11 +1,11 @@
 import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { fileURLToPath } from "node:url";
 import tailwindcss from "@tailwindcss/vite";
 import { tanstackRouter } from "@tanstack/router-plugin/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig, type Plugin, type ProxyOptions, type UserConfig } from "vite";
+import { cmdkDialog } from "./scripts/cmdkDialog";
 import { fontPreloads } from "./scripts/fontPreloads";
 
 // Each route becomes its own chunk. Component folders do not define routes.
@@ -106,7 +106,15 @@ const proxyTarget = (target: string, websocket = false): ProxyOptions => ({
 export const createConfig = (env: Record<string, string | undefined>): UserConfig => {
 	const target = resolveApiTarget(env);
 	return {
-		plugins: [tanstackRouter(routerPluginOptions), react(), tailwindcss(), fontPreloads(), phosphorWeights()],
+		plugins: [
+			tanstackRouter(routerPluginOptions),
+			react(),
+			tailwindcss(),
+			fontPreloads(),
+			phosphorWeights(),
+			cmdkDialog(),
+		],
+		optimizeDeps: { exclude: ["@tldraw/assets", "cmdk"] },
 		build: {
 			minify: "terser",
 			terserOptions: {
@@ -116,9 +124,6 @@ export const createConfig = (env: Record<string, string | undefined>): UserConfi
 		},
 		resolve: {
 			dedupe: ["marked"],
-			// cmdk pulls a whole second overlay library for a dialog this app
-			// never renders. See src/lib/emptyRadixDialog.ts.
-			alias: { "@radix-ui/react-dialog": fileURLToPath(new URL("./src/lib/emptyRadixDialog.ts", import.meta.url)) },
 		},
 		server: {
 			// One address for the browser and the proxy.

@@ -10,13 +10,16 @@ import { UnassignedAgent } from "./components/UnassignedAgent";
 export function ActorAvatar({
 	ticket,
 	readOnly = false,
+	interactive = true,
 }: {
 	ticket: Pick<TicketSummary, "id" | "identifier" | "status" | "project" | "completedAt">;
 	readOnly?: boolean;
+	interactive?: boolean;
 }) {
 	const assignment = useAssignedRun(ticket.id);
 	const run = assignment.data;
 	const canStart =
+		interactive &&
 		!readOnly &&
 		ticket.completedAt === null &&
 		ticket.status.category !== "done" &&
@@ -30,6 +33,7 @@ export function ActorAvatar({
 					agentKind={agentKindOf(run.kind)}
 					agentProfile={agentProfileOf(run.harness)}
 					state={agentMarkState(run)}
+					tooltip={interactive}
 				/>
 			) : assignment.isSuccess && canStart ? (
 				<UnassignedAgent identifier={ticket.identifier} projectKey={ticket.project.key} />

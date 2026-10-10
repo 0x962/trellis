@@ -13,6 +13,7 @@
 		"./fonts.css": "./src/fonts.css",
 		"./base.css": "./src/base.css",
 		"./flow-canvas.css": "./src/flowCanvas.css",
+		"./epic-whiteboard": "./src/domain/EpicWhiteboard/index.ts",
 		"./gallery": "./src/gallery/Gallery.tsx",
 		"./review": "./src/review/index.ts",
 		"./review.css": "./src/review/review.css",
@@ -31,13 +32,15 @@
 		"@phosphor-icons/react": "2.1.10",
 		"@pierre/trees": "1.0.0-beta.6",
 		"@primer/octicons-react": "19.38.0",
+		"@tldraw/assets": "5.5.2",
 		"@xterm/addon-fit": "0.11.0",
 		"@xterm/addon-web-links": "0.12.0",
 		"@xterm/addon-webgl": "0.20.0-beta.297",
 		"@xterm/xterm": "6.1.0-beta.302",
 		"cmdk": "1.1.1",
 		"motion": "13.2.0",
-		"sonner": "2.0.8"
+		"sonner": "2.0.8",
+		"tldraw": "5.5.2"
 	},
 	"peerDependencies": {
 		"react": "19.2.8",

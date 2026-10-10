@@ -142,6 +142,9 @@ Merge the source changes into `main`. Push `main` to `origin`. Run this command 
 bun run desktop:install
 ```
 
+The epic whiteboard requires a valid tldraw production license. Export `VITE_TLDRAW_LICENSE_KEY` before the build.
+Development previews use the SDK development license. See the [tldraw license terms](https://tldraw.dev/community/license).
+
 The command rejects uncommitted changes, feature branches, detached commits, and a `main` checkout that differs from the refreshed `origin/main`. These requirements also apply to `--prepare` candidates. Do not bypass the production installer.
 
 The candidate must include the installed app's source commit. The installer checks this before the build and before publication. A macOS advisory lock permits one publication at a time.

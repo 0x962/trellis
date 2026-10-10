@@ -4,34 +4,28 @@ import type { AgentRun, TicketSummary, WaveSummary } from "@trellis/api";
 import { Tabs, useMediaQuery } from "@trellis/ui";
 import { useMemo, useState } from "react";
 import { useApp } from "../../../lib/appContext";
-import { epicHref, projectHref } from "../../../lib/projectUrl";
+import { projectHref } from "../../../lib/projectUrl";
 import { FilterBar } from "../../filters/FilterBar";
-import { type View, viewOf } from "../../filters/grammar";
+import type { View } from "../../filters/grammar";
 import { useViewShareItems } from "../../filters/hooks/useViewShareItems";
-import { hasFilters } from "../../filters/labels";
 import { ArchivedBanner } from "../../project-actions";
 import { PageTitle } from "../../shell/PageTitle";
 import { ProjectBreadcrumb } from "../../shell/ProjectBreadcrumb";
 import { Topbar } from "../../shell/Topbar";
-import { DisplayPopover } from "../../table/DisplayPopover";
 import { useTicketMutations } from "../../table/hooks/useTicketMutations";
 import { useWaveEditing } from "../../table/hooks/useWaveEditing";
-import { TicketTable } from "../../table/TicketTable";
 import { TableSkeleton } from "../../table/TicketTable/components/TableSkeleton";
 import type { WaveStartAssignmentState } from "../../table/TicketTable/useWaveStart";
-import { agentLinesByTicket } from "../../table/utils/agentLines";
 import { DeleteEpicDialog } from "../DeleteEpicDialog";
 import { EpicSheet } from "../EpicSheet";
 import { EpicSwitcher } from "../EpicSwitcher";
-import { epicWorkingTicketIds } from "../epicNext";
 import { assignedTicketIds } from "../epicRowRank";
 import { epicPageSearch, epicQueryString, epicUrlSearch } from "../epicSearch";
-import { EpicCreateActions } from "./components/EpicCreateActions";
-import { EpicEmptyState } from "./components/EpicEmptyState";
 import { EpicLoadError } from "./components/EpicLoadError";
 import { EpicPageContext } from "./components/EpicPageContext";
 import { EpicResources } from "./components/EpicResources";
 import { EpicTopbarActions } from "./components/EpicTopbarActions";
+import { EpicWhiteboard } from "./components/EpicWhiteboard";
 import type { EpicPageProps } from "./EpicPageProps";
 import { useEpicAgentRuns } from "./hooks/useEpicAgentRuns";
 
@@ -45,19 +39,6 @@ const phoneTitleClass = "max-md:w-full";
 const breadcrumbLinkClass =
 	"inline-flex h-7 max-md:h-11 pointer-coarse:h-11 items-center rounded-md px-1 text-fg-muted transition-colors duration-hover hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2";
 
-// One epic, in two tabs. Overview is the tickets of the epic in the ticket
-// table of the project routes, with nothing above the table. Resources is
-// the documents and the files of the epic, with the epic description as the
-// first document. The table search uses the URL search with `epic` fixed to this epic.
-// The table groups by wave when the URL names no group. An epic belongs to one
-// project, so the rows match the counts of the epic and the tickets that Add
-// offers. The filter bar receives `epic` as a fixed filter,
-// so it draws no epic chip and "Copy as CLI" still names the epic. Add puts
-// a ticket of the project into the epic; the bulk bar of the table and the
-// rail of the ticket page take one out. Both are ticket writes, so the ticket
-// rows and the epic counts refetch from the ticket events.
-// New wave adds a wave at the end of the epic, and every wave header of the
-// table carries the actions of its wave (`useWaveEditing`).
 export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProps) {
 	const { orpc, queryClient } = useApp();
 	const navigate = useNavigate();
@@ -66,8 +47,6 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 	const ref = `${project.key}/${slug}`;
 	const epic = useQuery(orpc.epics.get.queryOptions({ input: { epic: ref } }));
 	const readOnly = project.archivedAt !== null;
-	const routeKey = epicHref(project.key, slug);
-	const splat = `${project.key}/epics/${slug}`;
 	const [editing, setEditing] = useState(false);
 	const [deleting, setDeleting] = useState(false);
 	const epicAgentRuns = useEpicAgentRuns(ref);
@@ -83,16 +62,6 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 						retry: () => void epicAgentRuns.refetch(),
 					}
 				: { status: "ready", ticketIds: assigned };
-	// A Set, because each row tests membership. Null until the query
-	// succeeds: an empty set would read a ticket whose agent works as a
-	// ticket that waits for the person, and the row would move when the
-	// answer lands.
-	const workingTicketIds = useMemo(
-		() => (epicAgentRuns.status === "success" ? new Set(epicWorkingTicketIds(runs)) : null),
-		[epicAgentRuns.status, runs],
-	);
-	// `agentLinesByTicket` shows closed runs in the epic table, so `useEpicAgentRuns` reads one exact row per ticket.
-	const agentLines = useMemo(() => agentLinesByTicket(runs), [runs]);
 
 	const waveEditing = useWaveEditing({
 		epicRef: ref,
@@ -126,7 +95,6 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 	const phone = useMediaQuery("(max-width: 767px)");
 	const tableSearch = useMemo(() => epicPageSearch(search, ref, phone), [search, ref, phone]);
 	const { epic: fixedEpic, ...barSearch } = tableSearch;
-	const full = viewOf(tableSearch);
 	const shareItems = useViewShareItems({
 		project: project.key,
 		search: barSearch,
@@ -149,18 +117,6 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 			fixed={{ epic: ref }}
 			linkSearch={epicQueryString}
 			showShare={false}
-			actions={
-				<DisplayPopover
-					routeKey={routeKey}
-					tableKind="epic"
-					showProject={false}
-					epicFixed
-					search={barSearch}
-					onSearchChange={setSearch}
-					group={full.group}
-					sort={full.sort}
-				/>
-			}
 		/>
 	);
 	const titleParent = phone ? undefined : parent;
@@ -223,15 +179,6 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 	}
 
 	const record = epic.data;
-	// The top bar and the empty state of the Overview share the Add menu.
-	const createActions = readOnly ? null : (
-		<EpicCreateActions
-			project={project.key}
-			exclude={identifiers}
-			waveEditing={waveEditing}
-			onAddTicket={(ticket) => void addTicket(ticket, record.ref)}
-		/>
-	);
 	return (
 		<>
 			{topbar}
@@ -242,8 +189,8 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 			/>
 			<div className="page-card flex flex-1 flex-col overflow-hidden">
 				{readOnly && <ArchivedBanner project={project} />}
-				{/* The tab panels fill the card. The ticket table starts right under the tab strip. */}
 				<Tabs
+					keepMounted
 					value={tab}
 					onValueChange={setTab}
 					className="flex min-h-0 flex-1 flex-col [&>[role=tablist]]:shrink-0 [&>[role=tablist]]:px-5 max-md:[&>[role=tablist]]:px-4"
@@ -252,30 +199,16 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 						{
 							value: "overview",
 							label: "Overview",
-							content:
-								tab === "overview" ? (
-									<fieldset disabled={readOnly} className="contents">
-										<TicketTable
-											project={project.key}
-											routeKey={routeKey}
-											tableKind="epic"
-											search={tableSearch}
-											workingTicketIds={workingTicketIds}
-											assignedTicketIds={waveStartAssignment}
-											prRows
-											agentLines={agentLines}
-											waveEditing={readOnly ? undefined : waveEditing}
-											emptyState={
-												<EpicEmptyState
-													filtered={hasFilters(search)}
-													q={search.q}
-													splat={splat}
-													actions={createActions}
-												/>
-											}
-										/>
-									</fieldset>
-								) : null,
+							content: (
+								<EpicWhiteboard
+									epic={record}
+									project={project}
+									search={barSearch}
+									assignment={waveStartAssignment}
+									editing={waveEditing}
+									readOnly={readOnly}
+								/>
+							),
 						},
 						{
 							value: "resources",

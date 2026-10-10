@@ -20,3 +20,12 @@ test("scopes every Page event to its project", () => {
 		expect(matches(event, { projectIds: [otherProjectId] })).toBe(false);
 	}
 });
+
+test("a whiteboard event reaches only its project", () => {
+	const projectId = ulid();
+	const event = { type: "epic-whiteboard.changed", projectId, id: ulid(), revision: 2 } satisfies TrellisEvent;
+	expect(EventSchema.parse(event)).toEqual(event);
+	expect(matches(event, { projectIds: [projectId] })).toBe(true);
+	expect(matches(event, { projectIds: [ulid()] })).toBe(false);
+	expect(matches(event, { ticketIds: [ulid()] })).toBe(false);
+});

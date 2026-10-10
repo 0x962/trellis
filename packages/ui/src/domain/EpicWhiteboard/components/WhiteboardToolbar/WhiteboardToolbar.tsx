@@ -1,0 +1,73 @@
+import {
+	ArrowClockwise,
+	ArrowCounterClockwise,
+	ArrowRight,
+	ArrowsOut,
+	Cursor,
+	Eraser,
+	Hand,
+	PencilSimple,
+	TextT,
+} from "@phosphor-icons/react";
+import { type Editor, useValue } from "tldraw";
+import { IconButton } from "../../../../primitives/IconButton";
+import { Tooltip } from "../../../../primitives/Tooltip";
+
+const tools = [
+	{ id: "select", label: "Select", icon: <Cursor /> },
+	{ id: "hand", label: "Move canvas", icon: <Hand /> },
+	{ id: "draw", label: "Draw", icon: <PencilSimple /> },
+	{ id: "arrow", label: "Sketch arrow", icon: <ArrowRight /> },
+	{ id: "text", label: "Text", icon: <TextT /> },
+	{ id: "eraser", label: "Erase drawing", icon: <Eraser /> },
+];
+
+export function WhiteboardToolbar({ editor, readOnly }: { editor: Editor; readOnly: boolean }) {
+	const state = useValue(
+		"whiteboard tools",
+		() => ({ tool: editor.getCurrentToolId(), undo: editor.canUndo(), redo: editor.canRedo() }),
+		[editor],
+	);
+	return (
+		<div
+			role="toolbar"
+			aria-label="Whiteboard tools"
+			className="absolute bottom-4 left-1/2 z-10 flex max-w-full -translate-x-1/2 items-center gap-1 overflow-x-auto rounded-round border border-border bg-surface p-2 shadow-md"
+		>
+			{tools
+				.filter((tool) => !readOnly || tool.id === "select" || tool.id === "hand")
+				.map((tool) => (
+					<Tooltip key={tool.id} content={tool.label}>
+						<IconButton
+							label={tool.label}
+							icon={tool.icon}
+							pressed={state.tool === tool.id}
+							onClick={() => editor.setCurrentTool(tool.id)}
+						/>
+					</Tooltip>
+				))}
+			{!readOnly && (
+				<>
+					<Tooltip content="Undo">
+						<IconButton
+							label="Undo"
+							icon={<ArrowCounterClockwise />}
+							disabled={!state.undo}
+							onClick={() => editor.undo()}
+						/>
+					</Tooltip>
+					<Tooltip content="Redo">
+						<IconButton label="Redo" icon={<ArrowClockwise />} disabled={!state.redo} onClick={() => editor.redo()} />
+					</Tooltip>
+				</>
+			)}
+			<Tooltip content="Fit whiteboard">
+				<IconButton
+					label="Fit whiteboard"
+					icon={<ArrowsOut />}
+					onClick={() => editor.zoomToFit({ animation: { duration: 0 } })}
+				/>
+			</Tooltip>
+		</div>
+	);
+}

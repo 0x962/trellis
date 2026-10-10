@@ -1,0 +1,32 @@
+.trellis-whiteboard {
+	min-height: 24rem;
+	--color-background: var(--bg);
+	--color-text: var(--fg);
+}
+
+.trellis-whiteboard .tl-container {
+	font-family: var(--sans);
+	--color-background: var(--bg);
+}
+
+.trellis-whiteboard-ticket,
+.trellis-whiteboard-wave {
+	width: 100%;
+	height: 100%;
+}
+
+.trellis-whiteboard-ticket-link {
+	pointer-events: none;
+}
+
+.trellis-whiteboard-ticket [data-filter-match="false"] {
+	background: var(--band);
+}
+
+.trellis-whiteboard-wave-controls [data-group] > span:first-child {
+	min-width: 0;
+}
+
+.trellis-whiteboard-wave-controls [data-group] {
+	min-height: 44px;
+}

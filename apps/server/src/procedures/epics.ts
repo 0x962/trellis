@@ -2,6 +2,8 @@ import type { Epic } from "@trellis/api";
 import { call, os, setLocation } from "./base.ts";
 
 export const epics = os.epics.router({
+	whiteboard: os.epics.whiteboard.handler(({ context, input }) => call(context, "epics.whiteboard", input)),
+	saveWhiteboard: os.epics.saveWhiteboard.handler(({ context, input }) => call(context, "epics.saveWhiteboard", input)),
 	autopilot: os.epics.autopilot.handler(({ context, input }) => call(context, "epics.autopilot", input)),
 	setAutopilot: os.epics.setAutopilot.handler(({ context, input }) => call(context, "epics.setAutopilot", input)),
 	list: os.epics.list.handler(({ context, input }) => call(context, "epics.list", input)),

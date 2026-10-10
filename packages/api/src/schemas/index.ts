@@ -10,6 +10,7 @@ export * from "./enums.ts";
 export * from "./epic.ts";
 export * from "./epicAutopilot";
 export * from "./epicChatter";
+export * from "./epicWhiteboard";
 export * from "./evidence.ts";
 export * from "./flow.ts";
 export * from "./flowExecution.ts";

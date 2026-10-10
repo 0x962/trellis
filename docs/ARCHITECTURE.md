@@ -338,6 +338,17 @@ event whose fields include `epic`, `wave`, `status`, or `completedAt`
 invalidates the `epics` query family. `ProjectSummary.openEpicCount` counts the open epics of that project
 alone, and the sidebar prints it.
 
+`epics.whiteboard` reads the saved board document and its revision for one epic.
+An epic without a saved document returns `snapshot: null` and revision zero.
+`epics.saveWhiteboard` saves a JSON object with the revision that the client read.
+The first save uses revision zero. Each successful save raises the revision and emits `epic-whiteboard.changed`.
+A different stored revision returns `EPIC_WHITEBOARD_VERSION_CONFLICT` with HTTP 412 and leaves the document intact.
+The event refreshes board documents without a ticket or epic metadata refresh.
+
+The document holds shape placement and freehand marks. Ticket and wave records supply their current names, membership, and status.
+The client keeps its camera and selection on its own device.
+The `epic_whiteboards` row belongs to the epic and disappears when the epic is deleted.
+
 `epics.cancel` uses the normal ticket update service for each unfinished member.
 Each changed ticket receives a completion time, a new version, status activity, and a ticket event.
 A missing canceled status refuses the transaction when unfinished tickets remain.
@@ -1231,52 +1242,32 @@ The Epics page at `/p/<KEY>/epics` lists the epics of the project in two groups,
 Done, each with its count. A row prints the name, a `StackedBar` of the counts by category, `done/total`, the
 updated time, and a row menu. The rows use the row heights, the hover band, and the cell text sizes of the
 ticket table `Row`.
-`/p/<KEY>/epics/<slug>` shows one epic. Its `Topbar` holds the breadcrumb, the `FilterBar` chips, the Display
-`IconButton`, the Broadcast `IconButton`, the Add menu, and the epic actions `Menu`. The Add menu offers Ticket and Wave.
-Broadcast opens the shared dialog with the epic scope. Ticket filters do not change the broadcast recipients.
-The epic actions menu holds Copy as CLI, Copy link, Edit, and Delete. The page fixes the `epic`
-filter through the `fixed` prop of the `FilterBar`: the bar draws no epic chip, the filter picker offers no
-Epic field and lists the waves of this epic alone, and Copy as CLI writes `--epic`. Every link to the page
-writes its query through `epicQueryString`, so `group=status` stays in the URL. Ticket in the Add menu opens the
-`TicketPicker` of the project and
-writes `tickets.updateMany { epic }`.
-A header band below the `Topbar` prints the state `Badge`, `<done> of <total - canceled> done`, the `StackedBar`
-of the epic with its legend, and one `StackedBar` line per wave in position order with its name and
-`done/total`.
-The `SectionHeader` Plan holds the description in the ticket markdown renderer, with a Show or Hide action. The
-section starts collapsed when the description is longer than 1200 characters, and `uiStore` keeps the collapsed
-state under the key `<route key>#plan`. The band and the plan take at most half of the page card and scroll
-inside it.
-The tickets show in the full-width `TicketTable` of the project table view. Its search is the URL search with
-`epic` fixed to the epic ref, `group` default `wave`, and `sort` default `number` (`epicSearch.ts`).
-Tickets use ascending numbers within each ticket rank by default. The epic sort menu offers Priority, Created, Status, and ID.
-An epic URL with either Updated direction uses the default order. The canonical URL omits `sort=number`.
-The URL carries `sort`,
-`columns`, and the filters, as the project table does. Tables always use comfortable spacing.
-The URL never carries `epic`, it omits
-`group=wave`, and it writes `group=status`. The row actions, the bulk bar, and the keyboard navigation are the ones of
-the table. The bulk bar Set epic with None, and the Epic row of the ticket rail, take a ticket out of the epic.
-The Overview manages the waves (`useWaveEditing`). Every wave of the epic draws a header, and a wave that holds no
-ticket draws one line under it, "No tickets in this wave." (`withEmptyWaves`). Wave in the Add menu adds `Wave <n>` at the end
-and opens its name as a field inside the header. Each wave header holds Add tickets to this wave (the `TicketPicker`,
-which writes `tickets.updateMany { epic, wave }`) and the Wave actions `Menu`: New ticket in this wave, Rename (F2),
-Move up and Move down (Alt+Shift+Up and Alt+Shift+Down), and Delete wave. A wave that holds no ticket deletes at once;
-a wave that holds tickets asks first and names the tickets that move to No wave. A ticket row drags into another wave
-group, or into No wave, and a selected row drags the whole selection (`useWaveDrop`). The `w` key opens the wave
-picker of the focused row or of the selection, and the picker of the bulk bar offers New wave, which adds a wave with
-the typed name and moves the selection into it. The writes go through `waves.create`, `waves.update`,
-`waves.reorder`, and `waves.delete`. An epic with no ticket and no wave shows an empty state with the same Add menu as the `Topbar`.
-Each epic saves its filters and sort field and direction in local storage on the current device.
-An epic link without filters restores that epic's saved filters into the URL.
-An epic link without a sort restores that epic's saved order into the URL.
-Explicit URL filters replace the saved filters. An explicit URL sort replaces the saved order.
-A filter or sort change saves immediately. The default ID order also saves.
-Reloads and app restarts retain these settings. Link previews leave saved settings unchanged.
-The ticket filters take `wave`. The table groups by open waves in position order, then No wave, then done waves in position order.
-The table has a Wave column that is hidden by default. The bulk bar offers Set wave with the
-waves of the one epic that every selected ticket belongs to, and the control is off without that epic. The
-ticket rail shows a Wave row after Epic when the ticket has an
-epic.
+`/p/<KEY>/epics/<slug>` shows one epic with Overview and Resources tabs.
+The `Topbar` holds the breadcrumb, the fixed-epic `FilterBar`, Broadcast, Add, and the epic actions menu.
+Broadcast uses every eligible assignment in the epic, independent of the filters.
+Add offers Ticket and Wave through the existing ticket and wave mutations.
+
+Overview loads `@trellis/ui/epic-whiteboard` on demand. Its tldraw canvas shows every ticket and wave from `epics.get`.
+Custom ticket shapes render the shared board card content. A plain tap calls `pageSheetActions.openTicket`.
+Custom wave shapes contain the ticket shapes and show their wave name and count.
+A fixed panel renders the selected wave's canonical header and controls at screen scale.
+Empty waves retain their frame and their actions in that panel.
+Ticket and wave shapes use stable record IDs. Reconciliation adds and removes source records without a layout reset.
+A position change affects the board document alone. Wave membership changes through the ticket API.
+The canvas protects these record shapes from Delete, Erase, and Duplicate.
+Blue arrows project `TicketSummary.waitsOn` for tickets inside the epic. These arrows describe unfinished dependencies.
+Freehand strokes, text, and sketch arrows are ordinary whiteboard shapes.
+The host retains the document through `epics.whiteboard` and `epics.saveWhiteboard`.
+The web serializes saves, advances the accepted revision, and retains pending drafts across route changes.
+A failed save stops further writes and keeps the local document available. Reload requires confirmation.
+The camera stays in local storage under the epic ID. Document data and inline assets stay in the host snapshot.
+Filters retain every source shape and mark tickets outside the current result with a dashed border and text.
+The Resources tab retains the epic plan and resource documents.
+
+The whiteboard uses tldraw 5.5.2 and assets from the installed package.
+The web and Storybook configurations exclude `@tldraw/assets` from dependency optimization so Vite resolves its asset imports.
+A production renderer needs `VITE_TLDRAW_LICENSE_KEY` at build time.
+The SDK requires a valid production license: https://tldraw.dev/community/license.
 
 ## Database schema
 
@@ -1298,6 +1289,7 @@ are no triggers. Every rule is a constraint or a service function that takes
 | ticket_labels | ticket_id (CASCADE), label_id (CASCADE), created_at. PK (ticket_id, label_id). Index (label_id). |
 | tickets | id PK, project_id (FK projects RESTRICT), number (CHECK > 0), title (CHECK trimmed, 1 to 500), description, priority (CHECK set), status_id (FK statuses RESTRICT), parent_id, epic_id (FK epics SET NULL), wave_id (FK waves SET NULL; CHECK `tickets_wave_needs_epic`: a row with a wave has an epic), position double, version, started_at, completed_at, search tsvector GENERATED (title A, description B), created_at, updated_at. UNIQUE (project_id, number) and (id, project_id). FK (parent_id, project_id) RESTRICT, so a parent ticket sits in the project of its child. Indexes (project_id, status_id, position), (status_id, position, id, project_id), (parent_id), (epic_id), (wave_id), partial (project_id, updated_at DESC) WHERE completed_at IS NULL, partial (project_id, completed_at DESC) WHERE completed_at IS NOT NULL, GIN (search), GIN (title gin_trgm_ops). |
 | epics | id PK, project_id (CASCADE), slug (CHECK slug regex), name (CHECK trimmed, nonempty), description text, canceled_at (nullable), actor_name, actor_kind, created_at, updated_at. FK to actors. Hash equality exclusion on (project_id || / || slug). Index (project_id). Cancellation takes precedence over completion from ticket counts. |
+| epic_whiteboards | epic_id PK (FK epics CASCADE), snapshot jsonb (CHECK object), revision integer (CHECK > 0), updated_at. |
 | waves | id PK, epic_id (CASCADE), slug (CHECK slug regex), name (CHECK trimmed, nonempty), position integer (CHECK >= 0), created_at, updated_at. Hash equality exclusion on (epic_id || / || slug). Index (epic_id, position). The state of a wave is never stored. |
 | comments | id PK, ticket_id (CASCADE), body (1 to 200000), parent_id, resolved_at, actor_name, actor_kind, search tsvector GENERATED (body C), created_at, updated_at. No code reads or writes the table. It keeps the rows that ticket comments stored. |
 | attachments | id PK, ticket_id (CASCADE), filename (1 to 255, no `/`), mime, size (CHECK > 0), sha256 (CHECK hex 64), actor_name, actor_kind, created_at. FK to actors. Index (ticket_id) and (sha256). |
@@ -1389,6 +1381,8 @@ returns one canonical spelling.
 | tickets.delete | DELETE /api/tickets/{ticket} | `force` overrides the agent policy |
 | epics.list | GET /api/epics?project=KEY | the epics of the project; open, done, then canceled; updated desc within each state |
 | epics.get | GET /api/epics/{epic} | the summary, its waves in position order, and its tickets in number order; `{epic}` takes `KEY/slug` with its slash |
+| epics.whiteboard | GET /api/epics/whiteboard/{epic} | the board document and its revision; an unsaved board has revision zero |
+| epics.saveWhiteboard | PUT /api/epics/whiteboard/{epic} | body `{snapshot, expectedRevision}`; returns the saved revision or HTTP 412 on a revision conflict |
 | epics.create | POST /api/epics | 201 and `Location`; `slug` derives from `name` when absent |
 | epics.update | PATCH /api/epics/{epic} | name, slug, description |
 | epics.cancel | POST /api/epics/cancel | body `{epic}`; cancels the epic and its unfinished tickets in one transaction |
@@ -1505,6 +1499,7 @@ Payloads:
 `pr.linked | unlinked | updated {id, ticketIds, projectIds, state, ciState}`,
 `attachment.created | deleted {id, ticketId, projectId}`,
 `statuses.changed {projectId}`, `labels.changed {projectId}`, `epics.changed {projectId, id}`,
+`epic-whiteboard.changed {projectId, id, revision}`,
 `project.created | updated | deleted | moved {id}`, `gh.status {ok, reason}`,
 `flows.changed {id}`, `agent-runs.changed {id}`, `sessions.changed {id}`, and `providers.changed {id}`.
 `packages/api/src/events.ts` holds the one list of names, and the `types=`

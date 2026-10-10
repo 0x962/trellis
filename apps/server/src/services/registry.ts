@@ -25,6 +25,7 @@ import * as epicChatter from "./epicChatter";
 import * as epicAutopilot from "./epics/autopilot";
 import { cancel as cancelEpic } from "./epics/cancel";
 import * as epics from "./epics/epics.ts";
+import * as epicWhiteboard from "./epics/whiteboard";
 import * as evidence from "./evidence/evidence.ts";
 import { prepareNameFromFirstMessage, saveNameFromFirstMessage } from "./firstMessageName";
 import { decide as decideFlowExecution } from "./flowExecutions/decide.ts";
@@ -248,6 +249,8 @@ export const services = {
 	"epicChatter.set": core("mutation", epicChatter.set),
 	"epicChatter.list": core("read", epicChatter.list),
 	"epics.list": core("read", epics.list),
+	"epics.whiteboard": core("read", epicWhiteboard.get),
+	"epics.saveWhiteboard": core("mutation", epicWhiteboard.save),
 	"epics.autopilot": core("read", epicAutopilot.get),
 	"epics.setAutopilot": core("mutation", epicAutopilot.set),
 	"epics.dispatchAutopilot": prepared("mutation", epicAutopilot.dispatch, agentTerminal.result),
