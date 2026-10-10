@@ -52,6 +52,7 @@ export function ChipRow({
 		<>
 			<div className="ticket-composer-properties">
 				<StatusPicker
+					project={project}
 					statuses={statuses}
 					value={status?.id}
 					onPick={onStatus}

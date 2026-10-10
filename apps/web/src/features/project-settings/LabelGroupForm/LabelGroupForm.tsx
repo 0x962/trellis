@@ -1,40 +1,56 @@
-import { LabelGroupNameSchema } from "@trellis/api";
+import { type LabelGroup, LabelGroupNameSchema } from "@trellis/api";
 import { Button, Input } from "@trellis/ui";
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useRef, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { labelWriteMessage } from "../labelWriteMessage";
 
 export type LabelGroupFormProps = {
 	// The key of the project that owns the group.
 	project: string;
+	initialName?: string;
+	onCreated?: (group: LabelGroup) => void;
+	onPendingChange?: (pending: boolean) => void;
 	onChanged: () => Promise<void>;
 	onCancel: () => void;
 };
 
-// The form that creates a label group. It stands above the list. A group
-// that exists takes its new name in the heading band, through the name field
-// of `LabelGroupRow`.
-export function LabelGroupForm({ project, onChanged, onCancel }: LabelGroupFormProps) {
+export function LabelGroupForm({
+	project,
+	initialName = "",
+	onCreated,
+	onPendingChange,
+	onChanged,
+	onCancel,
+}: LabelGroupFormProps) {
 	const { client } = useApp();
-	const [name, setName] = useState("");
+	const [name, setName] = useState(initialName);
 	const [message, setMessage] = useState<string | null>(null);
 	const [saving, setSaving] = useState(false);
+	const submitting = useRef(false);
 
 	const save = async (event: FormEvent) => {
 		event.preventDefault();
+		event.stopPropagation();
+		if (submitting.current) return;
 		const parsed = LabelGroupNameSchema.safeParse(name);
 		if (!parsed.success) {
 			setMessage(parsed.error.issues[0]!.message);
 			return;
 		}
+		submitting.current = true;
 		setSaving(true);
+		onPendingChange?.(true);
 		try {
-			await client.labelGroups.create({ project, name: parsed.data });
+			const group = await client.labelGroups.create({ project, name: parsed.data });
 			await onChanged();
-			onCancel();
+			if (onCreated) onCreated(group);
+			else onCancel();
 		} catch (error) {
 			setSaving(false);
 			setMessage(labelWriteMessage(error));
+		} finally {
+			submitting.current = false;
+			onPendingChange?.(false);
 		}
 	};
 
@@ -43,6 +59,7 @@ export function LabelGroupForm({ project, onChanged, onCancel }: LabelGroupFormP
 			<Input
 				label="Group name"
 				value={name}
+				disabled={saving}
 				autoFocus
 				error={message ?? undefined}
 				onChange={(event) => {

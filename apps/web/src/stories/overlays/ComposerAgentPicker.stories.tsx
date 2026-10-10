@@ -71,9 +71,9 @@ export const ChangeAccount: Story = {
 	play: async (context) => {
 		const body = within(context.canvasElement.ownerDocument.body);
 		await clickButton(/^Agent: Claude/)(context);
-		await userEvent.click(await body.findByRole("combobox", { name: "Account" }));
+		await userEvent.click(await body.findByRole("button", { name: "Account" }));
 		await userEvent.click(await body.findByRole("option", { name: accounts[1]!.name }));
-		await waitFor(() => expect(body.getByRole("combobox", { name: "Account" })).toHaveTextContent(accounts[1]!.name));
+		await waitFor(() => expect(body.getByRole("button", { name: "Account" })).toHaveTextContent(accounts[1]!.name));
 	},
 };
 export const ChangeEffort: Story = {

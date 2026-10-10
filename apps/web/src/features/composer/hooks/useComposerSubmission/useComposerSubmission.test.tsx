@@ -27,24 +27,27 @@ afterEach(async () => {
 const input = { project: "PR", title: "One ticket" };
 const choice = { preset: "codex" as const, model: null, effort: null, accountId: null };
 const run = { id: "run", assigned: true } as AgentRun;
-async function mount(overrides: Partial<Parameters<typeof useComposerSubmission>[0]> = {}) {
+async function mount(overrides: Partial<Parameters<typeof useComposerSubmission>[0]> = {}, storageKey?: string) {
 	let hook!: ReturnType<typeof useComposerSubmission>;
 	const creates: unknown[] = [];
 	const assignments: AgentRunStartInput[] = [];
 	function Probe() {
-		hook = useComposerSubmission({
-			create: async (data) => {
-				creates.push(data);
-				return { identifier: "PR-1" };
+		hook = useComposerSubmission(
+			{
+				create: async (data) => {
+					creates.push(data);
+					return { identifier: "PR-1" };
+				},
+				upload: async () => true,
+				assign: async (data) => {
+					assignments.push(data);
+					return run;
+				},
+				onAssigned: () => {},
+				...overrides,
 			},
-			upload: async () => true,
-			assign: async (data) => {
-				assignments.push(data);
-				return run;
-			},
-			onAssigned: () => {},
-			...overrides,
-		});
+			storageKey,
+		);
 		return null;
 	}
 	const root = createRoot();
@@ -166,4 +169,45 @@ test("create failure leaves no assignment and clear removes the stored receipt",
 	expect(sessionStorage.getItem(submissionKey)).not.toBe(null);
 	await act(async () => success.state().clear());
 	expect(sessionStorage.getItem(submissionKey)).toBe(null);
+});
+
+test("a child receipt survives remount and retry without changing the parent receipt", async () => {
+	const parentBytes = JSON.stringify({ identifier: "PR-99", assignment: null });
+	storage.set(submissionKey, parentBytes);
+	const childKey = `${submissionKey}:child`;
+	let original!: AgentRunStartInput;
+	const child = await mount(
+		{
+			assign: async (data) => {
+				original = data;
+				throw new Error("Response lost");
+			},
+		},
+		childKey,
+	);
+	expect(child.state().getReceipt()).toBeNull();
+	expect(await child.submit()).toBe(false);
+	expect(child.state().getReceipt()?.assignment).toMatchObject({ requestId: original.requestId, complete: false });
+	expect(storage.get(submissionKey)).toBe(parentBytes);
+	const childBytes = storage.get(childKey);
+	await child.close();
+	const resumed = await mount({}, childKey);
+	expect(resumed.state().getReceipt()).toEqual(JSON.parse(childBytes!));
+	expect(await resumed.submit()).toBe(true);
+	expect(resumed.creates).toHaveLength(0);
+	expect(resumed.assignments).toEqual([original]);
+	expect(storage.get(submissionKey)).toBe(parentBytes);
+	await act(async () => resumed.state().clear());
+	expect(storage.has(childKey)).toBe(false);
+	expect(storage.get(submissionKey)).toBe(parentBytes);
+});
+
+test("getReceipt reads the completed receipt from the submit caller before another render", async () => {
+	const f = await mount();
+	const caller = f.state();
+	await act(async () => {
+		expect(await caller.submit(input, choice)).toBe(true);
+		expect(caller.receipt).toBeNull();
+		expect(caller.getReceipt()).toMatchObject({ identifier: "PR-1", assignment: { complete: true } });
+	});
 });

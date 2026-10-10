@@ -7,6 +7,7 @@ import { usePalette } from "../../theme/usePalette";
 export type RadioRowProps = {
 	label: string;
 	checked: boolean;
+	disabled?: boolean;
 	// A status icon or a priority icon before the label.
 	icon?: ReactNode;
 	onPress: () => void;
@@ -27,13 +28,14 @@ const styles = StyleSheet.create({
 
 // One choice in a sheet: a 44 px radio named by its label. The chosen one
 // carries a check on the right.
-export function RadioRow({ label, checked, icon, onPress }: RadioRowProps) {
+export function RadioRow({ label, checked, disabled = false, icon, onPress }: RadioRowProps) {
 	const palette = usePalette();
 	return (
 		<Pressable
 			accessibilityRole="radio"
 			accessibilityLabel={label}
-			accessibilityState={{ checked }}
+			accessibilityState={{ checked, disabled }}
+			disabled={disabled}
 			onPress={onPress}
 			style={({ pressed }) => [styles.row, pressed && { backgroundColor: palette.surface }]}
 		>

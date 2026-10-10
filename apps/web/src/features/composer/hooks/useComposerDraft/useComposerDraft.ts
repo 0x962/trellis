@@ -21,6 +21,7 @@ export type ComposerDraft = {
 export const draftKey = "trellis-composer-draft";
 
 const empty: ComposerDraft = { title: "", description: "" };
+
 const noContext: ComposerOptions = {};
 
 const withContext = (draft: ComposerDraft, options: ComposerOptions): ComposerDraft => {
@@ -35,28 +36,36 @@ const withContext = (draft: ComposerDraft, options: ComposerOptions): ComposerDr
 	};
 };
 
-const read = (): ComposerDraft => {
-	const stored = sessionStorage.getItem(draftKey);
-	return stored === null ? empty : (JSON.parse(stored) as ComposerDraft);
+const read = (storageKey: string, initialDraft: ComposerDraft): ComposerDraft => {
+	const stored = sessionStorage.getItem(storageKey);
+	return stored === null ? initialDraft : (JSON.parse(stored) as ComposerDraft);
 };
 
 // The composer's text, kept in sessionStorage until a create or a discard.
 // A closed dialog loses nothing; a reopened one reads the draft back.
-export const useComposerDraft = (options: ComposerOptions = noContext) => {
-	const [draft, setState] = useState<ComposerDraft>(() => withContext(read(), options));
+export const useComposerDraft = (
+	storageKey: string = draftKey,
+	initialDraft: ComposerDraft = empty,
+	options: ComposerOptions = noContext,
+) => {
+	const key = useRef(storageKey).current;
+	const [draft, setState] = useState<ComposerDraft>(() => withContext(read(key, initialDraft), options));
 	const [previousOptions, setPreviousOptions] = useState(options);
 	const current = useRef(draft);
-	const setDraft = useCallback((change: ComposerDraft | ((draft: ComposerDraft) => ComposerDraft)) => {
-		const next = typeof change === "function" ? change(current.current) : change;
-		current.current = next;
-		setState(next);
-		sessionStorage.setItem(draftKey, JSON.stringify(next));
-	}, []);
+	const setDraft = useCallback(
+		(change: ComposerDraft | ((draft: ComposerDraft) => ComposerDraft)) => {
+			const next = typeof change === "function" ? change(current.current) : change;
+			current.current = next;
+			setState(next);
+			sessionStorage.setItem(key, JSON.stringify(next));
+		},
+		[key],
+	);
 	const clearDraft = useCallback(() => {
 		current.current = empty;
 		setState(empty);
-		sessionStorage.removeItem(draftKey);
-	}, []);
+		sessionStorage.removeItem(key);
+	}, [key]);
 	if (previousOptions !== options) {
 		setPreviousOptions(options);
 		setDraft((current) => withContext(current, options));

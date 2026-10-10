@@ -1,7 +1,8 @@
 import { isDefinedError, safe } from "@orpc/client";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useState, useSyncExternalStore } from "react";
 import { ulid } from "ulid";
 import { useApp } from "../../../../lib/appContext";
+import { createUploadState, scopedUploadState } from "./scopedUploadState";
 
 // Why the server did not store one file. `UPLOAD_FAILED` covers a network
 // failure and a server fault, and it is the only error that a retry can clear.
@@ -20,6 +21,7 @@ export type Upload = {
 
 export type Uploads = {
 	uploads: Upload[];
+	missingFiles: string[];
 	// With no ticket identifier, `useUploads` keeps each added file pending
 	// until `uploadPending` receives one.
 	addFiles: (files: File[]) => void;
@@ -36,20 +38,16 @@ export type Uploads = {
 
 // Each settled upload invalidates the attachment list of its target ticket.
 // The grid then renders the server row instead of a local copy.
-export const useUploads = (ticket?: string, removeCompleted = true): Uploads => {
+export const useUploads = (ticket?: string, removeCompleted = true, scope?: string): Uploads => {
 	const { client, orpc, queryClient, scheduler } = useApp();
-	const [uploads, setUploads] = useState<Upload[]>([]);
-	const uploadsRef = useRef<Upload[]>([]);
-	// One AbortController for each request that is still open, keyed by the
-	// upload id. `clear` aborts each one, so a discarded composer attaches
-	// no file to the ticket it already created.
-	const running = useRef(new Map<string, AbortController>());
-
-	const update = useCallback((change: (current: Upload[]) => Upload[]) => {
-		const next = change(uploadsRef.current);
-		uploadsRef.current = next;
-		setUploads(next);
-	}, []);
+	const [state] = useState(() => (scope === undefined ? createUploadState() : scopedUploadState(scope)));
+	const snapshot = useSyncExternalStore(state.subscribe, state.getSnapshot, state.getSnapshot);
+	const update = useCallback(
+		(change: (current: Upload[]) => Upload[]) => {
+			state.update((current) => ({ ...current, uploads: change(current.uploads) }));
+		},
+		[state],
+	);
 
 	// Sets the status of every listed file in one state write, so a
 	// selection of many files redraws the list once and not once per file.
@@ -69,11 +67,11 @@ export const useUploads = (ticket?: string, removeCompleted = true): Uploads => 
 	const send = useCallback(
 		async (entry: Upload, target: string): Promise<boolean> => {
 			const controller = new AbortController();
-			running.current.set(entry.id, controller);
+			state.running.set(entry.id, controller);
 			const { error } = await safe(
 				client.attachments.upload({ id: entry.id, ticket: target, file: entry.file }, { signal: controller.signal }),
 			);
-			running.current.delete(entry.id);
+			state.running.delete(entry.id);
 			// An aborted request belongs to an entry that `clear` removed.
 			if (controller.signal.aborted) return false;
 			if (error !== null) {
@@ -103,54 +101,72 @@ export const useUploads = (ticket?: string, removeCompleted = true): Uploads => 
 			}
 			return true;
 		},
-		[client, orpc, queryClient, removeCompleted, scheduler, update],
+		[client, orpc, queryClient, removeCompleted, scheduler, state, update],
 	);
 
 	const addFiles = useCallback(
 		(files: File[]) => {
-			const entries: Upload[] = files.map((file) => ({
-				id: ulid(),
-				file,
-				percent: 0,
-				status: ticket === undefined ? "pending" : "uploading",
-				error: null,
-			}));
-			update((current) => [...current, ...entries]);
+			const entries: Upload[] = [];
+			state.update((current) => {
+				const missing = [...current.missing];
+				for (const file of files) {
+					const index = missing.findIndex(
+						(item) => item.name === file.name && item.size === file.size && item.lastModified === file.lastModified,
+					);
+					const saved = index === -1 ? undefined : missing.splice(index, 1)[0];
+					entries.push({
+						id: saved?.id ?? ulid(),
+						file,
+						percent: 0,
+						status: ticket === undefined ? "pending" : "uploading",
+						error: null,
+					});
+				}
+				return { uploads: [...current.uploads, ...entries], missing };
+			});
 			if (ticket !== undefined) for (const entry of entries) void send(entry, ticket);
 		},
-		[send, ticket, update],
+		[send, ticket, state],
 	);
 
 	const uploadPending = useCallback(
 		async (target: string) => {
-			const pending = uploadsRef.current.filter((entry) => entry.status === "pending");
+			if (state.getSnapshot().missing.length > 0) return false;
+			const generation = state.generation;
+			const pending = state.getSnapshot().uploads.filter((entry) => entry.status === "pending");
 			markUploading(pending.map((entry) => entry.id));
 			await Promise.all(pending.map((entry) => send(entry, target)));
-			return uploadsRef.current.every((entry) => entry.status === "complete");
+			return (
+				generation === state.generation &&
+				state.getSnapshot().missing.length === 0 &&
+				state.getSnapshot().uploads.every((entry) => entry.status === "complete")
+			);
 		},
-		[markUploading, send],
+		[markUploading, send, state],
 	);
 
 	const retry = useCallback(
 		async (id: string, target: string) => {
-			const entry = uploadsRef.current.find((item) => item.id === id)!;
+			const entry = state.getSnapshot().uploads.find((item) => item.id === id)!;
 			// A second click on Retry arrives before React hides the button.
 			// Without this check the server stores the same file twice.
 			if (entry.status === "uploading") return false;
 			markUploading([id]);
 			return send(entry, target);
 		},
-		[markUploading, send],
+		[markUploading, send, state],
 	);
 
 	const clear = useCallback(() => {
-		for (const controller of running.current.values()) controller.abort();
-		running.current.clear();
-		update(() => []);
-	}, [update]);
+		state.generation++;
+		for (const controller of state.running.values()) controller.abort();
+		state.running.clear();
+		state.update(() => ({ uploads: [], missing: [] }));
+	}, [state]);
 
 	return {
-		uploads,
+		uploads: snapshot.uploads,
+		missingFiles: snapshot.missing.map((file) => file.name),
 		addFiles,
 		uploadPending,
 		retry,

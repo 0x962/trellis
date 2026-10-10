@@ -31,6 +31,7 @@ export function ComposerHeader({
 	return (
 		<>
 			<ProjectPicker
+				scope={project}
 				projects={projects}
 				value={selected?.key ?? project}
 				allowNoProject={allowNoProject}

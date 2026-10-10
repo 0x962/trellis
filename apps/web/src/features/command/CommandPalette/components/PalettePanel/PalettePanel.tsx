@@ -4,8 +4,10 @@ import type { Ticket } from "@trellis/api";
 import { CodeText, Command, Kbd } from "@trellis/ui";
 import { type KeyboardEvent, useEffect, useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
-import { projectRefOfPathname } from "../../../../../lib/projectUrl";
+import { projectHref, projectRefOfPathname } from "../../../../../lib/projectUrl";
 import { currentPlatform, formatShortcut } from "../../../../../lib/shortcuts";
+import { createNameItem } from "../../../../pickers/utils/createNameItem";
+import { CreateProjectDialog } from "../../../../project-actions/CreateProjectDialog";
 import type { BulkWrite } from "../../../../table/hooks/useBulkWrite";
 import { commandActions, useCommandStore } from "../../../commandStore";
 import { useActionContext } from "../../../hooks/useActionContext";
@@ -17,6 +19,7 @@ import { jumpRow, ticketResultRows } from "../../../utils/resultRows";
 import { submenuHeadings } from "../../../utils/submenuRows";
 import { selectionRows, ticketRows } from "../../../utils/ticketRows";
 import { createRows, gotoProjectRows, gotoRows, viewRows } from "../../../utils/viewRows";
+import type { RelatedTicketRequest } from "../../relatedTicketRequest";
 import { SubmenuGroup } from "../SubmenuGroup";
 
 export type PalettePanelProps = {
@@ -29,6 +32,7 @@ export type PalettePanelProps = {
 	// component above this one, which stays mounted after the palette closes,
 	// so its confirm dialog keeps the screen while the person answers.
 	bulk: BulkWrite;
+	onCreateTicket: (request: RelatedTicketRequest) => void;
 };
 
 const placeholders = {
@@ -65,7 +69,7 @@ const selectionHeading = (count: number) => (
 // and View. With a query, it lists matching tickets, commands, and projects.
 // A group with no match stays hidden. The panel filters the rows,
 // because the cmdk rank would move tickets from the top.
-export function PalettePanel({ identifier, ticket, submenu, onSubmenu, bulk }: PalettePanelProps) {
+export function PalettePanel({ identifier, ticket, submenu, onSubmenu, bulk, onCreateTicket }: PalettePanelProps) {
 	const { orpc } = useApp();
 	const mode = useCommandStore((state) => state.mode);
 	const selection = useCommandStore((state) => state.selection);
@@ -74,6 +78,7 @@ export function PalettePanel({ identifier, ticket, submenu, onSubmenu, bulk }: P
 	const search = useRouterState({ select: (state) => state.location.search as Record<string, unknown> });
 	const action = useActionContext();
 	const projects = useSuspenseQuery(orpc.projects.list.queryOptions({ input: {} })).data;
+	const [createProjectName, setCreateProjectName] = useState<string | null>(null);
 	const [query, setQuery] = useState("");
 	const [value, setValue] = useState("");
 
@@ -121,6 +126,14 @@ export function PalettePanel({ identifier, ticket, submenu, onSubmenu, bulk }: P
 		commands.push({ id: "view", heading: "View", rows: viewRows(deps) });
 	}
 
+	const projectCreate =
+		mode === "projects" || submenu?.kind === "goto"
+			? createNameItem(
+					"project",
+					typed,
+					projects.map((project) => project.name),
+				)
+			: null;
 	const groups: PaletteGroup[] = [];
 	if (submenu === null && mode === "projects") {
 		groups.push({ id: "projects", heading: submenuHeadings.goto, rows: gotoProjectRows(deps) });
@@ -166,48 +179,72 @@ export function PalettePanel({ identifier, ticket, submenu, onSubmenu, bulk }: P
 	};
 
 	return (
-		<Command.Root
-			label="Command palette"
-			value={value}
-			onValueChange={setValue}
-			shouldFilter={submenu !== null}
-			className="min-h-0"
-		>
-			<Command.Field
-				placeholder={submenu === null ? placeholders[mode] : submenuHeadings[submenu.kind]}
-				context={identifier ?? undefined}
-				value={query}
-				onValueChange={setQuery}
-				onKeyDown={onKeyDown}
-				autoFocus
-			/>
-			<Command.List>
-				{results.jump !== null && drawRows([jumpRow(results.jump, deps)])}
-				{submenu !== null && <SubmenuGroup submenu={submenu} deps={deps} />}
-				{groups.map((group) => (
-					<Command.Group key={group.id} heading={group.heading}>
-						{drawRows(group.rows)}
-					</Command.Group>
-				))}
-				{nothing && <Command.Empty>No results</Command.Empty>}
-			</Command.List>
-			<Command.Footer>
-				<span className="flex items-center gap-1.5">
-					<Kbd>↑↓</Kbd> move
-				</span>
-				<span className="flex items-center gap-1.5">
-					<Kbd>↵</Kbd> run
-				</span>
-				<span className="flex items-center gap-1.5">
-					{formatShortcut("mod+enter", currentPlatform()).map((cap) => (
-						<Kbd key={cap}>{cap}</Kbd>
+		<>
+			<Command.Root
+				label="Command palette"
+				value={value}
+				onValueChange={setValue}
+				shouldFilter={submenu !== null || mode === "projects"}
+				className="min-h-0"
+			>
+				<Command.Field
+					placeholder={submenu === null ? placeholders[mode] : submenuHeadings[submenu.kind]}
+					context={identifier ?? undefined}
+					value={query}
+					onValueChange={setQuery}
+					onKeyDown={onKeyDown}
+					autoFocus
+				/>
+				<Command.List>
+					{results.jump !== null && drawRows([jumpRow(results.jump, deps)])}
+					{submenu !== null && (
+						<SubmenuGroup submenu={submenu} deps={deps} query={query} onCreateTicket={onCreateTicket} />
+					)}
+					{groups.map((group) => (
+						<Command.Group key={group.id} heading={group.heading}>
+							{drawRows(group.rows)}
+						</Command.Group>
 					))}
-					open full search
-				</span>
-				<span className="ml-auto" title={`Type an ID such as ${hintKey}-12 to open the ticket`}>
-					Type an ID such as <CodeText>{hintKey}-12</CodeText> to open the ticket
-				</span>
-			</Command.Footer>
-		</Command.Root>
+					{projectCreate && (
+						<Command.Row
+							value={projectCreate.id}
+							label={projectCreate.label}
+							icon={projectCreate.icon}
+							keywords={[typed]}
+							onSelect={() => setCreateProjectName(typed)}
+						/>
+					)}
+					{nothing && <Command.Empty>No results</Command.Empty>}
+				</Command.List>
+				<Command.Footer>
+					<span className="flex items-center gap-1.5">
+						<Kbd>↑↓</Kbd> move
+					</span>
+					<span className="flex items-center gap-1.5">
+						<Kbd>↵</Kbd> run
+					</span>
+					<span className="flex items-center gap-1.5">
+						{formatShortcut("mod+enter", currentPlatform()).map((cap) => (
+							<Kbd key={cap}>{cap}</Kbd>
+						))}
+						open full search
+					</span>
+					<span className="ml-auto" title={`Type an ID such as ${hintKey}-12 to open the ticket`}>
+						Type an ID such as <CodeText>{hintKey}-12</CodeText> to open the ticket
+					</span>
+				</Command.Footer>
+			</Command.Root>
+			{createProjectName !== null && (
+				<CreateProjectDialog
+					initialName={createProjectName}
+					onClose={() => setCreateProjectName(null)}
+					onCreated={(project) => {
+						setCreateProjectName(null);
+						commandActions.close();
+						action.navigate(projectHref(project.key, "table"));
+					}}
+				/>
+			)}
+		</>
 	);
 }

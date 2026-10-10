@@ -1,9 +1,10 @@
 import { ORPCError } from "@orpc/client";
 import type { Status } from "@trellis/api";
 import { errors } from "@trellis/api";
-import { ConfirmDialog, FormStatus, Select } from "@trellis/ui";
+import { ConfirmDialog, FormStatus, PickerButton } from "@trellis/ui";
 import { useMemo, useState } from "react";
 import { useApp } from "../../../lib/appContext";
+import { StatusPicker } from "../../pickers/StatusPicker";
 import { statusDeletePresentation } from "./statusDeletePresentation";
 
 export type StatusDeleteDialogProps = {
@@ -32,10 +33,7 @@ export function StatusDeleteDialog({
 	const [moveTo, setMoveTo] = useState("");
 	const [ticketCountOverride, setTicketCountOverride] = useState<number | null>(null);
 	const [lastStatusOverride, setLastStatusOverride] = useState(false);
-	const alternatives = useMemo(
-		() => statuses.filter((entry) => entry.id !== status?.id).map((entry) => ({ value: entry.id, label: entry.name })),
-		[status, statuses],
-	);
+	const alternatives = useMemo(() => statuses.filter((entry) => entry.id !== status?.id), [status, statuses]);
 	const effectiveTicketCount = ticketCountOverride ?? ticketCount;
 	const lastStatus = lastStatusOverride || statuses.length === 1;
 	const presentation = statusDeletePresentation(effectiveTicketCount, lastStatus, moveTo);
@@ -90,13 +88,16 @@ export function StatusDeleteDialog({
 		>
 			{message !== null && <FormStatus status="error" message={message} />}
 			{presentation.needsReplacement && !lastStatus && (
-				<Select
-					label="Move tickets to"
-					placeholder="Select a status"
-					items={alternatives}
+				<StatusPicker
+					project={project}
+					statuses={alternatives}
 					value={moveTo}
-					disabled={busy}
-					onValueChange={setMoveTo}
+					onPick={(picked) => setMoveTo(picked.id)}
+					trigger={
+						<PickerButton label="Move tickets to" disabled={busy}>
+							{alternatives.find((entry) => entry.id === moveTo)?.name ?? "Select a status"}
+						</PickerButton>
+					}
 				/>
 			)}
 		</ConfirmDialog>

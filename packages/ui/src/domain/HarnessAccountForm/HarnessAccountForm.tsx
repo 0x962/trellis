@@ -10,25 +10,31 @@ export function HarnessAccountForm({
 	open,
 	busy,
 	error,
+	initialName = "",
+	initialHarness = "claude",
+	lockHarness = false,
 	onClose,
 	onSubmit,
 }: {
 	open: boolean;
 	busy: boolean;
 	error?: string;
+	initialName?: string;
+	initialHarness?: Harness;
+	lockHarness?: boolean;
 	onClose: () => void;
 	onSubmit: (value: { name: string; harness: Harness; profilePath?: string }) => void;
 }) {
 	const nameRef = useRef<HTMLInputElement>(null);
-	const [name, setName] = useState("");
-	const [harness, setHarness] = useState<Harness>("claude");
+	const [name, setName] = useState(initialName);
+	const [harness, setHarness] = useState<Harness>(initialHarness);
 	const [path, setPath] = useState("");
 	return (
 		<Sheet
 			open={open}
 			onOpenChange={(next) => !next && !busy && onClose()}
 			title="Add agent account"
-			description="Create a separate login profile, or connect an existing profile on this machine."
+			description="Create a separate login profile, or connect an existing profile on this machine. A new profile may require sign-in before use."
 			initialFocus={nameRef}
 			titleClassName="text-md font-medium"
 		>
@@ -37,6 +43,8 @@ export function HarnessAccountForm({
 					className="flex flex-col gap-4"
 					onSubmit={(event) => {
 						event.preventDefault();
+						event.stopPropagation();
+						if (busy) return;
 						onSubmit({ name: name.trim(), harness, ...(path.trim() ? { profilePath: path.trim() } : {}) });
 					}}
 				>
@@ -52,6 +60,7 @@ export function HarnessAccountForm({
 						<span className="text-sm">Harness</span>
 						<Select
 							label="Account harness"
+							disabled={lockHarness || busy}
 							value={harness}
 							onValueChange={setHarness}
 							items={[

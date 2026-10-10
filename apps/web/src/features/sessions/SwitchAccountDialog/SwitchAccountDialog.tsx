@@ -3,6 +3,8 @@ import type { AgentRun } from "@trellis/api";
 import { Button, Command, ConfirmDialog, Dialog, FailureState } from "@trellis/ui";
 import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
+import { AccountCreateForm } from "../../agents/AccountCreateForm";
+import { createNameItem } from "../../pickers/utils/createNameItem";
 import { useSessionRestart } from "../useSessionRestart";
 
 export function SwitchAccountDialog({ run, onClose }: { run: AgentRun; onClose: () => void }) {
@@ -17,6 +19,16 @@ export function SwitchAccountDialog({ run, onClose }: { run: AgentRun; onClose: 
 	);
 	const [activeAccount, setActiveAccount] = useState(run.accountId ?? "");
 	const [search, setSearch] = useState("");
+	const [createName, setCreateName] = useState<string | null>(null);
+	const harness = run.harness?.preset;
+	const createItem =
+		accounts.isSuccess && harness && harness !== "custom"
+			? createNameItem(
+					"account",
+					search,
+					choices.map((account) => account.name),
+				)
+			: null;
 	const [launchError, setLaunchError] = useState<string | null>(null);
 	const change = useSessionRestart(run, {
 		mutationFn: () =>
@@ -68,7 +80,7 @@ export function SwitchAccountDialog({ run, onClose }: { run: AgentRun; onClose: 
 	return (
 		<>
 			<Dialog
-				open={selected === null}
+				open={selected === null && createName === null}
 				onOpenChange={(open) => {
 					if (!open) onClose();
 				}}
@@ -101,7 +113,7 @@ export function SwitchAccountDialog({ run, onClose }: { run: AgentRun; onClose: 
 							onValueChange={setSearch}
 						/>
 						<Command.List>
-							{visibleItems.length === 0 && (
+							{visibleItems.length === 0 && !createItem && (
 								<Command.Empty>
 									{accounts.isPending
 										? "Load accounts…"
@@ -129,6 +141,13 @@ export function SwitchAccountDialog({ run, onClose }: { run: AgentRun; onClose: 
 									}}
 								/>
 							))}
+							{createItem && (
+								<Command.Row
+									value={createItem.id}
+									label={createItem.label}
+									onSelect={() => setCreateName(search.trim())}
+								/>
+							)}
 						</Command.List>
 						{activeItem && (
 							<Command.Footer>
@@ -139,6 +158,23 @@ export function SwitchAccountDialog({ run, onClose }: { run: AgentRun; onClose: 
 					</Command.Root>
 				)}
 			</Dialog>
+			{createName !== null && harness && harness !== "custom" && (
+				<AccountCreateForm
+					scope={JSON.stringify([run.id, run.terminalId])}
+					name={createName}
+					harness={harness}
+					onClose={() => setCreateName(null)}
+					onCreated={(account) => {
+						setCreateName(null);
+						setSelected({
+							id: account.id,
+							label: account.name,
+							terminalId: run.terminalId!,
+							requestId: crypto.randomUUID(),
+						});
+					}}
+				/>
+			)}
 			<ConfirmDialog
 				open={selected !== null}
 				title={`Switch to ${selected?.label ?? "account"}?`}

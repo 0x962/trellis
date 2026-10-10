@@ -46,6 +46,8 @@ export function HiddenPickers({
 		<>
 			{editing === "status" && !columns.includes("status") && (
 				<StatusPicker
+					scope={ticket.identifier}
+					project={ticket.project.key}
 					statuses={statuses}
 					value={ticket.status.id}
 					open
@@ -78,6 +80,7 @@ export function HiddenPickers({
 			)}
 			{editing === "epic" && (
 				<EpicPicker
+					scope={ticket.identifier}
 					project={ticket.project.key}
 					value={ticket.epic?.ref}
 					open
@@ -89,6 +92,7 @@ export function HiddenPickers({
 			)}
 			{editing === "wave" && ticket.epic !== null && (
 				<WavePicker
+					scope={ticket.identifier}
 					epic={ticket.epic.ref}
 					value={ticket.wave?.ref}
 					open
@@ -100,6 +104,7 @@ export function HiddenPickers({
 			)}
 			{editing === "parent" && (
 				<TicketPicker
+					scope={ticket.identifier}
 					project={ticket.project.key}
 					value={ticket.parent?.identifier}
 					exclude={[ticket.identifier]}

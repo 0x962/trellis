@@ -18,7 +18,9 @@ export async function checkAccountNames({ canvasElement }: { canvasElement: HTML
 	}
 	const search = page.getByRole("combobox", { name: "Search accounts" });
 	await userEvent.type(search, "No such account");
-	await expect(await page.findByText("No matching accounts.")).toBeVisible();
+	await expect(await page.findByRole("option", { name: 'Create account "No such account"' })).toBeVisible();
+	await expect(page.queryByRole("option", { name: /avery@example.test.*Primary/ })).not.toBeInTheDocument();
+	await expect(page.queryByRole("option", { name: /avery@example.test.*Team/ })).not.toBeInTheDocument();
 	await userEvent.clear(search);
 	await userEvent.type(search, "Team");
 	await userEvent.keyboard("{ArrowDown}{Enter}");

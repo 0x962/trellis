@@ -58,6 +58,7 @@ export function EpicTopbarActions({
 				<TopbarActionButton data-bar-slot="add" label="Add" icon={<Plus />} disabled />
 			) : (
 				<EpicCreateActions
+					epic={epic.ref}
 					project={project}
 					exclude={epic.identifiers}
 					waveEditing={waveEditing}

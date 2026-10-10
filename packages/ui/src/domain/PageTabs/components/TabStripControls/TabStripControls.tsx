@@ -10,6 +10,8 @@ type Props = {
 	tabs: readonly PageTabItem[];
 	activeId: string;
 	otherGroups: readonly PageTabGroupItem[];
+	groupNames: readonly string[];
+	onGroupCreate?: (name: string) => void;
 	canPickGroup: boolean;
 	groupPickerOpen: boolean;
 	onGroupPickerOpenChange: (open: boolean) => void;
@@ -25,6 +27,8 @@ export function TabStripControls({
 	tabs,
 	activeId,
 	otherGroups,
+	groupNames,
+	onGroupCreate,
 	canPickGroup,
 	groupPickerOpen,
 	onGroupPickerOpenChange,
@@ -48,6 +52,8 @@ export function TabStripControls({
 			{canPickGroup && (
 				<TabGroupPicker
 					groups={otherGroups}
+					groupNames={groupNames}
+					onCreate={onGroupCreate}
 					open={groupPickerOpen}
 					onOpenChange={onGroupPickerOpenChange}
 					onSelect={onGroupSelect}

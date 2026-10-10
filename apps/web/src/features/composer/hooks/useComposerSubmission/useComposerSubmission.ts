@@ -16,9 +16,10 @@ type Services = {
 	onAssigned: (run: AgentRun, choice: AssignChoice) => void;
 };
 
-export function useComposerSubmission(services: Services) {
+export function useComposerSubmission(services: Services, storageKey: string = submissionKey) {
+	const key = useRef(storageKey).current;
 	const [receipt, setReceipt] = useState<ComposerReceipt | null>(() => {
-		const stored = sessionStorage.getItem(submissionKey);
+		const stored = sessionStorage.getItem(key);
 		return stored === null ? null : (JSON.parse(stored) as ComposerReceipt);
 	});
 	const current = useRef(receipt);
@@ -28,8 +29,8 @@ export function useComposerSubmission(services: Services) {
 	function save(next: ComposerReceipt | null) {
 		current.current = next;
 		setReceipt(next);
-		if (next === null) sessionStorage.removeItem(submissionKey);
-		else sessionStorage.setItem(submissionKey, JSON.stringify(next));
+		if (next === null) sessionStorage.removeItem(key);
+		else sessionStorage.setItem(key, JSON.stringify(next));
 	}
 	async function submit(input: TicketCreateInput, choice: AssignChoice | null) {
 		if (running.current) return false;
@@ -75,6 +76,7 @@ export function useComposerSubmission(services: Services) {
 	}
 	return {
 		receipt,
+		getReceipt: (): ComposerReceipt | null => current.current,
 		phase,
 		failure,
 		submit,

@@ -3,12 +3,14 @@ import { ComposerAgentPicker } from "../../../../agents/ComposerAgentPicker";
 
 export function AgentPicker({
 	value,
+	scope,
 	accounts,
 	assignAgent,
 	onChange,
 	disabled,
 }: {
 	value: AssignChoice | null;
+	scope?: string;
 	accounts: AssignAccounts;
 	assignAgent: boolean;
 	onChange: (choice: AssignChoice | null) => void;
@@ -16,6 +18,7 @@ export function AgentPicker({
 }) {
 	return (
 		<ComposerAgentPicker
+			scope={scope}
 			value={value}
 			accounts={accounts}
 			disabled={disabled}

@@ -45,7 +45,7 @@ export const NewFlowLoading: Story = {
 	play: async ({ canvasElement }) => {
 		const body = within(canvasElement.ownerDocument.body);
 		await expect(await body.findByText("Loading projects...")).toBeVisible();
-		await expect(body.getByRole("combobox", { name: "Project" })).toBeDisabled();
+		await expect(body.getByRole("button", { name: "Project" })).toBeDisabled();
 		await expect(body.getByRole("button", { name: "Create flow" })).toBeDisabled();
 	},
 };
@@ -119,7 +119,7 @@ export const ProjectMenuOpen: Story = {
 	...ProjectSelected,
 	play: async ({ canvasElement }) => {
 		const body = within(canvasElement.ownerDocument.body);
-		const project = await body.findByRole("combobox", { name: "Project" });
+		const project = await body.findByRole("button", { name: "Project" });
 		await waitFor(() => expect(project).toBeEnabled());
 		await userEvent.click(project);
 		const everyProject = await body.findByRole("option", { name: "Every project" });
@@ -132,7 +132,7 @@ export const ChangeProject: Story = {
 	...ProjectSelected,
 	play: async ({ canvasElement }) => {
 		const body = within(canvasElement.ownerDocument.body);
-		const project = await body.findByRole("combobox", { name: "Project" });
+		const project = await body.findByRole("button", { name: "Project" });
 		await waitFor(() => expect(project).toBeEnabled());
 		await userEvent.click(project);
 		await userEvent.click(await body.findByRole("option", { name: "Every project" }));

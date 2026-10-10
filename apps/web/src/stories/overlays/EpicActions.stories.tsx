@@ -78,6 +78,7 @@ export const SwitcherEmpty: Story = { ...SwitcherOpen, parameters: { trellis: { 
 export const WaveClosed: Story = {
 	render: () => (
 		<WaveActions
+			wave={wave.ref}
 			name={wave.name}
 			project="DEMO"
 			exclude={[]}
@@ -95,6 +96,7 @@ export const WaveOpen: Story = { ...WaveClosed, play: clickButton("Actions for F
 export const WaveDisabled: Story = {
 	render: () => (
 		<WaveActions
+			wave={wave.ref}
 			name={wave.name}
 			project="DEMO"
 			exclude={[]}

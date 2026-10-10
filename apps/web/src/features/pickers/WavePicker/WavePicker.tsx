@@ -1,17 +1,15 @@
 import { useQuery } from "@tanstack/react-query";
-import type { WaveSummary } from "@trellis/api";
+import { WaveNameSchema, type WaveSummary } from "@trellis/api";
 import { Command, type CommandGroup, type CommandItem, Popover } from "@trellis/ui";
 import { createElement, type ReactElement, type RefObject, useRef, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { PickerFailure } from "../components/PickerFailure";
 import { RowMarks } from "../components/RowMarks";
 import type { EpicWaves } from "../hooks/useEpicWaves";
-import { nextWaveName } from "../utils/nextWaveName";
+import { usePickerCreate } from "../hooks/usePickerCreate";
+import { createNameItem } from "../utils/createNameItem";
 
 const noneId = "none";
-// The id of the New wave option. A wave ref always holds a slash, so no
-// wave takes this id.
-const newId = "new-wave";
 
 export type WaveItemOptions = {
 	// The ref of the current wave.
@@ -53,6 +51,7 @@ export const waveGroups = (epics: readonly EpicWaves[], options: WaveItemOptions
 export type WavePickerProps = {
 	// The ref of the epic whose waves the list holds.
 	epic: string;
+	scope?: string;
 	// The ref of the current wave.
 	value?: string;
 	// True when the picker writes to several tickets that hold different
@@ -61,9 +60,6 @@ export type WavePickerProps = {
 	allowNone?: boolean;
 	// `null` clears the wave.
 	onPick: (wave: WaveSummary | null) => void;
-	// Adds the New wave option last. It receives the typed search text as
-	// the name, or `Wave <n>` when the search is empty.
-	onCreate?: (name: string) => void;
 	trigger: ReactElement;
 	open?: boolean;
 	onOpenChange?: (open: boolean) => void;
@@ -75,18 +71,18 @@ export type WavePickerProps = {
 // searchable by name and ref, and a None option that clears the wave.
 export function WavePicker({
 	epic,
+	scope,
 	value,
 	mixed = false,
 	allowNone = true,
 	onPick,
-	onCreate,
 	trigger,
 	open,
 	onOpenChange,
 	finalFocus,
 	side,
 }: WavePickerProps) {
-	const { orpc } = useApp();
+	const { client, orpc, queryClient } = useApp();
 	const [own, setOwn] = useState(false);
 	const [search, setSearch] = useState("");
 	const input = useRef<HTMLInputElement>(null);
@@ -98,7 +94,10 @@ export function WavePicker({
 	const setOpen = (next: boolean) => {
 		setOwn(next);
 		// The search field opens empty each time.
-		if (!next) setSearch("");
+		if (!next) {
+			setSearch("");
+			creation.reset();
+		}
 		onOpenChange?.(next);
 	};
 
@@ -115,10 +114,23 @@ export function WavePicker({
 						? [{ id: noneId, label: "No wave", current: none, trailing: createElement(RowMarks, { current: none }) }]
 						: []),
 				];
-	const newName = search.trim() === "" ? nextWaveName(waves) : search.trim();
-	if (onCreate !== undefined && loaded !== undefined && !list.isError) {
-		items.push({ id: newId, label: "New wave", hint: newName, pinned: true });
-	}
+	const creation = usePickerCreate({
+		scope: JSON.stringify([epic, scope]),
+		create: (name) => client.waves.create({ epic, name }),
+		invalidate: () => queryClient.invalidateQueries({ queryKey: orpc.epics.key() }),
+		onCreated: (wave) => {
+			onPick(wave);
+			setOpen(false);
+		},
+	});
+	const createItem = list.isSuccess
+		? createNameItem(
+				"wave",
+				search,
+				waves.map((wave) => wave.name),
+				(name) => WaveNameSchema.safeParse(name).success,
+			)
+		: null;
 
 	return (
 		<Popover
@@ -135,16 +147,30 @@ export function WavePicker({
 				inputRef={input}
 				label="Search waves"
 				placeholder="Set wave"
-				items={items}
+				items={createItem ? [...items, createItem] : items}
 				listClassName={list.isError && items.length === 0 ? "hidden" : undefined}
 				onSearchChange={setSearch}
 				empty={list.isError ? "" : list.isPending ? "Load waves…" : "No waves."}
 				onSelect={(id) => {
+					if (creation.pending) return;
+					if (id === createItem?.id) {
+						creation.create(search.trim());
+						return;
+					}
 					setOpen(false);
-					if (id === newId) onCreate!(newName);
-					else onPick(id === noneId ? null : waves.find((wave) => wave.ref === id)!);
+					onPick(id === noneId ? null : waves.find((wave) => wave.ref === id)!);
 				}}
 			/>
+			{creation.pending && (
+				<p role="status" className="px-3 py-2 text-sm text-fg-muted">
+					Create wave…
+				</p>
+			)}
+			{creation.error !== null && (
+				<p role="alert" className="m-1 rounded-sm bg-danger-soft px-2 py-1.5 text-sm text-danger">
+					{creation.error}
+				</p>
+			)}
 			<PickerFailure
 				title="Waves could not load."
 				error={list.error}

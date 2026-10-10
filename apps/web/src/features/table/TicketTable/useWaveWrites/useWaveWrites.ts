@@ -11,10 +11,6 @@ export type WaveWritesOptions = {
 	// table with no project get no wave controls.
 	waveEditing?: WaveEditing;
 	project?: string;
-	// The ref of the epic that the selected tickets share, for a new wave.
-	epicRef?: string;
-	// The tickets of the selection, read at the moment of the write.
-	selectedTickets: () => TicketSummary[];
 	ticketById: (id: string) => TicketSummary;
 	applyChange: ReturnType<typeof useApplyChange>;
 	mutations: TicketMutations;
@@ -24,38 +20,28 @@ export type WaveWritesOptions = {
 
 export type WaveWrites = {
 	waves?: WaveHeaderOptions & { onDrop: (ticketIds: string[], group: TableGroup) => void };
-	createWave: (name: string) => Promise<void>;
 };
 
 // The writes that move a ticket between the waves of one epic: the drop of
-// dragged rows on a wave header, Add tickets to this wave, and New wave from
-// the bulk bar. Each write refetches the epic, because the wave counts of the
-// headers live on it.
+// dragged rows on a wave header and Add tickets to this wave.
+// Each write refetches the epic that supplies the counts for its wave headers.
 export function useWaveWrites({
 	waveEditing,
 	project,
-	epicRef,
-	selectedTickets,
 	ticketById,
 	applyChange,
 	mutations,
 	onNewTicket,
 }: WaveWritesOptions): WaveWrites {
-	const { client, orpc, queryClient } = useApp();
+	const { orpc, queryClient } = useApp();
 
 	const setWave = async (targets: readonly TicketSummary[], wave: WaveSummary | null) => {
 		await applyChange(targets, { wave }, targets.length > 1 ? "selection" : "row");
 		await queryClient.invalidateQueries({ queryKey: orpc.epics.key() });
 	};
 
-	const createWave = async (name: string) => {
-		const wave = await client.waves.create({ epic: epicRef!, name });
-		await setWave(selectedTickets(), wave);
-	};
-
-	if (waveEditing === undefined || project === undefined) return { createWave };
+	if (waveEditing === undefined || project === undefined) return {};
 	return {
-		createWave,
 		waves: {
 			editing: waveEditing,
 			project,

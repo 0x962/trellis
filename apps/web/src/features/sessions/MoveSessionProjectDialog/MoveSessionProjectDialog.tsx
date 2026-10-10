@@ -5,6 +5,9 @@ import { useRef, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { projectItems, selectableProjects } from "../../pickers/ProjectPicker";
 
+import { createNameItem } from "../../pickers/utils/createNameItem";
+import { CreateProjectDialog } from "../../project-actions/CreateProjectDialog";
+
 const noProject = "__trellis_no_project__";
 
 export type MoveSessionProjectDialogProps = {
@@ -15,6 +18,8 @@ export type MoveSessionProjectDialogProps = {
 
 export function MoveSessionProjectDialog({ session, open, onOpenChange }: MoveSessionProjectDialogProps) {
 	const { client, orpc, queryClient } = useApp();
+	const [search, setSearch] = useState("");
+	const [createName, setCreateName] = useState<{ name: string; session: string } | null>(null);
 	const input = useRef<HTMLInputElement>(null);
 	const projects = useQuery(orpc.projects.list.queryOptions({ input: {} }));
 	const [selected, setSelected] = useState<{ id: string; label: string } | null>(null);
@@ -29,9 +34,16 @@ export function MoveSessionProjectDialog({ session, open, onOpenChange }: MoveSe
 				queryClient.invalidateQueries({ queryKey: orpc.agentRuns.key() }),
 			]),
 	});
+	const createItem = projects.isSuccess
+		? createNameItem("project", search, [
+				"No project",
+				...projects.data.flatMap((project) => [project.name, project.key, project.slug]),
+			])
+		: null;
 	const items = [
 		{ id: noProject, label: "No project", current: session.projectId === null },
 		...projectItems(selectableProjects(projects.data ?? []), session.projectKey || undefined),
+		...(createItem ? [createItem] : []),
 	];
 	return (
 		<Dialog
@@ -41,6 +53,8 @@ export function MoveSessionProjectDialog({ session, open, onOpenChange }: MoveSe
 				if (!next) {
 					move.reset();
 					setSelected(null);
+					setSearch("");
+					setCreateName(null);
 				}
 				onOpenChange(next);
 			}}
@@ -62,11 +76,16 @@ export function MoveSessionProjectDialog({ session, open, onOpenChange }: MoveSe
 				<div inert={move.isPending} aria-busy={move.isPending}>
 					<Command
 						inputRef={input}
+						onSearchChange={setSearch}
 						label="Search projects"
 						placeholder="Move to project"
 						items={items}
 						onSelect={(id) => {
 							if (move.isPending) return;
+							if (id === createItem?.id) {
+								setCreateName({ name: search.trim(), session: session.id });
+								return;
+							}
 							setSelected({ id, label: items.find((item) => item.id === id)!.label });
 							move.mutate(id === noProject ? null : id);
 						}}
@@ -89,6 +108,18 @@ export function MoveSessionProjectDialog({ session, open, onOpenChange }: MoveSe
 							Retry move
 						</Button>
 					}
+				/>
+			)}
+			{createName !== null && createName.session === session.id && open && (
+				<CreateProjectDialog
+					initialName={createName.name}
+					scope={session.id}
+					onClose={() => setCreateName(null)}
+					onCreated={(project) => {
+						setCreateName(null);
+						setSelected({ id: project.key, label: project.name });
+						move.mutate(project.key);
+					}}
 				/>
 			)}
 		</Dialog>
