@@ -19,7 +19,7 @@ export function useTicketComposer() {
 	const options = useComposerStore((state) => state.options);
 	const assignAgent = useComposerStore((state) => state.assignAgent);
 	const createMore = useComposerStore((state) => state.createMore);
-	const { draft, setDraft, clearDraft } = useComposerDraft();
+	const { draft, setDraft, clearDraft } = useComposerDraft(options);
 	const defaults = useComposerDefaults(options, draft.project);
 	const recent = useRecentChoices((state) => state.recent);
 	const accounts = useQuery(orpc.harnessAccounts.list.queryOptions({ input: {} }));
