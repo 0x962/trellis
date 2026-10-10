@@ -15,10 +15,10 @@ describe("FailureState title", () => {
 		expect(markup({})).toContain("The agent stopped before it finished");
 	});
 
-	test("shows a decorative animal on a page failure", () => {
+	test("reserves a decorative animal card on a page failure", () => {
 		const html = markup({ variant: "page" });
-		expect(html).toContain("<img");
-		expect(html).toContain('alt=""');
+		expect(html).toContain("aspect-[192/306]");
+		expect(html).toContain('aria-hidden="true"');
 	});
 
 	test.each(["section", "inline"] as const)("keeps the %s failure compact", (variant) => {
