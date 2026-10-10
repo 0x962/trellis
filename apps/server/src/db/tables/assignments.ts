@@ -2,6 +2,7 @@ import { sql } from "drizzle-orm";
 import { index, integer, jsonb, pgTable, text, unique } from "drizzle-orm/pg-core";
 import { at } from "./actors.ts";
 import { agentRuns } from "./agentRuns.ts";
+import { hosts } from "./hosts/index.ts";
 
 // The request identity includes the actor kind, actor name, and complete key.
 // The migration installs agent_start_requests_identity as an equality exclusion
@@ -39,7 +40,16 @@ export const agentExecutionAttempts = pgTable(
 			.references(() => agentRuns.id, { onDelete: "cascade" }),
 		generation: integer().notNull(),
 		tokenHash: text("token_hash").notNull(),
+		// The host that runs the attempt. A caller that names no host receives
+		// the local host through the default `local_host_id()`.
+		hostId: text("host_id")
+			.notNull()
+			.default(sql`local_host_id()`)
+			.references(() => hosts.id),
 		createdAt: at("created_at").notNull(),
 	},
-	(t) => [unique("agent_execution_attempts_run_generation_unique").on(t.runId, t.generation)],
+	(t) => [
+		unique("agent_execution_attempts_run_generation_unique").on(t.runId, t.generation),
+		index("agent_execution_attempts_host_id_idx").on(t.hostId),
+	],
 );

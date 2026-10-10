@@ -1,6 +1,7 @@
 export * from "./tables/chatterMessages";
 export * from "./tables/epicChatterSettings";
 export * from "./tables/epicWhiteboards";
+export * from "./tables/hosts";
 
 import { sql } from "drizzle-orm";
 import {
@@ -19,6 +20,7 @@ import {
 import { checkIn, PR_LINK_SOURCES, PRIORITIES } from "./enums.ts";
 import { actorColumns, actorFk, at } from "./tables/actors.ts";
 import { epics } from "./tables/epics.ts";
+import { hosts } from "./tables/hosts/index.ts";
 import { projects, statuses } from "./tables/projects.ts";
 import { pullRequests } from "./tables/pullRequests.ts";
 import { waves } from "./tables/waves.ts";
@@ -101,6 +103,9 @@ export const tickets = pgTable(
 		version: integer().notNull().default(1),
 		startedAt: at("started_at"),
 		completedAt: at("completed_at"),
+		// The host a run of this ticket takes. NULL means the project default,
+		// then the workspace default.
+		hostId: text("host_id").references(() => hosts.id),
 		createdAt: at("created_at").notNull(),
 		updatedAt: at("updated_at").notNull(),
 	},
@@ -148,6 +153,7 @@ export const tickets = pgTable(
 		index("tickets_parent_id_idx").on(t.parentId),
 		index("tickets_epic_id_idx").on(t.epicId),
 		index("tickets_wave_id_idx").on(t.waveId),
+		index("tickets_host_id_idx").on(t.hostId),
 		index("tickets_open_idx").on(t.projectId, t.updatedAt.desc().nullsFirst()).where(sql`${t.completedAt} IS NULL`),
 		index("tickets_completed_idx")
 			.on(t.projectId, t.completedAt.desc().nullsFirst())

@@ -2,6 +2,7 @@ import { sql } from "drizzle-orm";
 import { index, integer, jsonb, pgTable, text } from "drizzle-orm/pg-core";
 import { tickets } from "../schema.ts";
 import { at } from "./actors.ts";
+import { hosts } from "./hosts/index.ts";
 import { projects } from "./projects.ts";
 import { pullRequests } from "./pullRequests.ts";
 export const flowExecutions = pgTable(
@@ -28,6 +29,12 @@ export const flowExecutions = pgTable(
 		doc: jsonb().notNull(),
 		state: jsonb().notNull(),
 		revision: integer().notNull(),
+		// The host that runs the flow. A caller that names no host receives
+		// the local host through the default `local_host_id()`.
+		hostId: text("host_id")
+			.notNull()
+			.default(sql`local_host_id()`)
+			.references(() => hosts.id),
 		createdAt: at("created_at").notNull(),
 		updatedAt: at("updated_at").notNull(),
 	},
@@ -38,5 +45,6 @@ export const flowExecutions = pgTable(
 		),
 		index("flow_executions_ticket_idx").on(t.ticketId),
 		index("flow_executions_diff_flow_idx").on(t.diffId, t.flowId, t.createdAt),
+		index("flow_executions_host_id_idx").on(t.hostId),
 	],
 );

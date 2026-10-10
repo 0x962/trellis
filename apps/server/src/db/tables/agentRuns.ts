@@ -3,6 +3,7 @@ import { boolean, check, index, integer, jsonb, pgTable, text, uniqueIndex } fro
 import { tickets } from "../schema.ts";
 import { at } from "./actors.ts";
 import { harnessAccounts } from "./harnessAccounts.ts";
+import { hosts } from "./hosts/index.ts";
 import { projects } from "./projects.ts";
 export const agentRuns = pgTable(
 	"agent_runs",
@@ -35,6 +36,12 @@ export const agentRuns = pgTable(
 		// True while the last resume found no session.
 		sessionLost: boolean("session_lost").notNull().default(false),
 		activityAt: at("activity_at"),
+		// The host that runs the agent. A caller that names no host receives
+		// the local host through the default `local_host_id()`.
+		hostId: text("host_id")
+			.notNull()
+			.default(sql`local_host_id()`)
+			.references(() => hosts.id),
 		createdAt: at("created_at").notNull(),
 		updatedAt: at("updated_at").notNull(),
 	},
@@ -46,5 +53,6 @@ export const agentRuns = pgTable(
 		index("agent_runs_pinned_at_idx").on(t.pinnedAt).where(sql`${t.pinnedAt} IS NOT NULL`),
 		index("agent_runs_created_at_idx").on(t.createdAt),
 		index("agent_runs_updated_at_idx").on(t.updatedAt),
+		index("agent_runs_host_id_idx").on(t.hostId),
 	],
 );

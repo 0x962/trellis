@@ -1326,11 +1326,33 @@ are no triggers. Every rule is a constraint or a service function that takes
 | flows | id PK, slug (UNIQUE, CHECK slug regex), name (CHECK nonblank), description, briefing, harness (jsonb, NULL means claude), version (CHECK > 0), created_at, updated_at. |
 | flow_nodes | id PK, flow_id (CASCADE), parent_id, kind (CHECK agent, gate, human, group, or loop), title, instruction, review_area (optional frontend or backend, gate without a harness only), parallel (boolean, group only), minutes (optional positive integer, group only), harness (jsonb, agent, gate, or loop only; NULL takes the flow's), max_rounds (positive integer, CHECK `(kind = 'loop') = (max_rounds IS NOT NULL)`), x and y (CHECK finite), width and height (optional, CHECK finite and >= 40). UNIQUE (id, flow_id). FK (parent_id, flow_id) CASCADE, so a group and the nodes inside it stay in one flow. Index (flow_id). |
 | flow_edges | id PK, flow_id (CASCADE), from_node_id, to_node_id, branch (CHECK out, yes, or no). FK (from_node_id, flow_id) and FK (to_node_id, flow_id) to flow_nodes CASCADE. UNIQUE (from_node_id, branch, to_node_id). CHECK `from_node_id <> to_node_id`. Indexes (flow_id) and (to_node_id). |
-| harness_accounts | id PK, name, harness, profile_path, is_default, archived_at, created_at, updated_at. Partial UNIQUE (harness, profile_path) for current accounts. Partial UNIQUE (harness) for current default accounts. |
+| harness_accounts | id PK, name, harness, profile_path, is_default, archived_at, host_id (FK hosts, default `local_host_id()`), created_at, updated_at. Partial UNIQUE (host_id, harness, profile_path) for current accounts. Partial UNIQUE (harness) for current default accounts. |
 | providers | id PK, name (CHECK trimmed, nonempty), kind (CHECK `vercel-ai-gateway` or `openai-compatible`), base_url (CHECK nonempty), api_key (CHECK nonempty), enabled, created_at, updated_at. Hash equality exclusion on lower(name). |
 | provider_models | provider_id (FK providers CASCADE), model_id (CHECK nonempty, no space or control character). Hash equality exclusion on the length-prefixed provider ID and model ID. Index (provider_id). |
-| agent_runs | id PK, name, account_id (FK harness_accounts), runtime (default `native`), harness jsonb, kind (CHECK agent, flow, or session), instruction, project_id (SET NULL), project_key, ticket_id (SET NULL), ticket_identifier, closed_at, workspace_id, terminal_id, url, error, session_id, session_lost (default false), created_at, updated_at. Partial UNIQUE (ticket_id) WHERE `kind = 'agent'` and `closed_at IS NULL`. Index (created_at). |
+| agent_runs | id PK, name, account_id (FK harness_accounts), runtime (default `native`), harness jsonb, kind (CHECK agent, flow, or session), instruction, project_id (SET NULL), project_key, ticket_id (SET NULL), ticket_identifier, closed_at, workspace_id, terminal_id, url, error, session_id, session_lost (default false), host_id (FK hosts, default `local_host_id()`), created_at, updated_at. Partial UNIQUE (ticket_id) WHERE `kind = 'agent'` and `closed_at IS NULL`. Index (created_at). |
 | sessions | id PK, name (CHECK trimmed, nonempty), name_state (CHECK temporary, requested, or set), directory, harness jsonb, run_id (UNIQUE, FK agent_runs), archived_at, created_at, updated_at. The run has the kind `session`, an optional project, and no ticket. |
+| hosts | id PK, name (CHECK trimmed, nonempty), kind (CHECK local or ssh), local (CHECK `local = (kind = 'local')`), endpoint jsonb, enrolled_identity, host_key_fingerprint, os, arch, state (CHECK active, retired, or revoked), retired_at, revoked_at, revision (CHECK >= 1), created_at, updated_at. Partial UNIQUE (local) WHERE local. |
+| host_observations | host_id PK (FK hosts CASCADE), observed_at, result (CHECK reachable, unreachable, identity_mismatch, or incompatible), observed_identity, protocol, capabilities jsonb, detail. |
+| workspace_control | id PK, controller_owner_epoch (CHECK >= 1), default_host_id (FK hosts), singleton (UNIQUE, CHECK true), created_at, updated_at. One row. |
+| project_host_paths | project_id (FK projects CASCADE), host_id (FK hosts), directory (CHECK nonempty), created_at, updated_at. PK (project_id, host_id). Index (host_id). |
+
+### Hosts
+
+A host is a machine that runs agents. `hosts.id` is the durable identity. A
+rename changes the name and never the id. `agent_runs`, `agent_execution_attempts`,
+`flow_executions`, and `harness_accounts` hold a NOT NULL `host_id`.
+`tickets.host_id` and `projects.default_host_id` are nullable placement
+preferences. Every foreign key to `hosts` is NO ACTION, except
+`host_observations`, which cascades. The delete of a host that a row names fails,
+and a retired host keeps its row.
+
+Exactly one host has `local = true`. The SQL function `local_host_id()` returns
+its id and is the column default of each NOT NULL `host_id`, so a write path
+that names no host binds the row to the local host. Migration `0152_hosts` inserts
+the local host and the one `workspace_control` row, binds every existing row to
+the local host, and copies each nonempty `projects.directory` into
+`project_host_paths`. `apps/server/src/db/tables/hosts/README.md` holds the
+details and the ER diagram.
 
 The `id` column of `activity` is the cursor and the sort key of every activity
 feed. A description row carries `meta.deltaChars` and no text. A status row
