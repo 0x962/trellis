@@ -15,8 +15,9 @@ const absent = (error: unknown) => {
 };
 
 // Every agent and its children inherit the attempt and runtime directory
-// markers in their environment. /proc/<pid>/environ holds the environment of
-// the process start; a later change by the process does not appear there.
+// markers in their environment. /proc/<pid>/environ shows the memory that held
+// the environment at the process start. A process can overwrite that memory,
+// so a process that erases its markers is not in this list.
 // A process that set itself non-dumpable, such as ssh-agent, has an environ
 // file that only root can read. Its markers stay unknown, so this list skips
 // it; the attempt cgroup still contains it if an agent started it.

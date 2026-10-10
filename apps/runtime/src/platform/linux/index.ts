@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import {
 	accessSync,
 	constants,
@@ -66,6 +67,7 @@ export const linuxCgroupLifecycle = createLinuxCgroupLifecycle({
 	processIdentity: inspector.processIdentity,
 	inspectProcessSession: inspector.inspectProcessSession,
 	runtimePid: process.pid,
+	launchName: () => `launch-${randomUUID()}`,
 	now: () => performance.now(),
 	wait: (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)),
 });

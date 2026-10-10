@@ -1,17 +1,16 @@
-import { delimiter, isAbsolute, posix, resolve } from "node:path";
+import { delimiter, isAbsolute, resolve } from "node:path";
 import type { LaunchSpec } from "@trellis/runtime-protocol";
 
-export const sessionCgroup = (attemptsRoot: string, sessionId: number) =>
-	posix.join(attemptsRoot, `session-${sessionId}`);
-
-// The runtime starts each launch in a new OS session, so the PID of this shell
-// ($$) is the session ID. The shell creates the cgroup of that session, moves
-// itself into it, and then replaces itself with the agent. Every descendant of
-// the agent starts inside that cgroup. Exit code 125 means the move failed.
+// The shell creates the cgroup of this launch, moves itself into it, and then
+// replaces itself with the agent, so the agent keeps the PID of the shell.
+// Every descendant of the agent starts inside that cgroup. mkdir fails when
+// the directory exists, so a launch never joins the cgroup of another launch.
+// Exit code 125 means the shell could not create or join the cgroup.
 const script = [
-	'cgroup="$1/session-$$"',
+	'cgroup="$1"',
 	"shift",
-	'mkdir -p "$cgroup" && printf "%s" "$$" > "$cgroup/cgroup.procs" || { echo "trellis: cannot join the attempt cgroup $cgroup" >&2; exit 125; }',
+	'mkdir "$cgroup" || { echo "trellis: cannot create the attempt cgroup $cgroup" >&2; exit 125; }',
+	'printf "%s" "$$" > "$cgroup/cgroup.procs" || { echo "trellis: cannot join the attempt cgroup $cgroup" >&2; exit 125; }',
 	'exec "$@"',
 ].join("\n");
 
@@ -33,15 +32,11 @@ export function resolveLinuxExecutable(
 
 // The executable is resolved before the launch, so a missing command fails
 // the launch and does not become an exit of the shell.
-export function wrapLinuxLaunch(
-	spec: LaunchSpec,
-	attemptsRoot: string,
-	canExecute: (path: string) => boolean,
-): LaunchSpec {
+export function wrapLinuxLaunch(spec: LaunchSpec, cgroup: string, canExecute: (path: string) => boolean): LaunchSpec {
 	const executable = resolveLinuxExecutable(spec.command, spec.cwd, { ...process.env, ...spec.env }, canExecute);
 	return {
 		...spec,
 		command: "/bin/sh",
-		args: ["-c", script, "trellis-attempt", attemptsRoot, executable, ...spec.args],
+		args: ["-c", script, "trellis-attempt", cgroup, executable, ...spec.args],
 	};
 }

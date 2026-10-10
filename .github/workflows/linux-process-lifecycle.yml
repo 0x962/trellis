@@ -3,7 +3,17 @@ name: Linux process lifecycle
 on:
   push:
     branches:
+      - main
       - trellis/trl-1623-*
+    paths:
+      - apps/runtime/**
+      - .github/workflows/linux-process-lifecycle.yml
+  pull_request:
+    branches:
+      - main
+    paths:
+      - apps/runtime/**
+      - .github/workflows/linux-process-lifecycle.yml
   workflow_dispatch:
 
 permissions:

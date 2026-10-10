@@ -9,7 +9,8 @@ export type LinuxProcessStat = {
 
 // A boot ID changes at each boot. The start time counts clock ticks since
 // boot, so the pair separates two processes that receive the same PID, also
-// across a reboot.
+// across a reboot. A clock tick is 10 ms on x86_64 and arm64. Two processes
+// that receive the same PID within one tick on one boot have the same identity.
 export const linuxProcessIdentity = (bootId: string, pid: number, startTicks: bigint): string =>
 	`linux:${bootId}:${pid}:${startTicks}`;
 

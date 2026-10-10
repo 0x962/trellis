@@ -19,6 +19,6 @@ export const darwinPlatform: RuntimePlatform = {
 	sessionOf: (pid) => sessionOf(pid),
 	attemptProcesses,
 	createExitWatcher: () => new DarwinProcessExitWatcher(),
-	prepareLaunch: (spec) => spec,
+	prepareLaunch: (spec) => ({ spec, started: () => {} }),
 	stopProcessTree,
 };

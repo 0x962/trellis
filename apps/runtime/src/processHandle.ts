@@ -25,7 +25,7 @@ export function createProcessHandle(
 	const env = { ...process.env, ...spec.env };
 	const launch = platform.prepareLaunch(spec);
 	if (spec.mode === "pty") {
-		const child = spawnPty(launch.command, launch.args, {
+		const child = spawnPty(launch.spec.command, launch.spec.args, {
 			cwd: spec.cwd,
 			env,
 			cols: spec.cols ?? 80,
@@ -33,6 +33,7 @@ export function createProcessHandle(
 			name: "xterm-256color",
 			encoding: null,
 		});
+		launch.started(child.pid);
 		const completion = processCompletion(() => stopProcessTree(child.pid), exited, unconfirmed);
 		child.onData((data) => output(Buffer.isBuffer(data) ? data : Buffer.from(data)));
 		child.onExit(({ exitCode }) => completion.closed(exitCode));
@@ -45,7 +46,8 @@ export function createProcessHandle(
 			stop: completion.stop,
 		};
 	}
-	const child = spawn(launch.command, launch.args, { cwd: spec.cwd, env, detached: true, stdio: "pipe" });
+	const child = spawn(launch.spec.command, launch.spec.args, { cwd: spec.cwd, env, detached: true, stdio: "pipe" });
+	if (child.pid !== undefined) launch.started(child.pid);
 	const completion = processCompletion(() => stopProcessTree(child.pid!), exited, unconfirmed);
 	child.stdout.on("data", output);
 	child.stderr.on("data", spec.separateStderr ? stderr : output);

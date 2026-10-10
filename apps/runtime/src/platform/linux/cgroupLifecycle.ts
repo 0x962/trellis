@@ -1,7 +1,7 @@
 import { posix } from "node:path";
 import type { LaunchSpec } from "@trellis/runtime-protocol";
-import type { ProcessIdentityObservation, ProcessSessionObservation } from "../runtimePlatform.ts";
-import { sessionCgroup, wrapLinuxLaunch } from "./launchWrapper.ts";
+import type { PreparedLaunch, ProcessIdentityObservation, ProcessSessionObservation } from "../runtimePlatform.ts";
+import { wrapLinuxLaunch } from "./launchWrapper.ts";
 
 export type LinuxCgroupOperations = {
 	readFile: (path: string) => string;
@@ -16,12 +16,14 @@ export type LinuxCgroupOperations = {
 	processIdentity: (pid: number) => ProcessIdentityObservation;
 	inspectProcessSession: (sessionId: number) => ProcessSessionObservation;
 	runtimePid: number;
+	// Answers a name that no earlier launch used.
+	launchName: () => string;
 	now: () => number;
 	wait: (milliseconds: number) => Promise<void>;
 };
 
 export type LinuxCgroupLifecycle = {
-	prepareLaunch: (spec: LaunchSpec) => LaunchSpec;
+	prepareLaunch: (spec: LaunchSpec) => PreparedLaunch;
 	stopProcessTree: (sessionId: number) => Promise<void>;
 	attemptsRoot: () => string;
 };
@@ -60,15 +62,23 @@ const populated = (events: string) => {
 	return match[1] === "1";
 };
 
+const absent = (error: unknown) => {
+	const code = (error as NodeJS.ErrnoException).code;
+	return code === "ENOENT" || code === "ESRCH";
+};
+
 // Each launch runs in its own cgroup, a child of the runtime cgroup. A
 // descendant cannot leave a cgroup by a fork, by setsid(2), or by the exit of
 // its parent, so an empty cgroup confirms that every descendant exited.
 export function createLinuxCgroupLifecycle(operations: LinuxCgroupOperations): LinuxCgroupLifecycle {
-	const attemptsRoot = () =>
-		posix.join(
-			linuxCgroupDirectory(operations.readFile("/proc/self/cgroup"), operations.readFile("/proc/self/mountinfo")),
-			"trellis-attempts",
-		);
+	// The cgroup of each launch of this runtime, by the session ID of its leader.
+	// A runtime that starts later finds a cgroup through /proc/<pid>/cgroup of a
+	// live process in it.
+	const launches = new Map<number, string>();
+
+	const runtimeCgroup = () =>
+		linuxCgroupDirectory(operations.readFile("/proc/self/cgroup"), operations.readFile("/proc/self/mountinfo"));
+	const attemptsRoot = () => posix.join(runtimeCgroup(), "trellis-attempts");
 
 	// The launch shell moves itself from the runtime cgroup into a child cgroup.
 	// cgroup v2 permits that move only for a user who can write cgroup.procs of
@@ -82,9 +92,9 @@ export function createLinuxCgroupLifecycle(operations: LinuxCgroupOperations): L
 		} catch (error) {
 			throw refuse((error as Error).message);
 		}
-		const runtimeCgroup = posix.dirname(root);
-		if (!operations.isWritable(runtimeCgroup) || !operations.isWritable(posix.join(runtimeCgroup, "cgroup.procs")))
-			throw refuse(`this user cannot create cgroups or move processes in ${runtimeCgroup}`);
+		const runtime = posix.dirname(root);
+		if (!operations.isWritable(runtime) || !operations.isWritable(posix.join(runtime, "cgroup.procs")))
+			throw refuse(`this user cannot create cgroups or move processes in ${runtime}`);
 		try {
 			operations.makeDirectory(root);
 		} catch (error) {
@@ -95,6 +105,21 @@ export function createLinuxCgroupLifecycle(operations: LinuxCgroupOperations): L
 		return root;
 	};
 
+	// Answers the launch cgroup that holds the process, or undefined when the
+	// process exited or runs outside every launch cgroup of this runtime.
+	const launchCgroupOf = (pid: number, root: string, mountInfo: string) => {
+		let membership: string;
+		try {
+			membership = operations.readFile(`/proc/${pid}/cgroup`);
+		} catch (error) {
+			if (absent(error)) return undefined;
+			throw error;
+		}
+		const directory = linuxCgroupDirectory(membership, mountInfo);
+		if (!directory.startsWith(`${root}/`)) return undefined;
+		return posix.join(root, directory.slice(root.length + 1).split("/")[0]!);
+	};
+
 	const removeTree = (path: string) => {
 		for (const child of operations.listDirectories(path)) removeTree(posix.join(path, child));
 		operations.removeDirectory(path);
@@ -102,37 +127,62 @@ export function createLinuxCgroupLifecycle(operations: LinuxCgroupOperations): L
 
 	return {
 		attemptsRoot,
-		prepareLaunch: (spec) => wrapLinuxLaunch(spec, delegatedAttemptsRoot(), operations.canExecute),
-		// A launch reaches its cgroup in steps: fork, setsid(2), and the move by
-		// the launch shell. A live leader that is a child of this runtime keeps
-		// the stop going, and a later pass kills it inside its cgroup.
+		prepareLaunch(spec) {
+			const cgroup = posix.join(delegatedAttemptsRoot(), operations.launchName());
+			return {
+				spec: wrapLinuxLaunch(spec, cgroup, operations.canExecute),
+				started: (pid) => launches.set(pid, cgroup),
+			};
+		},
+		// The stop covers the cgroup of the launch with this session ID and the
+		// launch cgroup of each live process of the session. A launch reaches its
+		// cgroup in steps: fork, setsid(2), and the move by the launch shell. A
+		// live leader that is a child of this runtime keeps the stop going, and a
+		// later pass kills it inside its cgroup.
 		async stopProcessTree(sessionId) {
-			const path = sessionCgroup(attemptsRoot(), sessionId);
+			const root = attemptsRoot();
+			const cgroups = new Set<string>();
+			const registered = launches.get(sessionId);
+			if (registered !== undefined) cgroups.add(registered);
 			const deadline = operations.now() + stopDeadlineMs;
 			for (;;) {
-				const contained = operations.exists(path);
-				if (contained) operations.writeFile(posix.join(path, "cgroup.kill"), "1");
-				const busy = contained && populated(operations.readFile(posix.join(path, "cgroup.events")));
 				const leader = operations.processIdentity(sessionId);
 				if (leader.kind === "unknown") throw new Error(leader.error);
 				const members = operations.inspectProcessSession(sessionId);
 				if (members.kind === "unknown") throw new Error(members.error);
 				const remaining = members.kind === "live" ? members.pids : [];
+				const live = leader.kind === "live" && !remaining.includes(sessionId) ? [sessionId, ...remaining] : remaining;
+				const mountInfo = operations.readFile("/proc/self/mountinfo");
+				for (const pid of live) {
+					const cgroup = launchCgroupOf(pid, root, mountInfo);
+					if (cgroup !== undefined) cgroups.add(cgroup);
+				}
 				if (
 					leader.kind === "live" &&
 					leader.process.parentPid === operations.runtimePid &&
 					!remaining.includes(sessionId)
 				)
 					remaining.push(sessionId);
-				if (!busy && remaining.length === 0) {
-					if (contained) removeTree(path);
+				if (cgroups.size === 0 && remaining.length > 0)
+					throw new Error(
+						`Process session ${sessionId} has live processes outside every attempt cgroup: ${remaining.join(", ")}`,
+					);
+				let busy: string | undefined;
+				for (const cgroup of cgroups) {
+					if (!operations.exists(cgroup)) continue;
+					operations.writeFile(posix.join(cgroup, "cgroup.kill"), "1");
+					if (populated(operations.readFile(posix.join(cgroup, "cgroup.events")))) busy = cgroup;
+				}
+				if (busy === undefined && remaining.length === 0) {
+					for (const cgroup of cgroups) if (operations.exists(cgroup)) removeTree(cgroup);
+					launches.delete(sessionId);
 					return;
 				}
 				if (operations.now() >= deadline)
 					throw new Error(
-						busy
-							? `The cgroup ${path} still has live processes after cgroup.kill`
-							: `Process session ${sessionId} has live processes outside its attempt cgroup: ${remaining.join(", ")}`,
+						busy === undefined
+							? `Process session ${sessionId} has live processes outside its attempt cgroup: ${remaining.join(", ")}`
+							: `The cgroup ${busy} still has live processes after cgroup.kill`,
 					);
 				await operations.wait(stopPollMs);
 			}

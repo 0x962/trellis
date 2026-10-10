@@ -1,16 +1,18 @@
 import assert from "node:assert/strict";
 import { type ChildProcess, spawn, spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync, readlinkSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readdirSync, readFileSync, readlinkSync, rmSync, writeFileSync } from "node:fs";
 import { arch, release, tmpdir } from "node:os";
 import { join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 import type { RuntimeSession } from "@trellis/runtime-protocol";
+import { stopAttemptProcesses } from "../../attemptProcesses";
 import { inspectProcess } from "../../inspectProcess.ts";
 import { observedSession } from "../../observedSession.ts";
 import { ProcessExitWatcher } from "../../processExitWatcher.ts";
 import { processIdentity } from "../../processIdentity";
 import { stopProcessTree } from "../../stopProcessTree.ts";
 import { platform } from "../index.ts";
+import { linuxCgroupDirectory } from "./cgroupLifecycle.ts";
 import { linuxCgroupLifecycle } from "./index.ts";
 import {
 	cgroupProcesses,
@@ -34,9 +36,15 @@ const exitOf = (child: ChildProcess) =>
 		child.once("exit", (code, signal) => resolve([code, signal])),
 	);
 const gone = (pid: number) => inspectProcess(pid).kind === "missing";
+const launchCgroup = (pid: number) =>
+	linuxCgroupDirectory(readFileSync(`/proc/${pid}/cgroup`, "utf8"), readFileSync("/proc/self/mountinfo", "utf8"));
+const attemptId = "runtime-death";
 
 if (mode === "runtime-death") {
-	const { handle } = launch(treeSpec(target, "stdio"));
+	const { handle } = launch({
+		...treeSpec(target, "stdio"),
+		env: { TRELLIS_ATTEMPT_ID: attemptId, TRELLIS_RUNTIME_HOME: target },
+	});
 	await treePids(target);
 	const leader = processIdentity(handle.pid);
 	assert.equal(leader.kind, "live");
@@ -73,7 +81,7 @@ if (mode === "cases") {
 		writeTreeAgent(path);
 		return path;
 	};
-	const sessionCgroup = (sessionId: number) => join(attemptsRoot, `session-${sessionId}`);
+	const launchDirectories = () => readdirSync(attemptsRoot).filter((name) => name.startsWith("launch-"));
 	const proof = (status: string, error?: string) =>
 		writeFileSync(
 			target,
@@ -89,7 +97,8 @@ if (mode === "cases") {
 		const { handle, exited, failures } = launch(treeSpec(path, "stdio"));
 		const pids = await treePids(path);
 		const leader = handle.pid;
-		const cgroup = sessionCgroup(leader);
+		const cgroup = launchCgroup(leader);
+		assert.ok(cgroup.startsWith(`${attemptsRoot}/launch-`), cgroup);
 		const members = cgroupProcesses(cgroup);
 		for (const pid of [leader, pids.child, pids.grandchild, pids.escaped])
 			assert.ok(members.includes(pid), `${pid} in ${cgroup}`);
@@ -112,7 +121,7 @@ if (mode === "cases") {
 		const path = directory("parent-death");
 		const { handle, exited, failures } = launch(treeSpec(path, "stdio", 3));
 		const pids = await treePids(path);
-		const cgroup = sessionCgroup(handle.pid);
+		const cgroup = launchCgroup(handle.pid);
 		process.kill(pids.child, "SIGKILL");
 		await waitFor(() => {
 			const after = inspectProcess(pids.grandchild);
@@ -142,11 +151,35 @@ if (mode === "cases") {
 		const current = processIdentity(recorded.leader);
 		assert.equal(current.kind === "live" && current.process.identity, recorded.identity);
 		assert.notEqual(current.kind === "live" && current.process.parentPid, runtime.pid);
+		const cgroup = launchCgroup(recorded.leader);
 		await stopProcessTree(recorded.leader);
 		for (const pid of [recorded.leader, pids.child, pids.grandchild, pids.escaped])
 			assert.ok(gone(pid), `${pid} exited`);
-		assert.equal(existsSync(sessionCgroup(recorded.leader)), false);
-		cases.push({ name: "runtime-death", details: { runtime: runtime.pid, ...recorded, ...pids } });
+		assert.equal(existsSync(cgroup), false);
+		cases.push({ name: "runtime-death", details: { runtime: runtime.pid, ...recorded, ...pids, cgroup } });
+	};
+
+	// The runtime dies, then every process of the agent exits except one that
+	// started its own OS session. The stop by the attempt markers passes the
+	// session of that process, and the stop finds the launch cgroup from it.
+	const setsidSurvivor = async () => {
+		const path = directory("setsid-survivor");
+		const runtime = spawn(process.execPath, [process.argv[1]!, "runtime-death", path], { stdio: "inherit" });
+		cleanup.push(runtime);
+		assert.deepEqual(await exitOf(runtime), [null, "SIGKILL"]);
+		const recorded = JSON.parse(readFileSync(join(path, "runtime.json"), "utf8")) as { leader: number };
+		const pids = await treePids(path);
+		const cgroup = launchCgroup(pids.escaped);
+		const others = [recorded.leader, pids.child, pids.grandchild];
+		for (const pid of others) process.kill(pid, "SIGKILL");
+		await waitFor(() => others.every(gone), "the exit of every process except the survivor");
+		const survivorSession = platform.sessionOf(pids.escaped);
+		assert.equal(survivorSession, pids.escaped);
+		assert.ok(cgroupProcesses(cgroup).includes(pids.escaped));
+		await stopAttemptProcesses(path, attemptId);
+		assert.ok(gone(pids.escaped), `${pids.escaped} exited`);
+		assert.equal(existsSync(cgroup), false);
+		cases.push({ name: "setsid-survivor", details: { leader: recorded.leader, ...pids, survivorSession, cgroup } });
 	};
 
 	const cancellation = async () => {
@@ -156,7 +189,7 @@ if (mode === "cases") {
 		const code = await exited;
 		assert.deepEqual(failures, []);
 		assert.ok(gone(handle.pid));
-		assert.equal(existsSync(sessionCgroup(handle.pid)), false);
+		assert.deepEqual(launchDirectories(), []);
 		await sleep(200);
 		const started = ["child", "grandchild", "escaped"].filter((name) => existsSync(join(path, name)));
 		for (const name of started) assert.ok(gone(Number(readFileSync(join(path, name), "utf8"))), `${name} exited`);
@@ -185,6 +218,9 @@ if (mode === "cases") {
 		assert.notEqual(controlled.kind === "live" && controlled.process.identity, recorded.process.identity);
 		first.kill("SIGKILL");
 		await exitOf(first);
+		// Two clock ticks pass before the reuse, so the reused process cannot
+		// have the same start ticks as the first one.
+		await sleep(30);
 		// ns_last_pid holds the PID that the kernel assigned last, so the next
 		// fork receives the PID of the first process. Another process on the
 		// host can take that PID first, so the attempt repeats.
@@ -224,7 +260,10 @@ if (mode === "cases") {
 	};
 
 	try {
-		for (const run of [processTree, parentDeath, runtimeDeath, cancellation, pidReuse, exitWatcher]) await run();
+		for (const run of [processTree, parentDeath, runtimeDeath, setsidSurvivor, cancellation, pidReuse, exitWatcher]) {
+			await run();
+			assert.deepEqual(launchDirectories(), [], `${run.name} leaves no launch cgroup`);
+		}
 		proof("passed");
 		setImmediate(() => process.exit(0));
 	} catch (error) {
