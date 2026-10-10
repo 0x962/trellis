@@ -38,8 +38,9 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-export const CreateKeepsTicketDraft: Story = {
-	play: async ({ canvasElement }) => {
+const createAccount =
+	(shortcut?: string): NonNullable<Story["play"]> =>
+	async ({ canvasElement }) => {
 		const page = within(canvasElement.ownerDocument.body);
 		await userEvent.click(await page.findByRole("button", { name: /^Agent: Claude/ }));
 		await userEvent.click(await page.findByRole("button", { name: "Account" }));
@@ -48,13 +49,14 @@ export const CreateKeepsTicketDraft: Story = {
 		const form = within(await page.findByRole("dialog", { name: "Add agent account" }));
 		await expect(form.getByRole("textbox", { name: "Account name" })).toHaveValue("New work");
 		await userEvent.click(form.getByRole("textbox", { name: "Account name" }));
-		await userEvent.keyboard("{Meta>}{Enter}{/Meta}");
-		await userEvent.keyboard("{Control>}{Enter}{/Control}");
-		await expect(createTicket).not.toHaveBeenCalled();
-		await userEvent.click(form.getByRole("button", { name: "Add account" }));
+		if (shortcut) await userEvent.keyboard(shortcut);
+		else await userEvent.click(form.getByRole("button", { name: "Add account" }));
 		await waitFor(() => expect(page.queryByRole("dialog", { name: "Add agent account" })).not.toBeInTheDocument());
 		await expect(createTicket).not.toHaveBeenCalled();
 		await expect(page.getByRole("textbox", { name: "Title" })).toHaveValue("Build the component catalog");
 		await expect(page.getByRole("button", { name: "Account" })).toHaveTextContent("New work");
-	},
-};
+	};
+
+export const CreateKeepsTicketDraft: Story = { play: createAccount() };
+export const MetaEnterKeepsTicketDraft: Story = { play: createAccount("{Meta>}{Enter}{/Meta}") };
+export const ControlEnterKeepsTicketDraft: Story = { play: createAccount("{Control>}{Enter}{/Control}") };

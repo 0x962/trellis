@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { expect, userEvent, within } from "storybook/test";
+import { expect, userEvent, waitFor, within } from "storybook/test";
 import { SwitchAccountDialog } from "../../features/sessions/SwitchAccountDialog";
 import { OverlayTrigger } from "./components/OverlayTrigger";
 import { accounts, failure, responses, run } from "./fixtures";
@@ -30,7 +30,7 @@ export const Create: Story = {
 		await expect(form.getByRole("textbox", { name: "Account name" })).toHaveValue("New work");
 		await expect(form.getByRole("combobox", { name: "Account harness" })).toBeDisabled();
 		await userEvent.click(form.getByRole("button", { name: "Add account" }));
-		await expect(await page.findByRole("dialog", { name: "Switch to New work?" })).toBeVisible();
+		await waitFor(() => expect(page.getByRole("dialog", { name: "Switch to New work?" })).toBeVisible());
 		await expect(page.getByRole("button", { name: "Switch account" })).toBeEnabled();
 	},
 };

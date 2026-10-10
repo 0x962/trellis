@@ -44,9 +44,10 @@ export const LabelMoveError: Story = {
 	parameters: { trellis: { responses: { "labels.update": failure } } },
 	play: async (context) => {
 		await clickButton("Actions for Design")(context);
-		await userEvent.click(
-			await within(context.canvasElement.ownerDocument.body).findByRole("menuitem", { name: "Move to Type" }),
-		);
+		const page = within(context.canvasElement.ownerDocument.body);
+		await userEvent.click(await page.findByRole("menuitem", { name: "Move to group" }));
+		await userEvent.click(await page.findByRole("option", { name: "Type" }));
+		await expect(await page.findByRole("alert")).toHaveTextContent("The local fixture refuses this request.");
 	},
 };
 export const GroupClosed: Story = {

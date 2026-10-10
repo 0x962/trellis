@@ -93,16 +93,15 @@ export function AssignAgentDialog({
 						</Field>
 					)}
 				</div>
-				<Field label="Account" hint={accounts === undefined && !accountError ? "Load accounts…" : undefined}>
-					<AccountPicker
-						scope={scope}
-						harness={draft.preset}
-						accounts={accounts}
-						value={draft.accountId}
-						disabled={disabled}
-						onValueChange={(accountId) => setDraft({ ...draft, accountId })}
-					/>
-				</Field>
+				<AccountPicker
+					hint={accounts === undefined && !accountError ? "Load accounts…" : undefined}
+					scope={scope}
+					harness={draft.preset}
+					accounts={accounts}
+					value={draft.accountId}
+					disabled={disabled}
+					onValueChange={(accountId) => setDraft({ ...draft, accountId })}
+				/>
 				{accountError && (
 					<FailureState
 						title="The accounts did not load"

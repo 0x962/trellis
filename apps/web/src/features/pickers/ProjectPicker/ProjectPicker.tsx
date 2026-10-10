@@ -1,7 +1,15 @@
 import { useQuery } from "@tanstack/react-query";
 import type { ProjectSummary } from "@trellis/api";
 import { Command, type CommandItem, Popover } from "@trellis/ui";
-import { type AriaAttributes, cloneElement, type ReactElement, type RefObject, useRef, useState } from "react";
+import {
+	type AriaAttributes,
+	cloneElement,
+	type ReactElement,
+	type ReactNode,
+	type RefObject,
+	useRef,
+	useState,
+} from "react";
 
 import { useApp } from "../../../lib/appContext";
 import { CreateProjectDialog } from "../../project-actions/CreateProjectDialog";
@@ -34,6 +42,7 @@ export type ProjectPickerProps = AriaAttributes & {
 	value?: string;
 	onPick: (key: string) => void;
 	trigger: ReactElement<AriaAttributes & { id?: string; disabled?: boolean }>;
+	wrapPicker?: (picker: ReactElement<AriaAttributes & { id?: string }>) => ReactNode;
 	open?: boolean;
 	onOpenChange?: (open: boolean) => void;
 	finalFocus?: RefObject<HTMLElement | null>;
@@ -54,6 +63,7 @@ export function ProjectPicker({
 	value,
 	onPick,
 	trigger,
+	wrapPicker,
 	open,
 	onOpenChange,
 	finalFocus,
@@ -85,43 +95,46 @@ export function ProjectPicker({
 				...(allowNoProject ? [noProjectLabel] : []),
 			])
 		: null;
+	const picker = (
+		<Popover
+			trigger={cloneElement(trigger, { ...controlProps, disabled: disabled || trigger.props.disabled })}
+			label="Project"
+			open={isOpen && !disabled && activeCreateName === null}
+			onOpenChange={setOpen}
+			initialFocus={input}
+			finalFocus={finalFocus}
+			side={side}
+			className="w-72 p-0"
+		>
+			<Command
+				inputRef={input}
+				onSearchChange={setSearch}
+				label="Search projects"
+				placeholder="Move to project"
+				items={[
+					...(allowNoProject ? [{ id: "no-project", label: noProjectLabel, current: !value }] : []),
+					...projectItems(includeArchived ? projects : selectableProjects(projects), value),
+					...(createItem ? [createItem] : []),
+				]}
+				onSelect={(key) => {
+					if (key === createItem?.id) {
+						setCreateName({ name: search.trim(), scope });
+						return;
+					}
+					if (!keepOpenOnPick) setOpen(false);
+					onPick(key === "no-project" ? "" : key);
+				}}
+			/>
+			{error !== undefined && error !== null && (
+				<p role="alert" className="m-1 rounded-sm bg-danger-soft px-2 py-1.5 text-sm text-danger">
+					{error}
+				</p>
+			)}
+		</Popover>
+	);
 	return (
 		<>
-			<Popover
-				trigger={cloneElement(trigger, { ...controlProps, disabled: disabled || trigger.props.disabled })}
-				label="Project"
-				open={isOpen && !disabled && activeCreateName === null}
-				onOpenChange={setOpen}
-				initialFocus={input}
-				finalFocus={finalFocus}
-				side={side}
-				className="w-72 p-0"
-			>
-				<Command
-					inputRef={input}
-					onSearchChange={setSearch}
-					label="Search projects"
-					placeholder="Move to project"
-					items={[
-						...(allowNoProject ? [{ id: "no-project", label: noProjectLabel, current: !value }] : []),
-						...projectItems(includeArchived ? projects : selectableProjects(projects), value),
-						...(createItem ? [createItem] : []),
-					]}
-					onSelect={(key) => {
-						if (key === createItem?.id) {
-							setCreateName({ name: search.trim(), scope });
-							return;
-						}
-						if (!keepOpenOnPick) setOpen(false);
-						onPick(key === "no-project" ? "" : key);
-					}}
-				/>
-				{error !== undefined && error !== null && (
-					<p role="alert" className="m-1 rounded-sm bg-danger-soft px-2 py-1.5 text-sm text-danger">
-						{error}
-					</p>
-				)}
-			</Popover>
+			{wrapPicker ? wrapPicker(picker) : picker}
 			{activeCreateName !== null && (
 				<CreateProjectDialog
 					initialName={activeCreateName}

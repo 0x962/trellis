@@ -16,6 +16,7 @@ const meta = {
 			<ProjectPicker {...args} open={open} value={value} onOpenChange={setOpen} onPick={(picked) => setValue(picked)} />
 		);
 	},
+	parameters: { trellis: { responses: { "projects.list": projects } } },
 	args: { projects, onPick: noop, trigger: <PickerButton label="Project">Project</PickerButton> },
 } satisfies Meta<typeof ProjectPicker>;
 export default meta;
@@ -32,7 +33,10 @@ export const Disabled: Story = {
 };
 export const Open: Story = { args: { open: true } };
 export const Selected: Story = { args: { open: true, value: "DEMO" } };
-export const Empty: Story = { args: { open: true, projects: [] } };
+export const Empty: Story = {
+	args: { open: true, projects: [] },
+	parameters: { trellis: { responses: { "projects.list": [] } } },
+};
 export const RequestError: Story = { args: { open: true, error: "The project is archived." } };
 
 export const ChangeSelection: Story = {

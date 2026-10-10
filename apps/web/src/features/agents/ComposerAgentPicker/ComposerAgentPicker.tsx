@@ -6,7 +6,7 @@ import {
 	type HarnessPreset,
 	modelsForHarness,
 } from "@trellis/api";
-import { Command, ComposerProperty, Field, Popover, ProviderIcon, Select } from "@trellis/ui";
+import { Command, ComposerProperty, Popover, ProviderIcon, Select } from "@trellis/ui";
 import { useMemo, useRef, useState } from "react";
 import { AccountPicker } from "../AccountPicker";
 import { type AssignAccounts, type AssignChoice, modelIdOf, modelNameOf } from "../AssignAgent/assignChoice";
@@ -137,16 +137,14 @@ export function ComposerAgentPicker({
 							onValueChange={(next) => onEffort(next === "default" ? null : (next as HarnessEffort))}
 						/>
 					)}
-					<Field label="Account">
-						<AccountPicker
-							scope={JSON.stringify([scope, open, disabled])}
-							harness={value.preset}
-							accounts={accounts}
-							value={value.accountId}
-							disabled={disabled}
-							onValueChange={onAccount}
-						/>
-					</Field>
+					<AccountPicker
+						scope={JSON.stringify([scope, open, disabled])}
+						harness={value.preset}
+						accounts={accounts}
+						value={value.accountId}
+						disabled={disabled}
+						onValueChange={onAccount}
+					/>
 				</div>
 			)}
 			{description && <p className="border-t border-border px-3 py-2.5 text-xs text-fg-faint">{description}</p>}

@@ -218,17 +218,17 @@ export const NestedStatusKeepsDraft: Story = {
 	play: async ({ canvasElement }) => {
 		nestedTicketCreate.mockClear();
 		const page = within(canvasElement.ownerDocument.body);
-		await userEvent.click(await page.findByRole("button", { name: /^Status:/ }));
-		await userEvent.type(await page.findByRole("combobox", { name: "Search statuses" }), "Release");
-		await userEvent.click(await page.findByRole("option", { name: 'Create status "Release"' }));
-		const form = within(await page.findByRole("dialog", { name: "Create status" }));
-		await userEvent.click(form.getByRole("textbox", { name: "Status name" }));
-		await userEvent.keyboard("{Meta>}{Enter}{/Meta}");
-		await userEvent.keyboard("{Control>}{Enter}{/Control}");
-		await expect(nestedTicketCreate).not.toHaveBeenCalled();
-		await userEvent.click(form.getByRole("button", { name: "Create status" }));
-		await expect(nestedTicketCreate).not.toHaveBeenCalled();
-		await expect(await page.findByRole("button", { name: "Create" })).toBeVisible();
+		for (const shortcut of ["{Meta>}{Enter}{/Meta}", "{Control>}{Enter}{/Control}"]) {
+			await userEvent.click(await page.findByRole("button", { name: /^Status:/ }));
+			await userEvent.type(await page.findByRole("combobox", { name: "Search statuses" }), "Release");
+			await userEvent.click(await page.findByRole("option", { name: 'Create status "Release"' }));
+			const dialog = await page.findByRole("dialog", { name: "Create status" });
+			await userEvent.click(within(dialog).getByRole("textbox", { name: "Status name" }));
+			await userEvent.keyboard(shortcut);
+			await waitFor(() => expect(dialog).not.toBeInTheDocument());
+			await expect(nestedTicketCreate).not.toHaveBeenCalled();
+			await expect(await page.findByRole("button", { name: "Create" })).toBeVisible();
+		}
 	},
 };
 
@@ -252,8 +252,12 @@ export const NestedTicketKeepsDraft: Story = {
 			if (!page.queryByRole("button", { name: "Parent: None" })) {
 				await userEvent.click(await page.findByRole("button", { name: "More properties" }));
 			}
-			await userEvent.click(await page.findByRole("button", { name: "Parent: None" }));
-			await userEvent.type(await page.findByRole("combobox", { name: "Search tickets" }), "New parent");
+			if (!page.queryByRole("combobox", { name: "Search tickets" })) {
+				await userEvent.click(await page.findByRole("button", { name: "Parent: None" }));
+			}
+			const search = await page.findByRole("combobox", { name: "Search tickets" });
+			await userEvent.clear(search);
+			await userEvent.type(search, "New parent");
 			await userEvent.click(await page.findByRole("option", { name: 'Create ticket "New parent"' }));
 			const dialog = await page.findByRole("dialog", { name: "New ticket" });
 			return within(dialog);

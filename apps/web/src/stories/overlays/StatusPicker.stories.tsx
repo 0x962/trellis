@@ -23,6 +23,7 @@ const meta = {
 			/>
 		);
 	},
+	parameters: { trellis: { responses: { "statuses.list": { statuses } } } },
 	args: { statuses, onPick: noop, trigger: <PickerButton label="Status">Status</PickerButton> },
 } satisfies Meta<typeof StatusPicker>;
 export default meta;
