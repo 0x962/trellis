@@ -86,7 +86,8 @@ export function fixture() {
 			lifecycle.useHome(home);
 			return lifecycle;
 		},
-		// Places a process in a cgroup, given relative to the cgroup2 mount.
+		// The cgroup argument is an absolute path below /sys/fs/cgroup. The
+		// process record stores the path relative to that mount.
 		placeProcess: (pid: number, cgroup: string) => {
 			files.set(`/proc/${pid}/cgroup`, `0::${cgroup.slice("/sys/fs/cgroup".length)}\n`);
 		},

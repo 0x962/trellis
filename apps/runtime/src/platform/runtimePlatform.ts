@@ -29,9 +29,9 @@ export type ExitWatcher = {
 	close: () => void;
 };
 
-// One implementation for each supported host. `identity` is an opaque string
-// that callers compare by equality. Two processes that receive the same PID
-// have different identities.
+// One implementation for each supported host. Callers compare identity strings
+// by equality. On Linux, PID reuse within one start tick can produce equal
+// identities.
 export type RuntimePlatform = {
 	inspectProcess: (pid: number) => ProcessObservation;
 	processIdentity: (pid: number) => ProcessIdentityObservation;

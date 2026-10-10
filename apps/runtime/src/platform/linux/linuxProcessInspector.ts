@@ -92,8 +92,8 @@ export function createLinuxProcessInspector(operations: LinuxProcessOperations):
 		return { kind: "missing" };
 	};
 
-	// Two reads of the boot ID and the start time detect a reboot or a reused
-	// PID between the first read and the last read.
+	// The two reads detect a changed boot ID or start tick. PID reuse within
+	// one tick can remain undetected.
 	const observe = (
 		pid: number,
 		withExecutable: boolean,
