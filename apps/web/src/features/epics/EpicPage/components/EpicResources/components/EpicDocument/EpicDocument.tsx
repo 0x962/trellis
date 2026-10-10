@@ -157,7 +157,7 @@ export function EpicDocument({
 					{comments?.titleAction}
 				</div>
 			)}
-			<div className="rounded-sm focus-within:outline-2 focus-within:outline-accent">
+			<div className="rounded-sm focus-within:outline-2 focus-within:outline-fg-faint">
 				<LazyEditor
 					markdown={markdown}
 					contentKey={docId}

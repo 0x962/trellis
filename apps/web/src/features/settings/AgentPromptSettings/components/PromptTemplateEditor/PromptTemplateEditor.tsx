@@ -1,5 +1,6 @@
 import { EditorContent, useEditor } from "@tiptap/react";
 import { type AriaAttributes, type Ref, useEffect, useImperativeHandle } from "react";
+import { useRewriteEditor } from "../../../../promptRewrite/useRewriteEditor";
 import { promptDocument, promptExtensions } from "./promptDocument";
 
 export type PromptTemplateEditorHandle = { insertVariable: (name: string) => void };
@@ -60,5 +61,6 @@ export function PromptTemplateEditor({ ref, id, value, variables, onChange, disa
 		}),
 		[editor],
 	);
+	useRewriteEditor(editor, "template", "plain");
 	return <EditorContent editor={editor} className="prompt-template-editor" />;
 }

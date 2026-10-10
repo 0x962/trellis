@@ -1,7 +1,9 @@
 import { Plus } from "@phosphor-icons/react";
 import { useRouterState } from "@tanstack/react-router";
 import { Tooltip } from "@trellis/ui";
-import { projectRefOfPathname } from "../../../lib/projectUrl";
+import { epicRefOfPathname, projectRefOfPathname } from "../../../lib/projectUrl";
+import { usePageCreate } from "../../../lib/usePageCreate";
+import { routeDefaults } from "../../command/utils/routeDefaults";
 import { composerActions } from "../../composer";
 import { TopbarActionButton } from "../Topbar";
 
@@ -9,15 +11,19 @@ import { TopbarActionButton } from "../Topbar";
 // every create control takes. The New ticket dialog opens in the project of
 // the page. A filter or a grouping of the page never seeds the status, so
 // the ticket starts in the project's default status.
-export function NewTicketButton() {
+export function NewTicketButton({ disabled = false }: { disabled?: boolean }) {
 	const pathname = useRouterState({ select: (state) => state.location.pathname });
-	const project = projectRefOfPathname(pathname);
+	const project = projectRefOfPathname(pathname) ?? undefined;
+	const epic = epicRefOfPathname(pathname) ?? undefined;
+	const search = useRouterState({ select: (state) => state.location.search as Record<string, unknown> });
+	usePageCreate(() => composerActions.open(routeDefaults(pathname, search)), !disabled);
 	return (
 		<Tooltip content="New ticket">
 			<TopbarActionButton
 				label="New ticket"
 				icon={<Plus />}
-				onClick={() => composerActions.open(project === null ? {} : { project })}
+				disabled={disabled}
+				onClick={() => composerActions.open({ project, epic })}
 			/>
 		</Tooltip>
 	);

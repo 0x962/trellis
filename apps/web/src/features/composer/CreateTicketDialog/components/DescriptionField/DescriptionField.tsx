@@ -2,7 +2,7 @@ import { lazy, Suspense, useRef } from "react";
 import { ReadOnlyMarkdown } from "../../../../../components/ReadOnlyMarkdown";
 
 const DescriptionEditor = lazy(() =>
-	import("../DescriptionEditor/DescriptionEditor").then((module) => ({ default: module.DescriptionEditor })),
+	import("../../../../../components/MarkdownEditor").then((module) => ({ default: module.MarkdownEditor })),
 );
 
 export type DescriptionFieldProps = {

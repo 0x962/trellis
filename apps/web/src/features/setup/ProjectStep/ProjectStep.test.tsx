@@ -12,6 +12,7 @@ const mount = async (props: Partial<ProjectStepProps> = {}) => {
 	await act(async () => {
 		root.render(
 			<ProjectStep
+				initialName={props.initialName}
 				taken={props.taken ?? []}
 				takenNames={props.takenNames ?? []}
 				takenColors={[]}
@@ -84,8 +85,8 @@ test("sends one create request while project creation remains pending", async ()
 	await fixture.changeKey("PROJECT");
 	const form = fixture.root.container.queryAll((node) => node.type === "form")[0]!;
 	await act(async () => {
-		void form.props.onSubmit({ preventDefault() {} });
-		void form.props.onSubmit({ preventDefault() {} });
+		void form.props.onSubmit({ preventDefault() {}, stopPropagation() {} });
+		void form.props.onSubmit({ preventDefault() {}, stopPropagation() {} });
 		await Promise.resolve();
 	});
 
@@ -95,5 +96,27 @@ test("sends one create request while project creation remains pending", async ()
 	expect(button.props["aria-busy"]).toBe(true);
 
 	await act(async () => fixture.finish());
+	await act(async () => fixture.root.unmount());
+});
+
+test("retains the typed project name and key after a create refusal", async () => {
+	const calls: string[] = [];
+	const fixture = await mount({
+		initialName: "New project",
+		onCreate: async ({ name }) => {
+			calls.push(name);
+			if (calls.length === 1) throw new Error("The project key is already in use.");
+		},
+	});
+	expect(fixture.inputs()[0]!.props.value).toBe("New project");
+	expect(fixture.inputs()[1]!.props.value).not.toBe("");
+	const form = fixture.root.container.queryAll((node) => node.type === "form")[0]!;
+	const submit = () => form.props.onSubmit({ preventDefault() {}, stopPropagation() {} });
+	await act(submit);
+	expect(fixture.inputs()[0]!.props.value).toBe("New project");
+	expect(fixture.root.container.queryAll((node) => node.props.role === "alert").length).toBeGreaterThan(0);
+	await fixture.changeKey("FRESH");
+	await act(submit);
+	expect(calls).toEqual(["New project", "New project"]);
 	await act(async () => fixture.root.unmount());
 });

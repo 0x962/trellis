@@ -1,8 +1,9 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { Button, Dialog, EmptyState, FailureState, PropertyRow, Select } from "@trellis/ui";
+import { Button, Dialog, EmptyState, FailureState, PropertyRow } from "@trellis/ui";
 import { useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
+import { FlowPicker } from "../../../../flows/FlowPicker";
 import { startFlowId } from "./startFlowId";
 
 export function StartFlowDialog({
@@ -69,12 +70,12 @@ export function StartFlowDialog({
 						}
 					/>
 				) : (
-					<Select
-						label="Flow"
+					<FlowPicker
+						ticket={ticket}
+						flows={flows.data ?? []}
 						value={selectedFlowId}
-						disabled={start.isPending}
-						items={(flows.data ?? []).map((flow) => ({ value: flow.id, label: flow.name }))}
-						onValueChange={(value) => {
+						disabled={start.isPending || !flows.isSuccess}
+						onPick={(value) => {
 							setFlowId(value);
 							setRequestId(crypto.randomUUID());
 						}}

@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Link, useLocation, useNavigate } from "@tanstack/react-router";
+import { useLocation, useNavigate } from "@tanstack/react-router";
 import type { AgentRun, TicketSummary, WaveSummary } from "@trellis/api";
 import { Tabs, useMediaQuery } from "@trellis/ui";
 import { useMemo, useState } from "react";
@@ -11,7 +11,6 @@ import { useViewShareItems } from "../../filters/hooks/useViewShareItems";
 import { hasFilters } from "../../filters/labels";
 import { ArchivedBanner } from "../../project-actions";
 import { PageTitle } from "../../shell/PageTitle";
-import { ProjectBreadcrumb } from "../../shell/ProjectBreadcrumb";
 import { Topbar } from "../../shell/Topbar";
 import { DisplayPopover } from "../../table/DisplayPopover";
 import { useTicketMutations } from "../../table/hooks/useTicketMutations";
@@ -26,6 +25,7 @@ import { EpicSwitcher } from "../EpicSwitcher";
 import { epicWorkingTicketIds } from "../epicNext";
 import { assignedTicketIds } from "../epicRowRank";
 import { epicPageSearch, epicQueryString, epicUrlSearch } from "../epicSearch";
+import { EpicBreadcrumb } from "./components/EpicBreadcrumb";
 import { EpicCreateActions } from "./components/EpicCreateActions";
 import { EpicEmptyState } from "./components/EpicEmptyState";
 import { EpicLoadError } from "./components/EpicLoadError";
@@ -39,11 +39,6 @@ const noRuns: readonly AgentRun[] = [];
 const noWaves: readonly WaveSummary[] = [];
 const noTickets: readonly TicketSummary[] = [];
 const phoneTitleClass = "max-md:w-full";
-
-// On a phone and on a touch screen the link is 44 px tall, the least a
-// finger hits.
-const breadcrumbLinkClass =
-	"inline-flex h-7 max-md:h-11 pointer-coarse:h-11 items-center rounded-md px-1 text-fg-muted transition-colors duration-hover hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2";
 
 // One epic, in two tabs. Overview is the tickets of the epic in the ticket
 // table of the project routes, with nothing above the table. Resources is
@@ -108,17 +103,7 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 		await queryClient.invalidateQueries({ queryKey: orpc.epics.key() });
 	};
 
-	const parent = (
-		<span className="flex min-w-0 items-center gap-2">
-			<ProjectBreadcrumb project={project} />
-			<span aria-hidden="true" className="text-fg-faint">
-				/
-			</span>
-			<Link to="/p/$" params={{ _splat: `${project.key}/epics` }} search={{}} className={breadcrumbLinkClass}>
-				Epics
-			</Link>
-		</span>
-	);
+	const parent = <EpicBreadcrumb project={project} />;
 
 	// The search and the filter bar need the epic ref and the project alone,
 	// so the pending page draws the same bar as the loaded page and the
@@ -226,6 +211,7 @@ export function EpicPage({ project, slug, search, onSearchChange }: EpicPageProp
 	// The top bar and the empty state of the Overview share the Add menu.
 	const createActions = readOnly ? null : (
 		<EpicCreateActions
+			epic={record.ref}
 			project={project.key}
 			exclude={identifiers}
 			waveEditing={waveEditing}

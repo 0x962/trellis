@@ -1,4 +1,4 @@
-import type { StatusCategory } from "@trellis/api";
+import type { Status, StatusCategory } from "@trellis/api";
 import { Button, Input, Select } from "@trellis/ui";
 import { type FormEvent, useState } from "react";
 import { useApp } from "../../../lib/appContext";
@@ -6,9 +6,10 @@ import { useApp } from "../../../lib/appContext";
 export type StatusCreateFormProps = {
 	project: string;
 	initialCategory?: StatusCategory;
+	initialName?: string;
 	busy: boolean;
 	onWrite: (operation: () => Promise<void>) => Promise<void>;
-	onCreated: () => Promise<void>;
+	onCreated: (status: Status) => Promise<void>;
 	onCancel: () => void;
 };
 
@@ -23,30 +24,32 @@ const categories: { value: StatusCategory; label: string }[] = [
 export function StatusCreateForm({
 	project,
 	initialCategory = "todo",
+	initialName = "",
 	busy,
 	onWrite,
 	onCreated,
 	onCancel,
 }: StatusCreateFormProps) {
 	const { client } = useApp();
-	const [name, setName] = useState("");
+	const [name, setName] = useState(initialName);
 	const [category, setCategory] = useState<StatusCategory>(initialCategory);
 	const [nameError, setNameError] = useState<string | null>(null);
 
 	const submit = async (event: FormEvent) => {
 		event.preventDefault();
+		event.stopPropagation();
 		if (name.trim() === "") {
 			setNameError("Enter a status name.");
 			return;
 		}
 		try {
 			await onWrite(async () => {
-				await client.statuses.create({
+				const status = await client.statuses.create({
 					project,
 					name: name.trim(),
 					category,
 				});
-				await onCreated();
+				await onCreated(status);
 			});
 		} catch (error) {
 			setNameError((error as Error).message);
@@ -54,7 +57,13 @@ export function StatusCreateForm({
 	};
 
 	return (
-		<form onSubmit={(event) => void submit(event)} className="status-create-form">
+		<form
+			onSubmit={(event) => void submit(event)}
+			onKeyDown={(event) => {
+				if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) event.stopPropagation();
+			}}
+			className="status-create-form"
+		>
 			<div className="grid gap-3 sm:grid-cols-2">
 				<Input
 					label="Status name"

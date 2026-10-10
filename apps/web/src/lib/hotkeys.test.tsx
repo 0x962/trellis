@@ -40,7 +40,6 @@ async function mount() {
 		navigate: (href) => calls.push(href),
 		onPalette: () => calls.push("palette"),
 		onSearch: () => calls.push("search"),
-		onCompose: () => calls.push("compose"),
 		onProjectPicker: () => calls.push("projects"),
 		onBack: () => calls.push("back"),
 		onForward: () => calls.push("forward"),
@@ -90,7 +89,7 @@ test("other shortcuts and modifier combinations retain their behavior", async ()
 	press("c");
 	press("[", { metaKey: true });
 	press("]", { metaKey: true });
-	expect(calls).toEqual(["search", "compose", "back", "forward"]);
+	expect(calls).toEqual(["search", "back", "forward"]);
 });
 
 test("unmount removes the desktop palette shortcut", async () => {

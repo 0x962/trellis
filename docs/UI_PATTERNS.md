@@ -82,6 +82,8 @@ A form uses these four sizes. `FieldHint` supplies the shared hint style for sec
 An error takes precedence over a read-only reason.
 A trailing icon action uses `IconButton` inside `Tooltip`.
 A read-only text value remains selectable and focusable.
+Text fields and document editors use `fg-faint` for visible focus borders and outlines.
+The existing soft ring and danger border retain their roles.
 A hint states what the value does. For example, "Every ticket ID starts with OP."
 A field uses its hint slot for an error or reason, with no second message beneath it.
 `FormStatus` reports a save through `status` and optional `message`.
@@ -186,6 +188,10 @@ A list never navigates to `/t/$identifier`.
 This URL opens the sheet over the home page when a link arrives from outside the app or opens in a new tab.
 It replaces the URL with the home route, so closing the sheet leaves a page to use.
 The table's Enter, Space, and O keys open the same sheet.
+In the project session list, hold T and click a ticket agent to open its ticket sheet directly.
+A plain click selects the conversation. A session without a ticket keeps this behavior with T held.
+Hold S and click a ticket to open its existing agent session. The choice matches the ticket agent line.
+A ticket without a session opens its ticket sheet. S alone opens the status picker on key release.
 Markdown links and resolved ticket record links also open the sheet over the current page.
 Page links inside a session open the complete Page viewer in a sheet above that session.
 The session keeps its content, and the background route stays in place.
@@ -207,6 +213,13 @@ The sheet header holds Back, Forward, Reload, and Open in browser, which hands t
 Place filter chips beside the page title. Align Filter and Display at the right in the shared `FilterBar`.
 Filter uses the funnel icon. Display uses the sliders icon. Both use circular `IconButton` triggers with tooltips.
 The filter picker uses `FilterPopover` and `Command`. Selected filters use `Chip`, with an edit action and a remove action.
+
+Record pickers use a typed Create row when the name has no exact match.
+`createNameItem` supplies that row from the loaded names.
+`usePickerCreate` prevents repeated submissions and selects the returned record after the cache refresh.
+The project, status, and account pickers reuse their create forms for required fields.
+A wave needs an explicit epic. An unscoped wave filter opens a form with `EpicPicker` before it creates the wave.
+Fixed lists, such as priority and status category, keep their defined values.
 
 Use `Command.Virtual` for a large collection. It accepts stable item IDs, labels, optional search keywords, groups, checked items, and the current item. Pinned items remain available during search. The search callback supplies text for an option that adds a typed value. It uses the shared Command field, rows, and empty state. Search and keyboard selection use the full collection while the list mounts nearby rows and the selected row. Arrow keys, Home, End, Page Up, and Page Down move the selection. Enter selects an item.
 The `f` shortcut opens the filter picker.
@@ -316,7 +329,7 @@ A failure that recovers by itself clears itself. `RouteError` loads the route ag
 The block carries one action, and at most two. `action` is the one that usually works, and it sits beside the words. A screen never puts the only way out in a bar somewhere else.
 `detail` holds the raw text a developer reads. A closed disclosure holds it under the action, the text stays selectable, and the title never shows it.
 The words carry no blame, no apology and no exclamation mark. Red marks one thing: the small sign beside the title.
-`variant="page"` fills a route or a pane and draws no picture. `variant="section"` sits inside a tab or a list.
+`variant="page"` fills a route or a pane and draws the animal card from `EmptyState`. Each new card requests a random photo from Dog CEO, Cataas, or RandomFox. The photo stays fixed during updates to that card. The card reserves space while the request runs. An unavailable photo leaves that space empty. `variant="section"` sits inside a tab or a list and draws no picture.
 
 `EmptyState` stays the block for a list or a page that holds nothing. A state that is not a failure keeps it, such as a session that a person stopped.
 
@@ -396,3 +409,29 @@ The agent picker holds the harness, model, effort, and account. Automatic accoun
 The footer holds Add attachment and Start session. Paste and drop also add files.
 Escape and Close keep the draft and its files. Command-Enter or Control-Enter starts the session from any field.
 The pending request disables edits and Close. A failure keeps the draft and shows its details through `FailureState`.
+
+## Create shortcut
+
+Press C to use the create action of the current page.
+The epics list opens New epic. The flows list opens New flow.
+The roles list opens New role.
+A session page opens New session with its current project.
+The project board, ticket table, Search, and epic Overview open New ticket.
+The epic Overview supplies its epic to the ticket composer.
+The epic Resources tab creates a document through New document.
+Pages without a create action leave C unchanged.
+Text fields, document editors, terminals, dialogs, and open menus retain their keys.
+Archived project lists disable the create shortcut.
+
+## Rewrite a prompt
+
+Select all text in a multiline field, then press L twice within 300 milliseconds.
+Control+A or Command+A selects the complete field.
+The shortcut covers textareas, ticket and document descriptions, the ticket composer, role bodies, and the agent prompt template.
+A read-only field, terminal, or unregistered editor keeps its normal keys.
+One L, or L followed by another key, enters normal text.
+The rewrite uses the configured Vercel provider and the feature's text model.
+The instruction requires the model to preserve every requirement, constraint, identifier, number, and quoted value.
+A status toast reports progress. A successful replacement offers Undo and preserves the editor's undo history.
+A failed request retains the original text.
+An edit, focus change, document switch, or closed editor prevents a late result from replacing the field.

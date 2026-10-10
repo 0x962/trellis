@@ -52,7 +52,7 @@ test("the create error belongs to the status name field", async () => {
 	const input = root.container.queryAll((node) => node.type === "input")[0]!;
 	await act(async () => input.props.onChange({ currentTarget: { value: "Existing" }, target: { value: "Existing" } }));
 	const form = root.container.queryAll((node) => node.type === "form")[0]!;
-	await act(async () => form.props.onSubmit({ preventDefault() {} }));
+	await act(async () => form.props.onSubmit({ preventDefault() {}, stopPropagation() {} }));
 	expect(input.props["aria-invalid"]).toBe(true);
 	expect(messageFor(root, input)?.children.join("")).toBe("A status with this name exists.");
 	await act(async () => root.unmount());
@@ -82,9 +82,55 @@ test("the edit error belongs to the status name field", async () => {
 		);
 	});
 	const form = root.container.queryAll((node) => node.type === "form")[0]!;
-	await act(async () => form.props.onSubmit({ preventDefault() {} }));
+	await act(async () => form.props.onSubmit({ preventDefault() {}, stopPropagation() {} }));
 	const input = root.container.queryAll((node) => node.type === "input" && node.props.value === "Todo")[0]!;
 	expect(input.props["aria-invalid"]).toBe(true);
 	expect(messageFor(root, input)?.children.join("")).toBe("A status with this name exists.");
+	await act(async () => root.unmount());
+});
+
+test("creates the prefilled status and returns its saved record without submitting its parent", async () => {
+	const calls: unknown[] = [];
+	let picked: Status | undefined;
+	let stopped = false;
+	const client = {
+		statuses: {
+			create: async (input: unknown) => {
+				calls.push(input);
+				return status;
+			},
+		},
+	};
+	const root = createRoot();
+	await act(async () => {
+		root.render(
+			<AppProvider value={{ client } as unknown as AppContext}>
+				<StatusCreateForm
+					project="TRL"
+					initialName="Release"
+					initialCategory="review"
+					busy={false}
+					onWrite={async (operation) => operation()}
+					onCreated={async (created) => {
+						picked = created;
+					}}
+					onCancel={() => {}}
+				/>
+			</AppProvider>,
+		);
+	});
+	expect(root.container.queryAll((node) => node.type === "input")[0]!.props.value).toBe("Release");
+	const form = root.container.queryAll((node) => node.type === "form")[0]!;
+	await act(async () =>
+		form.props.onSubmit({
+			preventDefault() {},
+			stopPropagation() {
+				stopped = true;
+			},
+		}),
+	);
+	expect(calls).toEqual([{ project: "TRL", name: "Release", category: "review" }]);
+	expect(picked).toBe(status);
+	expect(stopped).toBe(true);
 	await act(async () => root.unmount());
 });

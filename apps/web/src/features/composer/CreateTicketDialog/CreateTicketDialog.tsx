@@ -3,13 +3,14 @@ import { AddAttachmentButton } from "../../attachments/AddAttachmentButton";
 import { DropTarget } from "../../attachments/DropTarget";
 import { UploadProgress } from "../../attachments/UploadProgress";
 import { ComposerHeader } from "../ComposerHeader";
+import type { ComposerInstance } from "../composerScope";
 import { AgentPicker } from "./components/AgentPicker";
 import { ChipRow } from "./components/ChipRow";
 import { DescriptionField } from "./components/DescriptionField";
 
 import { useTicketComposer } from "./components/useTicketComposer";
 
-export function CreateTicketDialog({ open = true }: { open?: boolean }) {
+export function CreateTicketDialog({ open = true, instance }: { open?: boolean; instance?: ComposerInstance }) {
 	const {
 		assignAgent,
 		createMore,
@@ -37,6 +38,7 @@ export function CreateTicketDialog({ open = true }: { open?: boolean }) {
 		titleId,
 		errorId,
 		locked,
+		attachmentsLocked,
 		assignmentError,
 		titleMissing,
 		close,
@@ -45,7 +47,7 @@ export function CreateTicketDialog({ open = true }: { open?: boolean }) {
 		action,
 		onLabel,
 		chooseClassification,
-	} = useTicketComposer();
+	} = useTicketComposer(instance);
 	return (
 		<>
 			<TicketComposer
@@ -59,7 +61,7 @@ export function CreateTicketDialog({ open = true }: { open?: boolean }) {
 						title="New ticket"
 						project={project}
 						disabled={submission.busy}
-						locked={locked}
+						locked={locked || instance?.options.project !== undefined}
 						onClose={close}
 						onProject={(next) =>
 							setDraft({ ...draft, project: next, epic: null, wave: null, parent: null, labels: [] })
@@ -68,17 +70,19 @@ export function CreateTicketDialog({ open = true }: { open?: boolean }) {
 				}
 				footer={
 					<>
-						<fieldset disabled={locked}>
+						<fieldset disabled={attachmentsLocked}>
 							<AddAttachmentButton uploads={uploads} />
 						</fieldset>
 						<div className="composer-options">
-							<Switch
-								label="Create another"
-								checked={createMore}
-								onCheckedChange={onCreateMore}
-								disabled={submission.busy}
-								className="composer-option"
-							/>
+							{!instance && (
+								<Switch
+									label="Create another"
+									checked={createMore}
+									onCheckedChange={onCreateMore}
+									disabled={submission.busy}
+									className="composer-option"
+								/>
+							)}
 							{choice !== null && (
 								<Switch
 									label="Assign agent"
@@ -90,7 +94,7 @@ export function CreateTicketDialog({ open = true }: { open?: boolean }) {
 							)}
 						</div>
 						{submission.receipt && submission.failure?.stage === "assigning" && (
-							<Button className="composer-keep" onClick={() => finish(false)}>
+							<Button className="composer-keep" onClick={() => void finish(false)}>
 								Keep ticket
 							</Button>
 						)}
@@ -110,7 +114,7 @@ export function CreateTicketDialog({ open = true }: { open?: boolean }) {
 				<DropTarget
 					identifier={submission.receipt?.identifier ?? "new ticket"}
 					onFiles={(files) => {
-						if (!locked) uploads.addFiles(files);
+						if (!attachmentsLocked) uploads.addFiles(files);
 					}}
 				>
 					<div>
@@ -156,6 +160,7 @@ export function CreateTicketDialog({ open = true }: { open?: boolean }) {
 								onDiscard={() => setAsking(true)}
 								agent={
 									<AgentPicker
+										scope={`${instance?.storagePrefix ?? "trellis-composer"}:${project}`}
 										value={choice}
 										assignAgent={assignAgent}
 										accounts={accounts.data}
@@ -168,6 +173,11 @@ export function CreateTicketDialog({ open = true }: { open?: boolean }) {
 						{(validation || assignmentError) && (
 							<p id={errorId} role="alert" className="mt-2 text-xs text-danger">
 								{validation ?? assignmentError}
+							</p>
+						)}
+						{uploads.missingFiles.length > 0 && (
+							<p role="alert" className="mt-2 text-xs text-danger">
+								Select these files again to complete their upload: {uploads.missingFiles.join(", ")}.
 							</p>
 						)}
 						{uploads.uploads.length > 0 && (
@@ -209,7 +219,7 @@ export function CreateTicketDialog({ open = true }: { open?: boolean }) {
 				onCancel={() => setAsking(false)}
 				onConfirm={() => {
 					setAsking(false);
-					finish(false);
+					void finish(false, true);
 				}}
 			/>
 		</>

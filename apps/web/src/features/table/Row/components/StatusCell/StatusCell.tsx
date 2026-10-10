@@ -7,6 +7,8 @@ import { cellButtonClass } from "../../cellButtonClass";
 
 export type StatusCellProps = {
 	status: StatusSummary;
+	scope?: string;
+	project?: string;
 	// The statuses of the scope. The picker lists them.
 	statuses: readonly StatusSummary[];
 	// The share of sub-tickets that are done, for a started status.
@@ -27,7 +29,9 @@ export type StatusCellProps = {
 // takes the name out at every width. The tooltip then says the name to a
 // person who points at the icon.
 export function StatusCell({
+	scope,
 	status,
+	project,
 	statuses,
 	progress,
 	iconOnly = false,
@@ -38,6 +42,8 @@ export function StatusCell({
 }: StatusCellProps) {
 	return (
 		<StatusPicker
+			scope={scope}
+			project={project}
 			statuses={statuses}
 			value={status.id}
 			open={open}

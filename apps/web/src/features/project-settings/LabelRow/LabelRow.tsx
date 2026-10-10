@@ -1,18 +1,18 @@
 import { DotsThree, FolderSimple, PencilSimple, Trash } from "@phosphor-icons/react";
-import type { Label, LabelGroup } from "@trellis/api";
-import { FormStatus, IconButton, LabelDot, Menu, type MenuItem } from "@trellis/ui";
+import { type Label, type LabelGroup, LabelGroupNameSchema } from "@trellis/api";
+import { Command, Dialog, FormStatus, IconButton, LabelDot, Menu, type MenuItem } from "@trellis/ui";
 import { useId, useRef, useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { formatCount } from "../../../lib/format";
+import { createNameItem } from "../../pickers/utils/createNameItem";
 import { LabelEditor } from "../LabelEditor";
+import { LabelGroupForm } from "../LabelGroupForm";
 import { labelWriteMessage } from "../labelWriteMessage";
 
 export type LabelRowProps = {
 	// The key of the project that owns the label.
 	project: string;
 	label: Label;
-	// Every group of the project. The row menu offers each one that does
-	// not already hold this label.
 	groups: readonly LabelGroup[];
 	// True sets the row one step in, under the heading of its group.
 	nested?: boolean;
@@ -42,14 +42,27 @@ export function LabelRow({
 	const editorId = useId();
 	const summaryRef = useRef<HTMLButtonElement>(null);
 	const [message, setMessage] = useState<string | null>(null);
+	const [groupPickerOpen, setGroupPickerOpen] = useState(false);
+	const [search, setSearch] = useState("");
+	const [createGroupName, setCreateGroupName] = useState<string | null>(null);
+	const [pending, setPending] = useState(false);
+	const [creating, setCreating] = useState(false);
+	const moving = useRef(false);
 
 	const move = async (group: string | null) => {
+		if (moving.current) return;
+		moving.current = true;
+		setPending(true);
 		try {
 			await client.labels.update({ project, label: label.id, group });
 			setMessage(null);
 			await onChanged();
+			setGroupPickerOpen(false);
 		} catch (error) {
 			setMessage(labelWriteMessage(error));
+		} finally {
+			moving.current = false;
+			setPending(false);
 		}
 	};
 
@@ -60,19 +73,29 @@ export function LabelRow({
 		summaryRef.current?.focus();
 	};
 
-	const moveItems: MenuItem[] = groups
-		.filter((group) => group.id !== label.groupId)
-		.map((group) => ({
-			label: `Move to ${group.name}`,
-			icon: <FolderSimple />,
-			onSelect: () => void move(group.id),
-		}));
-	if (label.groupId !== null) {
-		moveItems.push({ label: "Move to no group", icon: <FolderSimple />, onSelect: () => void move(null) });
-	}
+	const createItem = createNameItem(
+		"group",
+		search,
+		["No group", ...groups.map((group) => group.name)],
+		(name) => LabelGroupNameSchema.safeParse(name).success,
+	);
+	const groupItems = [
+		...(label.groupId === null ? [] : [{ id: "no-group", label: "No group" }]),
+		...groups.filter((group) => group.id !== label.groupId).map((group) => ({ id: group.id, label: group.name })),
+		...(createItem ? [createItem] : []),
+	];
 	const items: MenuItem[] = [
 		{ label: "Edit", icon: <PencilSimple />, onSelect: onEdit },
-		...moveItems,
+		{
+			label: "Move to group",
+			icon: <FolderSimple />,
+			onSelect: () => {
+				setSearch("");
+				setMessage(null);
+				setCreateGroupName(null);
+				setGroupPickerOpen(true);
+			},
+		},
 		{ label: "Delete", icon: <Trash />, danger: true, onSelect: () => onDelete(label) },
 	];
 	const actions = `Actions for ${label.name}`;
@@ -121,7 +144,48 @@ export function LabelRow({
 					/>
 				</div>
 			)}
-			{message !== null && <FormStatus status="error" message={message} className="status-row-message" />}
+			{groupPickerOpen && (
+				<Dialog
+					open
+					onOpenChange={(open) => {
+						if (!pending && !creating) setGroupPickerOpen(open);
+					}}
+					title={`Move ${label.name} to group`}
+					finalFocus={summaryRef}
+				>
+					{createGroupName !== null ? (
+						<LabelGroupForm
+							project={project}
+							initialName={createGroupName}
+							onPendingChange={setCreating}
+							onChanged={onChanged}
+							onCancel={() => setCreateGroupName(null)}
+							onCreated={(group) => {
+								setCreateGroupName(null);
+								void move(group.id);
+							}}
+						/>
+					) : (
+						<div inert={pending} aria-busy={pending}>
+							<Command
+								label="Search groups"
+								placeholder="Search groups"
+								autoFocus
+								items={groupItems}
+								onSearchChange={setSearch}
+								onSelect={(id) => {
+									if (id === createItem?.id) setCreateGroupName(search.trim());
+									else void move(id === "no-group" ? null : id);
+								}}
+							/>
+						</div>
+					)}
+					<FormStatus status={message ? "error" : pending ? "saving" : "idle"} message={message ?? undefined} />
+				</Dialog>
+			)}
+			{!groupPickerOpen && message !== null && (
+				<FormStatus status="error" message={message} className="status-row-message" />
+			)}
 		</li>
 	);
 }

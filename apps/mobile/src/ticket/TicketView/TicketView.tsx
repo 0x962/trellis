@@ -4,6 +4,7 @@ import { useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { Button } from "../../components/Button";
 import { SectionHeader } from "../../components/SectionHeader";
+import { describeError } from "../../lib/describeError";
 import { getClient } from "../../lib/orpc";
 import { keys, store } from "../../lib/store";
 import { tokens } from "../../theme/tokens";
@@ -63,7 +64,8 @@ export function TicketView({ ticket }: TicketViewProps) {
 	const palette = usePalette();
 	const client = getClient();
 	const { identifier } = ticket;
-	const statuses = useQuery(statusesQuery(client, ticket.project.id)).data?.statuses ?? [];
+	const statusQuery = useQuery(statusesQuery(client, ticket.project.id));
+	const statuses = statusQuery.data?.statuses ?? [];
 	const timeline = useInfiniteQuery(timelineOptions(identifier));
 	const items = timeline.data?.pages.flatMap((page) => page.items) ?? [];
 	const parent = useQuery({
@@ -130,8 +132,16 @@ export function TicketView({ ticket }: TicketViewProps) {
 			)}
 			<Timeline rows={timelineRows(items)} header={header} footer={footer} />
 			<StatusSheet
+				key={`${identifier}:${ticket.project.id}`}
 				open={statusOpen}
+				project={ticket.project.id}
 				statuses={statuses}
+				statusesReady={statusQuery.isSuccess}
+				statusError={
+					statusQuery.error === null
+						? undefined
+						: describeError(statusQuery.error, store.getString(keys.serverUrl)!).detail
+				}
 				currentId={ticket.status.id}
 				onChoose={chooseStatus}
 				onClose={() => setStatusOpen(false)}

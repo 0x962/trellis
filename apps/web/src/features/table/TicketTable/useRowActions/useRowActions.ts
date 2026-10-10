@@ -2,6 +2,7 @@ import type { TicketSummary } from "@trellis/api";
 import type { MouseEvent } from "react";
 import { useStableCallback } from "../../../../hooks/useStableCallback";
 import { pageSheetActions } from "../../../../stores/pageSheetStore";
+import { useTicketClick } from "../../../shell/useTicketClick";
 import type { BulkPicker } from "../../BulkBar";
 import type { useApplyChange } from "../../hooks/useApplyChange";
 import type { BulkWrite } from "../../hooks/useBulkWrite";
@@ -59,6 +60,7 @@ export function useRowActions({
 	onBulkPicker,
 }: RowActionsOptions): RowActions {
 	const copier = useCopyTickets();
+	const clickTicket = useTicketClick();
 
 	// A click or an open key shows the ticket over this list, so the list
 	// keeps its scroll position.
@@ -84,7 +86,10 @@ export function useRowActions({
 			if (!rowClickOpens(event.target as Element, event.currentTarget as Node)) return;
 			if (event.shiftKey) selection.extend(id);
 			else if (event.metaKey || event.ctrlKey) selection.toggle(id);
-			else openTicket(id);
+			else {
+				const ticket = findTicket(id);
+				if (ticket !== undefined) clickTicket(ticket.identifier, event);
+			}
 		}),
 		onRowChange: useStableCallback((ticket: TicketSummary, change: RowChange) => {
 			if (selection.isSelected(ticket.id)) void applyChange(selectedTickets(), change, "selection");

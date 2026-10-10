@@ -4,6 +4,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { Tooltip } from "@trellis/ui";
 import { useEffect, useState } from "react";
 import { useApp } from "../../../lib/appContext";
+import { usePageCreate } from "../../../lib/usePageCreate";
 import { Topbar, TopbarActionButton } from "../../shell/Topbar";
 import { SessionConversation } from "../SessionConversation";
 import { SessionName } from "../SessionName";
@@ -17,6 +18,8 @@ export function SessionPage({ id }: { id: string }) {
 		...orpc.sessions.get.queryOptions({ input: { id } }),
 		refetchInterval: 2000,
 	}).data;
+	const createSession = () => sessionComposerActions.open(session.projectKey);
+	usePageCreate(createSession);
 	useEffect(() => {
 		document.title = `${session.name} · trellis`;
 	}, [session.name]);
@@ -25,11 +28,7 @@ export function SessionPage({ id }: { id: string }) {
 			<Topbar
 				actions={
 					<Tooltip content="New session">
-						<TopbarActionButton
-							label="New session"
-							icon={<Plus />}
-							onClick={() => sessionComposerActions.open(session.projectKey)}
-						/>
+						<TopbarActionButton label="New session" icon={<Plus />} onClick={createSession} />
 					</Tooltip>
 				}
 			>

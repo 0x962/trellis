@@ -1,0 +1,1 @@
+export { RewriteHotkey } from "./RewriteHotkey";

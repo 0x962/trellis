@@ -1,5 +1,6 @@
 export * from "./tables/chatterMessages";
 export * from "./tables/epicChatterSettings";
+export * from "./tables/epicWhiteboards";
 
 import { sql } from "drizzle-orm";
 import {
@@ -292,3 +293,4 @@ export {
 export * from "./tables/langflowExecution/index.ts";
 export * from "./tables/nativeMigrations.ts";
 export * from "./tables/notes.ts";
+export * from "./tables/roles.ts";

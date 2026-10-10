@@ -18,11 +18,13 @@ export function TicketComposer({
 		<Dialog {...props} bare size="lg" className="ticket-composer">
 			<form
 				onSubmit={(event) => {
+					if (event.target !== event.currentTarget) return;
 					event.preventDefault();
 					onSubmit();
 				}}
 				onKeyDownCapture={(event) => {
 					if (
+						(event.target as Element).closest("form") === event.currentTarget &&
 						!event.defaultPrevented &&
 						!event.nativeEvent.isComposing &&
 						(event.metaKey || event.ctrlKey) &&

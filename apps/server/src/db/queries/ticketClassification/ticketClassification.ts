@@ -29,6 +29,12 @@ export const ticketClassification = (
 			LEFT JOIN statuses s ON s.id = t.status_id
 			WHERE e.project_id = ${input.projectId}
 				AND (e.canceled_at IS NULL OR e.id = ${input.epicId})
+				AND (e.id = ${input.epicId}
+					OR NOT EXISTS (SELECT 1 FROM tickets member WHERE member.epic_id = e.id)
+					OR EXISTS (
+						SELECT 1 FROM tickets member JOIN statuses status ON status.id = member.status_id
+						WHERE member.epic_id = e.id AND status.category NOT IN ('done', 'canceled')
+					))
 				AND (${input.epicId}::text IS NULL OR e.id = ${input.epicId})
 				AND (${input.waveId}::text IS NULL OR w.id = ${input.waveId})
 			GROUP BY p.key, e.id, w.id

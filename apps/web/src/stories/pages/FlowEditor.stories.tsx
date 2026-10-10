@@ -194,7 +194,7 @@ export const RequestRecovery: Story = {
 	play: async ({ canvasElement }) => {
 		const canvas = within(canvasElement);
 		await userEvent.click(await canvas.findByRole("button", { name: "Retry" }));
-		await expect(await canvas.findByText("Review the interface", { exact: true })).toBeVisible();
+		await waitFor(() => expect(canvas.getByText("Review the interface", { exact: true })).toBeVisible());
 		await expect(recoveryRequests).toBe(2);
 	},
 };

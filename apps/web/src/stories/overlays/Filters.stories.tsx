@@ -9,8 +9,8 @@ import { type View, viewOf } from "../../features/filters/grammar";
 import { filterLabels } from "../../features/filters/labelValues";
 import { DisplayPopover } from "../../features/table/DisplayPopover";
 import { useStoryState } from "../components/useStoryState";
-import { labels, noop, responses, statuses } from "./fixtures";
-import { clickButton } from "./interactions";
+import { labels, noop, responses, statuses, wave } from "./fixtures";
+import { clickButton, fillField } from "./interactions";
 
 const meta = {
 	title: "Overlays/Filters",
@@ -170,5 +170,36 @@ export const ChangeDisplay: Story = {
 		await waitFor(() => expect(completed).toHaveAttribute("aria-disabled", "true"));
 		await userEvent.click(completed);
 		await expect(completed).not.toBeChecked();
+	},
+};
+
+let createdWaveInput: unknown;
+export const CreateWaveInChosenEpic: Story = {
+	args: { stage: { kind: "values", field: "wave" } },
+	beforeEach: () => {
+		createdWaveInput = undefined;
+	},
+	parameters: {
+		trellis: {
+			responses: {
+				"waves.create": (input: unknown) => {
+					createdWaveInput = input;
+					return { ...wave, name: "Research", ref: "DEMO/catalog/research" };
+				},
+			},
+		},
+	},
+	play: async (context) => {
+		const body = within(context.canvasElement.ownerDocument.body);
+		await fillField(context.canvasElement, "Search Wave values", "Research");
+		await userEvent.click(await body.findByRole("option", { name: 'Create wave "Research"' }));
+		const dialog = await body.findByRole("dialog", { name: "Create wave" });
+		await expect(within(dialog).getByRole("button", { name: "Create wave" })).toBeDisabled();
+		await userEvent.click(within(dialog).getByRole("button", { name: "Choose epic" }));
+		await userEvent.click(await body.findByRole("option", { name: "Component catalog" }));
+		await waitFor(() => expect(within(dialog).getByRole("button", { name: "Create wave" })).toBeEnabled());
+		await userEvent.click(within(dialog).getByRole("button", { name: "Create wave" }));
+		await waitFor(() => expect(body.queryByRole("dialog", { name: "Create wave" })).not.toBeInTheDocument());
+		expect(createdWaveInput).toEqual({ epic: "DEMO/catalog", name: "Research" });
 	},
 };

@@ -233,6 +233,7 @@ export function AssignAgent({
 			)}
 			{dialog !== null && (
 				<AssignAgentDialog
+					scope={ticket}
 					initial={dialog.choice}
 					accounts={accounts}
 					accountError={accountList.error?.message}

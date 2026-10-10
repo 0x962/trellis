@@ -5,20 +5,14 @@ import { backNavigation } from "../../../lib/backNavigation";
 import { useGlobalHotkeys } from "../../../lib/hotkeys";
 import { commandActions } from "../../command/commandStore";
 import { SequenceHint } from "../../command/SequenceHint";
-import { routeDefaults } from "../../command/utils/routeDefaults";
-import { composerActions } from "../../composer";
 
-// The shell's keyboard. It binds every global row of the shortcut map and
-// draws the hint of a pending `g` sequence. The two bare pages, the first
-// run and the gallery, mount no shell and take no key.
+// The shell binds navigation and command shortcuts and shows pending `g` sequences.
 export function GlobalHotkeys() {
 	const router = useRouter();
 	const { scheduler } = useApp();
 	const pathname = useRouterState({ select: (state) => state.location.pathname });
-	const search = useRouterState({ select: (state) => state.location.search as Record<string, unknown> });
 
 	const navigate = useCallback((href: string) => void router.navigate({ href }), [router]);
-	const onCompose = useCallback(() => composerActions.open(routeDefaults(pathname, search)), [pathname, search]);
 	const onPalette = useCallback(() => commandActions.toggle("commands"), []);
 	const onSearch = useCallback(() => commandActions.toggle("search"), []);
 	const onProjectPicker = useCallback(() => commandActions.open("projects"), []);
@@ -33,7 +27,6 @@ export function GlobalHotkeys() {
 		pathname,
 		onPalette,
 		onSearch,
-		onCompose,
 		onProjectPicker,
 		onBack,
 		onForward,

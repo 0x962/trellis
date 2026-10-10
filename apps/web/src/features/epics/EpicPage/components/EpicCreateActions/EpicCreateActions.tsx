@@ -7,6 +7,7 @@ import { TopbarActionButton } from "../../../../shell/Topbar";
 import type { WaveEditing } from "../../../../table/hooks/useWaveEditing";
 
 export type EpicCreateActionsProps = {
+	epic: string;
 	// The ticket search stays inside this project.
 	project: string;
 	// Tickets in the epic cannot appear in the search results.
@@ -16,7 +17,7 @@ export type EpicCreateActionsProps = {
 };
 
 // The top bar and the empty state share the same Add menu.
-export function EpicCreateActions({ project, exclude, waveEditing, onAddTicket }: EpicCreateActionsProps) {
+export function EpicCreateActions({ epic, project, exclude, waveEditing, onAddTicket }: EpicCreateActionsProps) {
 	const [ticketsOpen, setTicketsOpen] = useState(false);
 	const trigger = useRef<HTMLButtonElement>(null);
 	return (
@@ -32,6 +33,7 @@ export function EpicCreateActions({ project, exclude, waveEditing, onAddTicket }
 			/>
 			{ticketsOpen && (
 				<TicketPicker
+					scope={epic}
 					project={project}
 					exclude={exclude}
 					allowNone={false}

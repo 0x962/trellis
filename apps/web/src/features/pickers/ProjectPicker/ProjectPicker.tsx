@@ -1,6 +1,19 @@
+import { useQuery } from "@tanstack/react-query";
 import type { ProjectSummary } from "@trellis/api";
 import { Command, type CommandItem, Popover } from "@trellis/ui";
-import { type ReactElement, type RefObject, useRef, useState } from "react";
+import {
+	type AriaAttributes,
+	cloneElement,
+	type ReactElement,
+	type ReactNode,
+	type RefObject,
+	useRef,
+	useState,
+} from "react";
+
+import { useApp } from "../../../lib/appContext";
+import { CreateProjectDialog } from "../../project-actions/CreateProjectDialog";
+import { createNameItem } from "../utils/createNameItem";
 
 const byPosition = (a: ProjectSummary, b: ProjectSummary) => a.position - b.position;
 
@@ -19,12 +32,17 @@ export const projectItems = (projects: readonly ProjectSummary[], current?: stri
 		current: project.key === current,
 	}));
 
-export type ProjectPickerProps = {
+export type ProjectPickerProps = AriaAttributes & {
+	id?: string;
+	scope?: string;
+	includeArchived?: boolean;
+	noProjectLabel?: string;
 	projects: readonly ProjectSummary[];
 	// The key of the current project.
 	value?: string;
 	onPick: (key: string) => void;
-	trigger: ReactElement;
+	trigger: ReactElement<AriaAttributes & { id?: string; disabled?: boolean }>;
+	wrapPicker?: (picker: ReactElement<AriaAttributes & { id?: string }>) => ReactNode;
 	open?: boolean;
 	onOpenChange?: (open: boolean) => void;
 	finalFocus?: RefObject<HTMLElement | null>;
@@ -41,9 +59,11 @@ export type ProjectPickerProps = {
 // The project popover: every project, searchable by key, slug, and name.
 export function ProjectPicker({
 	projects,
+	scope,
 	value,
 	onPick,
 	trigger,
+	wrapPicker,
 	open,
 	onOpenChange,
 	finalFocus,
@@ -52,19 +72,34 @@ export function ProjectPicker({
 	keepOpenOnPick = false,
 	allowNoProject = false,
 	disabled = false,
+	includeArchived = false,
+	noProjectLabel = "No project",
+	...controlProps
 }: ProjectPickerProps) {
+	const { orpc } = useApp();
+	const [search, setSearch] = useState("");
+	const [createName, setCreateName] = useState<{ name: string; scope: string | undefined } | null>(null);
 	const [own, setOwn] = useState(false);
 	const input = useRef<HTMLInputElement>(null);
 	const isOpen = open ?? own;
+	const activeCreateName = createName?.scope === scope ? (createName?.name ?? null) : null;
+	const allProjects = useQuery({ ...orpc.projects.list.queryOptions({ input: {} }), enabled: isOpen });
 	const setOpen = (next: boolean) => {
+		setSearch("");
 		setOwn(next);
 		onOpenChange?.(next);
 	};
-	return (
+	const createItem = allProjects.isSuccess
+		? createNameItem("project", search, [
+				...allProjects.data.flatMap((project) => [project.name, project.key, project.slug]),
+				...(allowNoProject ? [noProjectLabel] : []),
+			])
+		: null;
+	const picker = (
 		<Popover
-			trigger={trigger}
+			trigger={cloneElement(trigger, { ...controlProps, disabled: disabled || trigger.props.disabled })}
 			label="Project"
-			open={isOpen && !disabled}
+			open={isOpen && !disabled && activeCreateName === null}
 			onOpenChange={setOpen}
 			initialFocus={input}
 			finalFocus={finalFocus}
@@ -73,13 +108,19 @@ export function ProjectPicker({
 		>
 			<Command
 				inputRef={input}
+				onSearchChange={setSearch}
 				label="Search projects"
 				placeholder="Move to project"
 				items={[
-					...(allowNoProject ? [{ id: "no-project", label: "No project", current: !value }] : []),
-					...projectItems(selectableProjects(projects), value),
+					...(allowNoProject ? [{ id: "no-project", label: noProjectLabel, current: !value }] : []),
+					...projectItems(includeArchived ? projects : selectableProjects(projects), value),
+					...(createItem ? [createItem] : []),
 				]}
 				onSelect={(key) => {
+					if (key === createItem?.id) {
+						setCreateName({ name: search.trim(), scope });
+						return;
+					}
 					if (!keepOpenOnPick) setOpen(false);
 					onPick(key === "no-project" ? "" : key);
 				}}
@@ -90,5 +131,22 @@ export function ProjectPicker({
 				</p>
 			)}
 		</Popover>
+	);
+	return (
+		<>
+			{wrapPicker ? wrapPicker(picker) : picker}
+			{activeCreateName !== null && (
+				<CreateProjectDialog
+					initialName={activeCreateName}
+					scope={scope}
+					onClose={() => setCreateName(null)}
+					onCreated={(project) => {
+						setCreateName(null);
+						if (!keepOpenOnPick) setOpen(false);
+						onPick(project.key);
+					}}
+				/>
+			)}
+		</>
 	);
 }

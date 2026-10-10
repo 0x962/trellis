@@ -1,26 +1,19 @@
 import { useQuery } from "@tanstack/react-query";
-import type { Actor, CiState, EpicSummary, PrFilter, Priority, StatusSummary } from "@trellis/api";
+import type { StatusSummary } from "@trellis/api";
 import { type CommandItem, FilterPopover, StatusIcon } from "@trellis/ui";
-import { type ReactElement, useEffect, useState } from "react";
+import { type AriaAttributes, type ReactElement, useEffect, useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
-import { epicItems } from "../../../../pickers/EpicPicker";
+import { EpicPicker } from "../../../../pickers/EpicPicker";
 import { useEpicWaves } from "../../../../pickers/hooks/useEpicWaves";
-import { priorityItems } from "../../../../pickers/PriorityPicker";
-import { projectItems } from "../../../../pickers/ProjectPicker";
+import { ProjectPicker } from "../../../../pickers/ProjectPicker";
 import { statusGroups } from "../../../../pickers/statusGroups";
-import { waveGroups } from "../../../../pickers/WavePicker";
-import {
-	ciLabels,
-	type FilterField,
-	fieldLabels,
-	multiValue,
-	pickerFields,
-	prLabels,
-	timeLabels,
-} from "../../../fields";
+import { WavePicker, waveGroups } from "../../../../pickers/WavePicker";
+import { type FilterField, fieldLabels, multiValue, pickerFields } from "../../../fields";
 import type { View } from "../../../grammar";
 import { type FilterLabel, labelValueGroups } from "../../../labelValues";
 import { presets } from "../../../presets";
+import { checkedStatusIds, valueChange, valueItems } from "./filterValues";
+import { useFilterCreate } from "./hooks/useFilterCreate";
 
 // The picker shows the fields first, then the values of one field.
 export type PickerStage = { kind: "fields" } | { kind: "values"; field: FilterField };
@@ -43,15 +36,10 @@ export type FilterPickerProps = {
 	onOpenChange: (open: boolean) => void;
 	stage: PickerStage;
 	onStageChange: (stage: PickerStage) => void;
-	trigger: ReactElement;
+	trigger: ReactElement<AriaAttributes & { id?: string; disabled?: boolean }>;
 };
 
 const presetId = (label: string) => `preset:${label}`;
-
-const toggle = (values: readonly string[] | undefined, value: string) =>
-	values?.includes(value) ? values.filter((entry) => entry !== value) : [...(values ?? []), value];
-
-const emptyToUndefined = <T,>(values: T[]) => (values.length === 0 ? undefined : values);
 
 // The field picker and the value pickers, in one popover anchored to the
 // Filter button. A multi-value field toggles and stays open; every other
@@ -72,6 +60,10 @@ export function FilterPicker({
 }: FilterPickerProps) {
 	const { orpc } = useApp();
 	const [ticketSearch, setTicketSearch] = useState("");
+	const [search, setSearch] = useState("");
+	useEffect(() => {
+		if (!open || stage.kind === "fields") setSearch("");
+	}, [stage.kind, open]);
 	const [ticketQuery, setTicketQuery] = useState("");
 	const waitsOnStage = open && stage.kind === "values" && stage.field === "waitsOn";
 	useEffect(() => {
@@ -98,15 +90,27 @@ export function FilterPicker({
 	const waveStage = open && stage.kind === "values" && stage.field === "wave";
 	const waveEpics = fixedEpic === undefined ? epics.map((epic) => epic.ref) : [fixedEpic];
 	const epicWaves = useEpicWaves(waveStage ? waveEpics : []);
-	const dependencyTickets =
-		useQuery({
-			...orpc.search.query.queryOptions({
-				input: { q: ticketQuery, project: project === undefined ? undefined : project, limit: 10 },
-			}),
-			enabled: waitsOnStage && ticketQuery !== "",
-		}).data?.tickets ?? [];
+	const dependencySearch = useQuery({
+		...orpc.search.query.queryOptions({
+			input: { q: ticketQuery, project: project === undefined ? undefined : project, limit: 10 },
+		}),
+		enabled: waitsOnStage && ticketQuery !== "",
+	});
+	const dependencyTickets = dependencySearch.data?.tickets ?? [];
 
 	const close = () => onOpenChange(false);
+	const field = stage.kind === "values" ? stage.field : undefined;
+	const creation = useFilterCreate({
+		field,
+		open,
+		search,
+		project,
+		view,
+		onChange,
+		close,
+		ticketNames: dependencyTickets.flatMap((ticket) => [ticket.title, ticket.identifier]),
+		ticketReady: dependencySearch.isSuccess && ticketQuery === search.trim(),
+	});
 
 	const pickField = (id: string) => {
 		const preset = presets.find((entry) => presetId(entry.label) === id);
@@ -160,121 +164,83 @@ export function FilterPicker({
 			? valueItems(stage.field, view, projects, actors, epics)
 			: fieldItems;
 
+	if (field === "epic" && project)
+		return (
+			<>
+				<EpicPicker
+					project={project}
+					value={view.epic}
+					open={open}
+					onOpenChange={onOpenChange}
+					trigger={trigger}
+					onPick={(epic) => {
+						onChange({ ...view, epic: epic?.ref ?? "none" });
+						close();
+					}}
+				/>
+				{creation.dialog}
+			</>
+		);
+	const selectedEpic = fixedEpic ?? (view.epic !== "none" ? view.epic : undefined);
+	if (field === "wave" && selectedEpic)
+		return (
+			<>
+				<WavePicker
+					epic={selectedEpic}
+					value={view.wave}
+					open={open}
+					onOpenChange={onOpenChange}
+					trigger={trigger}
+					onPick={(wave) => {
+						onChange({ ...view, wave: wave?.ref ?? "none" });
+						close();
+					}}
+				/>
+				{creation.dialog}
+			</>
+		);
+	if (field === "project")
+		return (
+			<>
+				<ProjectPicker
+					projects={projects}
+					value={view.project}
+					includeArchived
+					open={open}
+					onOpenChange={onOpenChange}
+					trigger={trigger}
+					onPick={(key) => {
+						onChange({ ...view, project: key });
+						close();
+					}}
+				/>
+				{creation.dialog}
+			</>
+		);
 	return (
-		<FilterPopover
-			trigger={trigger}
-			open={open}
-			onOpenChange={onOpenChange}
-			stage={stage.kind === "values" ? stage.field : stage.kind}
-			label={stage.kind === "values" ? `Search ${fieldLabels[stage.field]} values` : "Search fields"}
-			placeholder={stage.kind === "values" ? fieldLabels[stage.field] : "Filter by"}
-			items={sectioned ? [] : items}
-			groups={groups}
-			filter={waitsOnStage ? false : undefined}
-			onSearchChange={waitsOnStage ? setTicketSearch : undefined}
-			empty={waitsOnStage && ticketQuery === "" ? "Type to search." : undefined}
-			onSelect={(id) => (stage.kind === "values" ? pickValue(stage.field, id) : pickField(id))}
-		/>
+		<>
+			<FilterPopover
+				trigger={trigger}
+				open={open}
+				onOpenChange={onOpenChange}
+				stage={stage.kind === "values" ? stage.field : stage.kind}
+				label={stage.kind === "values" ? `Search ${fieldLabels[stage.field]} values` : "Search fields"}
+				placeholder={stage.kind === "values" ? fieldLabels[stage.field] : "Filter by"}
+				items={[...(sectioned ? [] : items), ...(creation.item ? [creation.item] : [])]}
+				groups={groups}
+				filter={waitsOnStage ? false : undefined}
+				onSearchChange={(value) => {
+					setSearch(value);
+					if (waitsOnStage) setTicketSearch(value);
+				}}
+				empty={waitsOnStage && ticketQuery === "" ? "Type to search." : undefined}
+				onSelect={(id) => {
+					if (id === creation.item?.id) creation.pick();
+					else if (stage.kind === "values") pickValue(stage.field, id);
+					else pickField(id);
+				}}
+			/>
+			{creation.dialog}
+		</>
 	);
 }
-
-const checkedStatusIds = (view: View, statuses: readonly StatusSummary[]) =>
-	statuses.filter((status) => view.status?.includes(status.slug)).map((status) => status.id);
-
-type ProjectRow = Parameters<typeof projectItems>[0][number];
-
-const valueItems = (
-	field: FilterField,
-	view: View,
-	projects: readonly ProjectRow[],
-	actors: readonly Actor[],
-	epics: readonly EpicSummary[],
-): CommandItem[] => {
-	switch (field) {
-		case "priority":
-			return priorityItems({ checked: view.priority ?? [] });
-		case "project":
-			return projectItems(projects, view.project);
-		case "parent":
-			return [{ id: "none", label: "No parent", current: view.parent === "none" }];
-		case "blocked":
-			return [
-				{ id: "true", label: "Blocked", current: view.blocked === true },
-				{ id: "false", label: "Not blocked", current: view.blocked === false },
-			];
-		case "epic":
-			return [
-				{ id: "none", label: "No epic", current: view.epic === "none" },
-				...epicItems(epics, { current: view.epic }),
-			];
-		case "wave":
-			return [{ id: "none", label: "No wave", current: view.wave === "none" }];
-		case "pr":
-		case "ci":
-			return [
-				...(Object.keys(prLabels) as PrFilter[]).map((value) => ({
-					id: `pr:${value}`,
-					label: prLabels[value],
-					current: view.pr === value,
-				})),
-				...(Object.keys(ciLabels) as CiState[]).map((value) => ({
-					id: `ci:${value}`,
-					label: ciLabels[value],
-					checked: view.ci?.includes(value) ?? false,
-				})),
-			];
-		case "updated":
-		case "created":
-			return Object.entries(timeLabels).map(([value, label]) => ({ id: value, label, current: view[field] === value }));
-		case "actor":
-			return [
-				{ id: "@agent", label: "Agents", current: view.actor === "@agent" },
-				{ id: "@human", label: "Humans", current: view.actor === "@human" },
-				...actors.map((actor) => ({
-					id: `${actor.kind}:${actor.name}`,
-					label: actor.displayName ?? actor.name,
-					hint: actor.kind,
-				})),
-			];
-		default:
-			return [];
-	}
-};
-
-// The view after one value pick.
-const valueChange = (view: View, field: FilterField, id: string, statuses: readonly StatusSummary[]): View => {
-	switch (field) {
-		case "status": {
-			const slug = statuses.find((status) => status.id === id)?.slug ?? id;
-			return { ...view, status: emptyToUndefined(toggle(view.status, slug)) };
-		}
-		case "priority":
-			return { ...view, priority: emptyToUndefined(toggle(view.priority, id) as Priority[]) };
-		case "label":
-			return { ...view, label: emptyToUndefined(toggle(view.label, id)) };
-		case "project":
-			return { ...view, project: id };
-		case "parent":
-			return { ...view, parent: "none" };
-		case "waitsOn":
-			return { ...view, waitsOn: id };
-		case "blocked":
-			return { ...view, blocked: id === "true" };
-		case "epic":
-			return { ...view, epic: id };
-		case "wave":
-			return { ...view, wave: id };
-		case "pr":
-		case "ci":
-			return id.startsWith("pr:")
-				? { ...view, pr: id.slice(3) as PrFilter }
-				: { ...view, ci: emptyToUndefined(toggle(view.ci, id.slice(3)) as CiState[]) };
-		case "updated":
-		case "created":
-			return { ...view, [field]: id };
-		case "actor":
-			return { ...view, actor: id };
-		default:
-			return view;
-	}
-};

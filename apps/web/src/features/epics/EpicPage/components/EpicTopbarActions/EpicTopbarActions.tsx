@@ -1,7 +1,11 @@
 import { DotsThree, Megaphone, PencilSimple, Plus, Trash } from "@phosphor-icons/react";
+import { useRouterState } from "@tanstack/react-router";
 import type { TicketSummary } from "@trellis/api";
 import type { MenuItem } from "@trellis/ui";
+import { usePageCreate } from "../../../../../lib/usePageCreate";
 import { broadcastActions } from "../../../../agents/BroadcastDialog";
+import { routeDefaults } from "../../../../command/utils/routeDefaults";
+import { composerActions } from "../../../../composer";
 import { TopbarActionButton, TopbarActionMenu } from "../../../../shell/Topbar";
 import type { WaveEditing } from "../../../../table/hooks/useWaveEditing";
 import { EpicCreateActions } from "../EpicCreateActions";
@@ -42,6 +46,12 @@ export function EpicTopbarActions({
 	onEdit,
 	onDelete,
 }: EpicTopbarActionsProps) {
+	const pathname = useRouterState({ select: (state) => state.location.pathname });
+	const search = useRouterState({ select: (state) => state.location.search as Record<string, unknown> });
+	usePageCreate(
+		() => composerActions.open(routeDefaults(pathname, search)),
+		!readOnly && epic !== null && search.tab !== "resources",
+	);
 	return (
 		<>
 			<EpicChatter epic={epic} readOnly={readOnly} />
@@ -58,6 +68,7 @@ export function EpicTopbarActions({
 				<TopbarActionButton data-bar-slot="add" label="Add" icon={<Plus />} disabled />
 			) : (
 				<EpicCreateActions
+					epic={epic.ref}
 					project={project}
 					exclude={epic.identifiers}
 					waveEditing={waveEditing}
