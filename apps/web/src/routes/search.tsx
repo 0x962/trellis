@@ -3,6 +3,8 @@ import { InternalLinkSchema, ProjectRefStringSchema, TicketRefStringSchema } fro
 import { Chip, EmptyState, Kbd } from "@trellis/ui";
 import { type FormEvent, type KeyboardEvent, useEffect, useId, useState } from "react";
 import { searchDebounceMs } from "../features/command/hooks/useCommandSearch";
+import { routeDefaults } from "../features/command/utils/routeDefaults";
+import { composerActions } from "../features/composer";
 import { parseSearch, stripDefaults, type View } from "../features/filters/grammar";
 import { useKeyboardFocusRing } from "../features/search/hooks/useKeyboardFocusRing";
 import { SearchResults } from "../features/search/SearchResults";
@@ -10,6 +12,7 @@ import { searchOptions } from "../features/search/searchOptions";
 import { PageTitle } from "../features/shell/PageTitle";
 import { Topbar } from "../features/shell/Topbar";
 import { useApp } from "../lib/appContext";
+import { usePageCreate } from "../lib/usePageCreate";
 import { pageSheetActions } from "../stores/pageSheetStore";
 
 type SearchRouteSearch = Partial<View> & { rankProject?: string; internalLink?: string };
@@ -55,6 +58,7 @@ const fieldClass =
 
 function SearchPage() {
 	const search = Route.useSearch();
+	usePageCreate(() => composerActions.open(routeDefaults("/search", search)));
 	const { q } = search;
 	const navigate = useNavigate();
 	const { scheduler } = useApp();

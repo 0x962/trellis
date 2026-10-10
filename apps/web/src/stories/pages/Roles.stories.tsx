@@ -49,6 +49,17 @@ export const Empty: Story = {
 export const Loading: Story = { parameters: { trellis: { responses: { "roles.list": pending } } } };
 export const RequestError: Story = { parameters: { trellis: { responses: { "roles.list": failure } } } };
 export const Narrow: Story = { globals: { viewport: { value: "narrow", isRotated: false } } };
+export const CreateShortcut: Story = {
+	play: async ({ canvasElement }) => {
+		const canvas = within(canvasElement);
+		const page = within(canvasElement.ownerDocument.body);
+		const trigger = await canvas.findByRole("button", { name: "New role" });
+		trigger.focus();
+		await userEvent.keyboard("c");
+		const dialog = await page.findByRole("dialog", { name: "New role" });
+		await expect(within(dialog).getByRole("textbox", { name: "Name" })).toHaveValue("");
+	},
+};
 export const CreateEditDelete: Story = {
 	play: async ({ canvasElement }) => {
 		const canvas = within(canvasElement);

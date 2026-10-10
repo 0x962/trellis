@@ -4,6 +4,7 @@ import type { Role } from "@trellis/api";
 import { EmptyState, EntityCard, FailureState, IconButton, Skeleton, Tooltip } from "@trellis/ui";
 import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
+import { usePageCreate } from "../../../lib/usePageCreate";
 import { PageTitle } from "../../shell/PageTitle";
 import { Topbar, TopbarActionButton } from "../../shell/Topbar";
 import { RoleSheet } from "./components/RoleSheet";
@@ -12,12 +13,14 @@ export function RolesPage() {
 	const { orpc } = useApp();
 	const roles = useQuery(orpc.roles.list.queryOptions({ input: {}, retry: false }));
 	const [editor, setEditor] = useState<{ role?: Role } | null>(null);
+	const createRole = () => setEditor({});
+	usePageCreate(createRole);
 	return (
 		<>
 			<Topbar
 				actions={
 					<Tooltip content="New role">
-						<TopbarActionButton label="New role" icon={<Plus />} onClick={() => setEditor({})} />
+						<TopbarActionButton label="New role" icon={<Plus />} onClick={createRole} />
 					</Tooltip>
 				}
 			>

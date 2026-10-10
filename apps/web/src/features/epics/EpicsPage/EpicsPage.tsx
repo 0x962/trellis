@@ -6,6 +6,7 @@ import { Tooltip } from "@trellis/ui";
 import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
 import { epicHref, projectHref } from "../../../lib/projectUrl";
+import { usePageCreate } from "../../../lib/usePageCreate";
 import { ArchivedBanner } from "../../project-actions";
 import { PageTitle } from "../../shell/PageTitle";
 import { ProjectBreadcrumb } from "../../shell/ProjectBreadcrumb";
@@ -36,6 +37,9 @@ export function EpicsPage({ project }: EpicsPageProps) {
 	const [editor, setEditor] = useState<{ epic?: EpicSummary } | null>(null);
 	const [deleting, setDeleting] = useState<EpicSummary | null>(null);
 
+	const createEpic = () => setEditor({});
+	usePageCreate(createEpic, !readOnly);
+
 	const rows = epics.data ?? [];
 	const allGroups: EpicGroup[] = [
 		{ key: "open", label: "Open", epics: rows.filter((epic) => epic.state === "open") },
@@ -46,7 +50,7 @@ export function EpicsPage({ project }: EpicsPageProps) {
 
 	const newEpic = readOnly ? undefined : (
 		<Tooltip content="New epic">
-			<TopbarActionButton label="New epic" icon={<Plus />} onClick={() => setEditor({})} />
+			<TopbarActionButton label="New epic" icon={<Plus />} onClick={createEpic} />
 		</Tooltip>
 	);
 
@@ -71,7 +75,7 @@ export function EpicsPage({ project }: EpicsPageProps) {
 						isCollapsed={isCollapsed}
 						onToggle={toggle}
 						onRetry={() => void epics.refetch()}
-						onNew={() => setEditor({})}
+						onNew={createEpic}
 						onEdit={(epic) => setEditor({ epic })}
 						onDelete={setDeleting}
 					/>

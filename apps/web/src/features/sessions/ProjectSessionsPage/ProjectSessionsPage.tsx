@@ -5,6 +5,7 @@ import { defaultSessionCleanup, type Project, SESSION_DAY_MS } from "@trellis/ap
 import { Button, EmptyState, FailureState, Sheet, Tooltip, useMediaQuery } from "@trellis/ui";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useApp } from "../../../lib/appContext";
+import { usePageCreate } from "../../../lib/usePageCreate";
 import { pageSheetActions } from "../../../stores/pageSheetStore";
 import { allAgentRunsOptions } from "../../agents/allAgentRuns";
 import { PageTitle } from "../../shell/PageTitle";
@@ -18,6 +19,8 @@ import { nextSessionArchiveTimeMs, selectedSession, sessionGroups } from "./sess
 
 export function ProjectSessionsPage({ project }: { project: Project }) {
 	const { client, orpc, queryClient } = useApp();
+	const createSession = () => sessionComposerActions.open(project.key);
+	usePageCreate(createSession, project.archivedAt === null);
 	useEffect(() => {
 		document.title = `${project.name} sessions · trellis`;
 	}, [project.name]);
@@ -136,7 +139,7 @@ export function ProjectSessionsPage({ project }: { project: Project }) {
 									label="New session"
 									icon={<Plus />}
 									disabled={project.archivedAt !== null}
-									onClick={() => sessionComposerActions.open(project.key)}
+									onClick={createSession}
 								/>
 							</Tooltip>
 						)}

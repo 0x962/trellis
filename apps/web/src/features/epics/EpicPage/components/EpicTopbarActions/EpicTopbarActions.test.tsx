@@ -1,5 +1,6 @@
 import { expect, test } from "bun:test";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { createMemoryHistory, createRootRoute, createRouter, RouterContextProvider } from "@tanstack/react-router";
 import { renderToStaticMarkup } from "react-dom/server";
 import { type AppContext, AppProvider } from "../../../../../lib/appContext";
 import { barSlots } from "../../../../../lib/barSlots";
@@ -10,6 +11,10 @@ import { EpicTopbarActions, type EpicTopbarEpic } from "./EpicTopbarActions";
 // opens the popover. The render below needs its query options and nothing
 // more.
 const queryClient = new QueryClient();
+const router = createRouter({
+	routeTree: createRootRoute(),
+	history: createMemoryHistory({ initialEntries: ["/p/TRL/epics/work"] }),
+});
 const app = {
 	queryClient,
 	orpc: {
@@ -31,20 +36,22 @@ const openEpic: EpicTopbarEpic = {
 
 const render = (epic: EpicTopbarEpic | null, readOnly = false) =>
 	renderToStaticMarkup(
-		<AppProvider value={app}>
-			<QueryClientProvider client={queryClient}>
-				<EpicTopbarActions
-					project="TRL"
-					epic={epic}
-					readOnly={readOnly}
-					waveEditing={waveEditing}
-					shareItems={[]}
-					onAddTicket={() => {}}
-					onEdit={() => {}}
-					onDelete={() => {}}
-				/>
-			</QueryClientProvider>
-		</AppProvider>,
+		<RouterContextProvider router={router}>
+			<AppProvider value={app}>
+				<QueryClientProvider client={queryClient}>
+					<EpicTopbarActions
+						project="TRL"
+						epic={epic}
+						readOnly={readOnly}
+						waveEditing={waveEditing}
+						shareItems={[]}
+						onAddTicket={() => {}}
+						onEdit={() => {}}
+						onDelete={() => {}}
+					/>
+				</QueryClientProvider>
+			</AppProvider>
+		</RouterContextProvider>,
 	);
 
 test("the bar draws its four controls before the epic arrives", () => {

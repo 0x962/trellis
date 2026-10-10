@@ -8,7 +8,8 @@
 			"Pages/Roles/Loading",
 			"Pages/Roles/RequestError",
 			"Pages/Roles/Narrow",
-			"Pages/Roles/CreateEditDelete"
+			"Pages/Roles/CreateEditDelete",
+			"Pages/Roles/CreateShortcut"
 		],
 		"states": ["populated", "empty", "loading", "error", "narrow", "create, edit, delete"],
 		"notes": "Global roles use the shared Markdown editor."
