@@ -15,11 +15,7 @@ export function NewTicketButton() {
 	const epic = epicRefOfPathname(pathname) ?? undefined;
 	return (
 		<Tooltip content="New ticket">
-			<TopbarActionButton
-				label="New ticket"
-				icon={<Plus />}
-				onClick={() => composerActions.open({ project, epic })}
-			/>
+			<TopbarActionButton label="New ticket" icon={<Plus />} onClick={() => composerActions.open({ project, epic })} />
 		</Tooltip>
 	);
 }
