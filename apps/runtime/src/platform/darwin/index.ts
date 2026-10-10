@@ -10,8 +10,9 @@ import { stopProcessTree } from "./stopProcessTree.ts";
 const library = load(null);
 const sessionOf = library.func("int getsid(int pid)");
 
-// macOS launches need no preparation. A launch creates an OS session, and
-// `stopProcessTree` stops the process groups of that session.
+// macOS launches need no preparation and leave no host state to adopt or
+// sweep. A launch creates an OS session, and `stopProcessTree` stops the
+// process groups of that session.
 export const darwinPlatform: RuntimePlatform = {
 	inspectProcess,
 	processIdentity,
@@ -20,5 +21,7 @@ export const darwinPlatform: RuntimePlatform = {
 	attemptProcesses,
 	createExitWatcher: () => new DarwinProcessExitWatcher(),
 	prepareLaunch: (spec) => ({ spec, started: () => {} }),
+	adoptProcess: () => {},
+	sweepLaunches: async () => {},
 	stopProcessTree,
 };

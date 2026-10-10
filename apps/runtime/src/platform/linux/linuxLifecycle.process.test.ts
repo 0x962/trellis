@@ -35,7 +35,11 @@ async function run(mode: string) {
 	const proof = process.env.TRELLIS_LINUX_PROOF ?? join(home, "proof.json");
 	const child = Bun.spawn(["node", fixture!, mode, proof], { stdout: "inherit", stderr: "pipe" });
 	const [code, stderr] = await Promise.all([child.exited, new Response(child.stderr).text()]);
-	expect(stderr).toBe("");
+	// The launch sweep logs one JSON line for each cgroup it removes.
+	const unexpected = stderr
+		.split("\n")
+		.filter((line) => line !== "" && !line.startsWith('{"type":"linux-launch-sweep"'));
+	expect(unexpected).toEqual([]);
 	expect(code).toBe(0);
 }
 

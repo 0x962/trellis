@@ -1,6 +1,15 @@
 import assert from "node:assert/strict";
 import { type ChildProcess, spawn, spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync, readdirSync, readFileSync, readlinkSync, rmSync, writeFileSync } from "node:fs";
+import {
+	existsSync,
+	mkdirSync,
+	mkdtempSync,
+	readdirSync,
+	readFileSync,
+	readlinkSync,
+	rmSync,
+	writeFileSync,
+} from "node:fs";
 import { arch, release, tmpdir } from "node:os";
 import { join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
@@ -10,7 +19,9 @@ import { inspectProcess } from "../../inspectProcess.ts";
 import { observedSession } from "../../observedSession.ts";
 import { ProcessExitWatcher } from "../../processExitWatcher.ts";
 import { processIdentity } from "../../processIdentity";
+import type { SessionRecord } from "../../sessionRecord.ts";
 import { stopProcessTree } from "../../stopProcessTree.ts";
+import { watchRecoveredSession } from "../../watchRecoveredSession.ts";
 import { platform } from "../index.ts";
 import { linuxCgroupDirectory } from "./cgroupLifecycle.ts";
 import { linuxCgroupLifecycle } from "./index.ts";
@@ -21,6 +32,7 @@ import {
 	treePids,
 	treeSpec,
 	waitFor,
+	writeOrphanAgent,
 	writeTreeAgent,
 } from "./linuxProcessFixture.ts";
 import { createLinuxProcessInspector } from "./linuxProcessInspector.ts";
@@ -29,8 +41,9 @@ import { createLinuxProcessInspector } from "./linuxProcessInspector.ts";
 // `node fixture.js cases <proof.json>` runs every real process case.
 // `node fixture.js probe` exits 0 when this host can contain a launch.
 // `node fixture.js refusal <proof.json>` expects a refused launch.
-// `node fixture.js runtime-death <directory>` acts as a runtime that dies.
-const [mode, target] = process.argv.slice(2) as [string, string];
+// `node fixture.js runtime-death <directory> [orphan]` acts as a runtime that
+// dies; "orphan" launches the agent of writeOrphanAgent.
+const [mode, target, variant] = process.argv.slice(2) as [string, string, string | undefined];
 const exitOf = (child: ChildProcess) =>
 	new Promise<[number | null, string | null]>((resolve) =>
 		child.once("exit", (code, signal) => resolve([code, signal])),
@@ -41,11 +54,14 @@ const launchCgroup = (pid: number) =>
 const attemptId = "runtime-death";
 
 if (mode === "runtime-death") {
+	const spec = treeSpec(target, "stdio");
 	const { handle } = launch({
-		...treeSpec(target, "stdio"),
+		...spec,
+		command: variant === "orphan" ? join(target, "orphan.sh") : spec.command,
 		env: { TRELLIS_ATTEMPT_ID: attemptId, TRELLIS_RUNTIME_HOME: target },
 	});
-	await treePids(target);
+	if (variant === "orphan") await waitFor(() => existsSync(join(target, "orphan")), "the orphan PID file");
+	else await treePids(target);
 	const leader = processIdentity(handle.pid);
 	assert.equal(leader.kind, "live");
 	if (leader.kind !== "live") throw new Error("unreachable");
@@ -247,6 +263,83 @@ if (mode === "cases") {
 		cases.push({ name: "pid-reuse", details });
 	};
 
+	const deadRuntime = async (path: string, ...args: string[]) => {
+		const runtime = spawn(process.execPath, [process.argv[1]!, "runtime-death", path, ...args], { stdio: "inherit" });
+		cleanup.push(runtime);
+		assert.deepEqual(await exitOf(runtime), [null, "SIGKILL"]);
+		return JSON.parse(readFileSync(join(path, "runtime.json"), "utf8")) as { leader: number; identity: string };
+	};
+
+	// Three launches of a runtime that died: one with a live leader, one with a
+	// dead leader and a process without attempt markers, and one empty cgroup.
+	// The new runtime adopts the first by identity and then sweeps once.
+	const adoptionAndSweep = async () => {
+		const adoptedPath = directory("adopted");
+		const adopted = await deadRuntime(adoptedPath);
+		const adoptedPids = await treePids(adoptedPath);
+		const adoptedCgroup = launchCgroup(adopted.leader);
+
+		const orphanPath = directory("orphan");
+		writeOrphanAgent(orphanPath);
+		const orphanLaunch = await deadRuntime(orphanPath, "orphan");
+		const orphan = Number(readFileSync(join(orphanPath, "orphan"), "utf8"));
+		const orphanCgroup = launchCgroup(orphan);
+		writeFileSync(join(orphanPath, "go"), "");
+		await waitFor(() => gone(orphanLaunch.leader), "the exit of the orphan leader");
+		assert.equal(readFileSync(`/proc/${orphan}/environ`, "utf8"), "");
+		assert.deepEqual(platform.attemptProcesses(orphanPath, attemptId), []);
+
+		const leakedCgroup = join(attemptsRoot, `launch-leaked-${process.pid}`);
+		mkdirSync(leakedCgroup);
+
+		const record = {
+			session: { pid: adopted.leader, endedAt: null },
+			identity: adopted.identity,
+			watchedPids: new Set<number>(),
+			listeners: new Set<() => void>(),
+		} as unknown as SessionRecord;
+		const exits = new ProcessExitWatcher();
+		watchRecoveredSession(record, exits);
+		assert.equal(linuxCgroupLifecycle.registeredCgroup(adopted.leader), adoptedCgroup);
+
+		const swept = await linuxCgroupLifecycle.sweep();
+		assert.deepEqual(
+			swept.map((event) => [event.cgroup, event.outcome]).sort(),
+			[
+				[leakedCgroup, "removed"],
+				[orphanCgroup, "removed"],
+			].sort(),
+		);
+		assert.ok(swept.find((event) => event.cgroup === orphanCgroup)?.pids.includes(orphan));
+		assert.ok(gone(orphan), `${orphan} exited`);
+		assert.equal(existsSync(orphanCgroup), false);
+		assert.equal(existsSync(leakedCgroup), false);
+		assert.ok(existsSync(adoptedCgroup));
+		for (const pid of [adopted.leader, ...Object.values(adoptedPids)]) assert.ok(!gone(pid), `${pid} still runs`);
+
+		// Only the process in its own OS session stays, so only the registry
+		// leads the stop of the leader session to the adopted cgroup.
+		const others = [adopted.leader, adoptedPids.child, adoptedPids.grandchild];
+		for (const pid of others) process.kill(pid, "SIGKILL");
+		await waitFor(() => others.every(gone), "the exit of the adopted leader session");
+		assert.deepEqual(platform.inspectProcessSession(adopted.leader), { kind: "empty" });
+		await stopProcessTree(adopted.leader);
+		assert.ok(gone(adoptedPids.escaped), `${adoptedPids.escaped} exited`);
+		assert.equal(existsSync(adoptedCgroup), false);
+		assert.equal(linuxCgroupLifecycle.registeredCgroup(adopted.leader), undefined);
+		exits.close();
+		cases.push({
+			name: "adoption-and-sweep",
+			details: {
+				adopted: { ...adopted, ...adoptedPids, cgroup: adoptedCgroup },
+				orphan,
+				orphanCgroup,
+				leakedCgroup,
+				swept,
+			},
+		});
+	};
+
 	const exitWatcher = async () => {
 		const watcher = new ProcessExitWatcher();
 		const child = spawn("sleep", ["300"]);
@@ -260,7 +353,16 @@ if (mode === "cases") {
 	};
 
 	try {
-		for (const run of [processTree, parentDeath, runtimeDeath, setsidSurvivor, cancellation, pidReuse, exitWatcher]) {
+		for (const run of [
+			processTree,
+			parentDeath,
+			runtimeDeath,
+			setsidSurvivor,
+			adoptionAndSweep,
+			cancellation,
+			pidReuse,
+			exitWatcher,
+		]) {
 			await run();
 			assert.deepEqual(launchDirectories(), [], `${run.name} leaves no launch cgroup`);
 		}

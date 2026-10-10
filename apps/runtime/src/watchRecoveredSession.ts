@@ -1,5 +1,6 @@
 import { inspectProcess } from "./inspectProcess.ts";
 import { inspectProcessSession } from "./inspectProcessSession.ts";
+import { platform } from "./platform/index.ts";
 import type { ProcessExitWatcher } from "./processExitWatcher.ts";
 import type { SessionRecord } from "./sessionRecord.ts";
 
@@ -8,6 +9,7 @@ export function watchRecoveredSession(record: SessionRecord, exits: ProcessExitW
 	const leader = inspectProcess(record.session.pid);
 	if (leader.kind === "unknown") return;
 	if (leader.kind === "live" && record.identity !== null && leader.process.identity !== record.identity) return;
+	if (leader.kind === "live" && leader.process.identity === record.identity) platform.adoptProcess(record.session.pid);
 	const members = inspectProcessSession(record.session.pid);
 	if (members.kind !== "live") return;
 	for (const pid of members.pids) {

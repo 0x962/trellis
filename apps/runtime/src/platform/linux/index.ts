@@ -68,6 +68,7 @@ export const linuxCgroupLifecycle = createLinuxCgroupLifecycle({
 	inspectProcessSession: inspector.inspectProcessSession,
 	runtimePid: process.pid,
 	launchName: () => `launch-${randomUUID()}`,
+	log: (event) => console.error(JSON.stringify(event)),
 	now: () => performance.now(),
 	wait: (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)),
 });
@@ -89,5 +90,9 @@ export const linuxPlatform: RuntimePlatform = {
 	}),
 	createExitWatcher: () => new LinuxProcessExitWatcher(nodeExitWatcherOperations(exitWatcherNatives)),
 	prepareLaunch: linuxCgroupLifecycle.prepareLaunch,
+	adoptProcess: linuxCgroupLifecycle.adopt,
+	sweepLaunches: async () => {
+		await linuxCgroupLifecycle.sweep();
+	},
 	stopProcessTree: linuxCgroupLifecycle.stopProcessTree,
 };

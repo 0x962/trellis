@@ -16,6 +16,22 @@ while [ ! -e "$dir/go" ]; do sleep 0.05; done
 exit "\${2:-0}"
 `;
 
+// An agent that starts one process in a new OS session with an empty
+// environment, so that process carries no attempt marker. The agent waits
+// for the file "go" and exits.
+const orphanScript = `#!/bin/sh
+dir="$1"
+setsid env -i /bin/sh -c 'echo $$ > "$1/orphan.tmp"; /bin/mv "$1/orphan.tmp" "$1/orphan"; exec /bin/sleep 300' sh "$dir" &
+while [ ! -e "$dir/go" ]; do sleep 0.05; done
+`;
+
+export function writeOrphanAgent(directory: string) {
+	const path = join(directory, "orphan.sh");
+	writeFileSync(path, orphanScript);
+	chmodSync(path, 0o755);
+	return path;
+}
+
 export function writeTreeAgent(directory: string) {
 	const path = join(directory, "tree.sh");
 	writeFileSync(path, treeScript);

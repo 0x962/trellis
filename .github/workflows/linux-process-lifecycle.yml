@@ -7,12 +7,14 @@ on:
       - trellis/trl-1623-*
     paths:
       - apps/runtime/**
+      - packages/runtime-protocol/**
       - .github/workflows/linux-process-lifecycle.yml
   pull_request:
     branches:
       - main
     paths:
       - apps/runtime/**
+      - packages/runtime-protocol/**
       - .github/workflows/linux-process-lifecycle.yml
   workflow_dispatch:
 

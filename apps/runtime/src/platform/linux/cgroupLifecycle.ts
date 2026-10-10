@@ -18,11 +18,22 @@ export type LinuxCgroupOperations = {
 	runtimePid: number;
 	// Answers a name that no earlier launch used.
 	launchName: () => string;
+	log: (event: LinuxLaunchSweep) => void;
 	now: () => number;
 	wait: (milliseconds: number) => Promise<void>;
 };
 
+export type LinuxLaunchSweep = {
+	type: "linux-launch-sweep";
+	cgroup: string;
+	pids: number[];
+	outcome: "removed" | "failed";
+};
+
 export type LinuxCgroupLifecycle = {
+	adopt: (pid: number) => void;
+	registeredCgroup: (sessionId: number) => string | undefined;
+	sweep: () => Promise<LinuxLaunchSweep[]>;
 	prepareLaunch: (spec: LaunchSpec) => PreparedLaunch;
 	stopProcessTree: (sessionId: number) => Promise<void>;
 	attemptsRoot: () => string;
@@ -125,8 +136,62 @@ export function createLinuxCgroupLifecycle(operations: LinuxCgroupOperations): L
 		operations.removeDirectory(path);
 	};
 
+	const processesOf = (path: string): number[] => [
+		...operations.readFile(posix.join(path, "cgroup.procs")).split("\n").filter(Boolean).map(Number),
+		...operations.listDirectories(path).flatMap((child) => processesOf(posix.join(path, child))),
+	];
+
+	const isPopulated = (path: string) => populated(operations.readFile(posix.join(path, "cgroup.events")));
+
 	return {
 		attemptsRoot,
+		// A recovered leader whose identity matches its record belongs to this
+		// runtime, so its launch cgroup joins the registry.
+		adopt(pid) {
+			const root = attemptsRoot();
+			const cgroup = launchCgroupOf(pid, root, operations.readFile("/proc/self/mountinfo"));
+			if (cgroup !== undefined) launches.set(pid, cgroup);
+		},
+		registeredCgroup: (sessionId) => launches.get(sessionId),
+		// Runs once after the runtime adopts its recovered launches. A launch
+		// cgroup outside the registry belongs to no record: its leader died with
+		// an earlier runtime, or a stop of that runtime did not finish. Its
+		// processes can lack the attempt markers, so no other stop finds them.
+		async sweep() {
+			let root: string;
+			try {
+				root = attemptsRoot();
+			} catch {
+				return [];
+			}
+			if (!operations.exists(root)) return [];
+			const registered = new Set(launches.values());
+			const orphans = operations
+				.listDirectories(root)
+				.filter((name) => name.startsWith("launch-"))
+				.map((name) => posix.join(root, name))
+				.filter((cgroup) => !registered.has(cgroup));
+			const swept = orphans.map((cgroup) => ({ cgroup, pids: processesOf(cgroup) }));
+			for (const { cgroup } of swept) operations.writeFile(posix.join(cgroup, "cgroup.kill"), "1");
+			const deadline = operations.now() + stopDeadlineMs;
+			let busy = orphans.filter(isPopulated);
+			while (busy.length > 0 && operations.now() < deadline) {
+				await operations.wait(stopPollMs);
+				busy = busy.filter(isPopulated);
+			}
+			return swept.map(({ cgroup, pids }) => {
+				const failed = busy.includes(cgroup);
+				if (!failed) removeTree(cgroup);
+				const event: LinuxLaunchSweep = {
+					type: "linux-launch-sweep",
+					cgroup,
+					pids,
+					outcome: failed ? "failed" : "removed",
+				};
+				operations.log(event);
+				return event;
+			});
+		},
 		prepareLaunch(spec) {
 			const cgroup = posix.join(delegatedAttemptsRoot(), operations.launchName());
 			return {

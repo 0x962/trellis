@@ -1,7 +1,12 @@
 import { expect, test } from "bun:test";
 import type { LaunchSpec } from "@trellis/runtime-protocol";
 import type { ProcessIdentityObservation, ProcessSessionObservation } from "../runtimePlatform.ts";
-import { createLinuxCgroupLifecycle, type LinuxCgroupOperations, linuxCgroupDirectory } from "./cgroupLifecycle.ts";
+import {
+	createLinuxCgroupLifecycle,
+	type LinuxCgroupOperations,
+	type LinuxLaunchSweep,
+	linuxCgroupDirectory,
+} from "./cgroupLifecycle.ts";
 
 const runtimeCgroup = "/sys/fs/cgroup/user.slice/user-1001.slice/user@1001.service/app.slice/runtime.scope";
 const root = `${runtimeCgroup}/trellis-attempts`;
@@ -15,6 +20,7 @@ function fixture() {
 	const directories = new Set<string>([runtimeCgroup]);
 	const writable = new Set<string>([runtimeCgroup, `${runtimeCgroup}/cgroup.procs`]);
 	const writes: string[] = [];
+	const logged: LinuxLaunchSweep[] = [];
 	let session: ProcessSessionObservation = { kind: "empty" };
 	let leader: ProcessIdentityObservation = { kind: "missing" };
 	let clock = 0;
@@ -22,6 +28,7 @@ function fixture() {
 		directories.add(path);
 		files.set(`${path}/cgroup.kill`, "");
 		files.set(`${path}/cgroup.events`, "populated 0\nfrozen 0\n");
+		files.set(`${path}/cgroup.procs`, "");
 	};
 	const operations: LinuxCgroupOperations = {
 		readFile(path) {
@@ -49,6 +56,7 @@ function fixture() {
 		inspectProcessSession: () => session,
 		runtimePid: 7,
 		launchName: () => "launch-one",
+		log: (event) => logged.push(event),
 		now: () => clock,
 		async wait(milliseconds) {
 			clock += milliseconds;
@@ -59,6 +67,7 @@ function fixture() {
 		directories,
 		writable,
 		writes,
+		logged,
 		makeCgroup,
 		operations,
 		setSession: (value: ProcessSessionObservation) => {
@@ -226,4 +235,92 @@ test("a session member that left its launch cgroup leaves the stop unconfirmed",
 	await expect(lifecycle.stopProcessTree(42)).rejects.toThrow(
 		"Process session 42 has live processes outside its attempt cgroup: 43",
 	);
+});
+
+test("an adopted leader registers its launch cgroup for a later stop", async () => {
+	const state = fixture();
+	state.makeCgroup(root);
+	state.makeCgroup(launch);
+	state.files.set(`${launch}/cgroup.events`, "populated 1\nfrozen 0\n");
+	state.placeProcess(42, launch);
+	const lifecycle = createLinuxCgroupLifecycle(state.operations);
+	lifecycle.adopt(42);
+	expect(lifecycle.registeredCgroup(42)).toBe(launch);
+	// The leader exits, and only a process of another OS session stays in the cgroup.
+	state.operations.wait = async () => {
+		state.files.set(`${launch}/cgroup.events`, "populated 0\nfrozen 0\n");
+	};
+	await lifecycle.stopProcessTree(42);
+	expect(state.writes).toContain(`${launch}/cgroup.kill=1`);
+	expect(state.directories.has(launch)).toBe(false);
+	expect(lifecycle.registeredCgroup(42)).toBeUndefined();
+});
+
+test("an adopted leader outside every launch cgroup registers nothing", () => {
+	const state = fixture();
+	state.makeCgroup(root);
+	state.placeProcess(42, runtimeCgroup);
+	const lifecycle = createLinuxCgroupLifecycle(state.operations);
+	lifecycle.adopt(42);
+	expect(lifecycle.registeredCgroup(42)).toBeUndefined();
+});
+
+test("the sweep kills an unregistered launch cgroup, waits until it is empty, and removes it", async () => {
+	const state = fixture();
+	const orphan = `${root}/launch-orphan`;
+	state.makeCgroup(root);
+	state.makeCgroup(orphan);
+	state.files.set(`${orphan}/cgroup.procs`, "77\n");
+	state.files.set(`${orphan}/cgroup.events`, "populated 1\nfrozen 0\n");
+	state.operations.wait = async () => {
+		state.files.set(`${orphan}/cgroup.events`, "populated 0\nfrozen 0\n");
+	};
+	const swept = await createLinuxCgroupLifecycle(state.operations).sweep();
+	const removed: LinuxLaunchSweep = { type: "linux-launch-sweep", cgroup: orphan, pids: [77], outcome: "removed" };
+	expect(swept).toEqual([removed]);
+	expect(state.logged).toEqual([removed]);
+	expect(state.writes).toEqual([`${orphan}/cgroup.kill=1`]);
+	expect(state.directories.has(orphan)).toBe(false);
+});
+
+test("the sweep removes an empty leaked launch cgroup", async () => {
+	const state = fixture();
+	const leaked = `${root}/launch-leaked`;
+	state.makeCgroup(root);
+	state.makeCgroup(leaked);
+	const swept = await createLinuxCgroupLifecycle(state.operations).sweep();
+	expect(swept).toEqual([{ type: "linux-launch-sweep", cgroup: leaked, pids: [], outcome: "removed" }]);
+	expect(state.directories.has(leaked)).toBe(false);
+});
+
+test("the sweep leaves an adopted launch cgroup alone", async () => {
+	const state = fixture();
+	state.makeCgroup(root);
+	state.makeCgroup(launch);
+	state.files.set(`${launch}/cgroup.procs`, "42\n");
+	state.files.set(`${launch}/cgroup.events`, "populated 1\nfrozen 0\n");
+	state.placeProcess(42, launch);
+	const lifecycle = createLinuxCgroupLifecycle(state.operations);
+	lifecycle.adopt(42);
+	expect(await lifecycle.sweep()).toEqual([]);
+	expect(state.writes).toEqual([]);
+	expect(state.directories.has(launch)).toBe(true);
+});
+
+test("a sweep that cannot empty a cgroup logs the failure and keeps the cgroup", async () => {
+	const state = fixture();
+	const orphan = `${root}/launch-orphan`;
+	state.makeCgroup(root);
+	state.makeCgroup(orphan);
+	state.files.set(`${orphan}/cgroup.procs`, "77\n");
+	state.files.set(`${orphan}/cgroup.events`, "populated 1\nfrozen 0\n");
+	const swept = await createLinuxCgroupLifecycle(state.operations).sweep();
+	expect(swept).toEqual([{ type: "linux-launch-sweep", cgroup: orphan, pids: [77], outcome: "failed" }]);
+	expect(state.directories.has(orphan)).toBe(true);
+});
+
+test("the sweep does nothing on a host without a cgroup v2 membership", async () => {
+	const state = fixture();
+	state.files.set("/proc/self/cgroup", "1:name=systemd:/user.slice\n");
+	expect(await createLinuxCgroupLifecycle(state.operations).sweep()).toEqual([]);
 });

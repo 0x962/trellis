@@ -71,7 +71,7 @@ Each launch starts `/bin/sh`. The shell creates a new cgroup `trellis-attempts/l
 
 A Linux process identity is `linux:<boot ID>:<PID>:<start ticks>`. The boot ID comes from `/proc/sys/kernel/random/boot_id`, and the start ticks come from `/proc/<pid>/stat`. A reboot or a reused PID gives a different identity. A macOS identity is `<PID>:<start seconds>:<start microseconds>`.
 
-An agent continues to run after a runtime restart. The new runtime finds the launch cgroup of a live process in `/proc/<pid>/cgroup`. `.github/workflows/linux-process-lifecycle.yml` runs the real process cases on both architectures.
+An agent continues to run after a runtime restart. At start, the new runtime adopts the launch cgroup of each recovered leader whose identity matches its record. Then it stops and removes every other `launch-*` cgroup, and it writes one `linux-launch-sweep` JSON line for each to standard error, with the PIDs it held. A stop also finds the launch cgroup of a live process in `/proc/<pid>/cgroup`. Each runtime needs a cgroup of its own, because the sweep of one runtime stops the launches of another runtime in the same cgroup. `.github/workflows/linux-process-lifecycle.yml` runs the real process cases on both architectures.
 
 ## Output and lifetime
 

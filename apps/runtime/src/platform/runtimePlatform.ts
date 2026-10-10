@@ -42,6 +42,12 @@ export type RuntimePlatform = {
 	createExitWatcher: () => ExitWatcher;
 	// Throws when the host cannot contain and stop the process tree of a launch.
 	prepareLaunch: (spec: LaunchSpec) => PreparedLaunch;
+	// Records that a recovered leader, whose identity matches its saved record,
+	// belongs to this runtime.
+	adoptProcess: (pid: number) => void;
+	// Runs once after recovery at runtime start. Stops and removes the host
+	// state of each launch that no adopted or started launch holds.
+	sweepLaunches: () => Promise<void>;
 	// Resolves only after no process of the launch with this session ID remains.
 	// The session ID can also belong to a descendant that started its own
 	// session; the stop then covers the launch that contains it.
