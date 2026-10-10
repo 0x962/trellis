@@ -3,6 +3,7 @@ export { assertTarget } from "./assertTarget";
 export type { ContractLaunchSpec } from "./ContractLaunchSpec";
 export type { CustomLaunchInput, ExecutionHost, ExecutionPrepare } from "./ExecutionHost";
 export { type ExecutionTarget, ExecutionTargetSchema } from "./ExecutionTarget";
+export { fingerprintDigest } from "./fingerprintDigest";
 export { type HostBinding, HostBindingSchema } from "./HostBinding";
 export type { LaunchOutcome, LaunchReceipt, LaunchUnknown } from "./LaunchOutcome";
 export { LaunchSpecMismatch } from "./LaunchSpecMismatch";

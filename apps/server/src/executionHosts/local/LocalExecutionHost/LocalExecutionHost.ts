@@ -36,8 +36,13 @@ export type LocalPrepareInput = HarnessStartInput & {
 	account: { harness: AccountHarness; profilePath: string } | null;
 };
 // The prepared launch record as it leaves the host: the record on disk
-// without the environment of its spec.
-export type LocalDescriptor = Omit<HarnessDescriptor, "spec"> & { spec: Omit<LaunchSpec, "env"> };
+// without the environment of its spec, and with the sha256 hex digest of its
+// fingerprint in place of the fingerprint, which embeds that environment.
+// The record of a custom launch has no fingerprint, so its digest is null.
+export type LocalDescriptor = Omit<HarnessDescriptor, "spec" | "fingerprint"> & {
+	spec: Omit<LaunchSpec, "env">;
+	fingerprintDigest: string | null;
+};
 export type LocalPrepare = {
 	input: LocalPrepareInput;
 	descriptor: LocalDescriptor;

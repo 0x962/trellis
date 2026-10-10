@@ -11,8 +11,8 @@ export function startLaunch(
 	start: (spec: LaunchSpec) => Promise<RuntimeSession>,
 	target: ExecutionTarget,
 	spec: LaunchSpec,
-	descriptorFingerprint: () => Promise<string | null>,
+	descriptorDigest: () => Promise<string | null>,
 ): Promise<LaunchOutcome> {
 	if (spec.id !== target.attemptId) throw new LaunchSpecMismatch(target.attemptId, spec.id);
-	return runLaunch(target, () => start(spec), descriptorFingerprint);
+	return runLaunch(target, () => start(spec), descriptorDigest);
 }

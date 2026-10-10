@@ -196,6 +196,7 @@ export function executionHostContract(make: () => Promise<ContractSubject>): voi
 		expect(custom.id).toBe(target.attemptId);
 		const record = await host.files.descriptor(target);
 		expect(record.spec.id).toBe(target.attemptId);
+		expect(record.fingerprintDigest).toBeNull();
 		const prepared = descriptorInput === undefined ? null : await host.prepare.descriptor(target, descriptorInput);
 		if (prepared !== null) expect(prepared.spec.id).toBe(target.attemptId);
 		for (const value of [receipt, inspected, output, transcript, custom, record, prepared]) {

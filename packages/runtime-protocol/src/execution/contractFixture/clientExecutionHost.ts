@@ -7,6 +7,7 @@ import { assertTarget } from "../assertTarget";
 import type { ContractLaunchSpec } from "../ContractLaunchSpec";
 import type { ExecutionHost } from "../ExecutionHost";
 import type { ExecutionTarget } from "../ExecutionTarget";
+import { fingerprintDigest } from "../fingerprintDigest";
 import type { HostBinding } from "../HostBinding";
 import type { LaunchOutcome } from "../LaunchOutcome";
 import { LaunchSpecMismatch } from "../LaunchSpecMismatch";
@@ -48,24 +49,29 @@ export function clientExecutionHost({ client, binding, home, url, env }: ClientE
 		...spec,
 		env: { ...defined(await env()), ...spec.env },
 	});
-	const readRecord = async (target: ExecutionTarget): Promise<{ spec: LaunchSpec; fingerprint: string }> =>
+	// A record of `prepare.custom` has no fingerprint, the way the record of
+	// a custom launch on the Trellis server has none.
+	type Record = { spec: LaunchSpec; fingerprint?: string };
+	const digest = (fingerprint: string | undefined) =>
+		fingerprint === undefined ? null : fingerprintDigest(fingerprint);
+	const readRecord = async (target: ExecutionTarget): Promise<Record> =>
 		JSON.parse(await readFile(descriptorPath(target), "utf8"));
-	const redact = ({ spec, fingerprint }: { spec: LaunchSpec; fingerprint: string }): PreparedLaunch => ({
+	const redact = ({ spec, fingerprint }: Record): PreparedLaunch => ({
 		spec: redactLaunchSpec(spec),
-		fingerprint,
+		fingerprintDigest: digest(fingerprint),
 	});
-	const writeRecord = async (target: ExecutionTarget, spec: LaunchSpec, fingerprint: string) => {
+	const writeRecord = async (target: ExecutionTarget, spec: LaunchSpec, fingerprint?: string) => {
 		await mkdir(dirname(descriptorPath(target)), { recursive: true });
 		await writeFile(descriptorPath(target), JSON.stringify({ spec, fingerprint }));
 		return redact({ spec, fingerprint });
 	};
-	const descriptorFingerprint = (target: ExecutionTarget) =>
+	const descriptorDigest = (target: ExecutionTarget) =>
 		readRecord(target).then(
-			(record) => record.fingerprint,
+			(record) => digest(record.fingerprint),
 			() => null,
 		);
-	const start = (target: ExecutionTarget, spec: LaunchSpec, fingerprint: () => Promise<string | null>) =>
-		startLaunch((full) => client.start(full), target, spec, fingerprint);
+	const start = (target: ExecutionTarget, spec: LaunchSpec, digest: () => Promise<string | null>) =>
+		startLaunch((full) => client.start(full), target, spec, digest);
 	const base64 = (data: Uint8Array) => Buffer.from(data).toString("base64");
 	const frame = (messageId: string, text: string) => Buffer.from(`trellis-message:${messageId}\n${text}`);
 	const waitFor = async (
@@ -104,24 +110,24 @@ export function clientExecutionHost({ client, binding, home, url, env }: ClientE
 					mode: "stdio",
 					timeoutMs: input.timeoutMs,
 				};
-				return (await writeRecord(target, await fullSpec(spec), JSON.stringify(spec))).spec;
+				return (await writeRecord(target, await fullSpec(spec))).spec;
 			},
 		},
 		launch: {
 			async start(target, spec) {
 				assertTarget(binding, target);
-				return start(target, await fullSpec(spec), () => descriptorFingerprint(target));
+				return start(target, await fullSpec(spec), () => descriptorDigest(target));
 			},
 			async startPrepared(target, timeoutMs) {
 				assertTarget(binding, target);
 				const { spec, fingerprint } = await readRecord(target);
-				return start(target, timeoutMs === undefined ? spec : { ...spec, timeoutMs }, async () => fingerprint);
+				return start(target, timeoutMs === undefined ? spec : { ...spec, timeoutMs }, async () => digest(fingerprint));
 			},
 			async confirmed(target, input, mode): Promise<LaunchOutcome> {
 				assertTarget(binding, target);
 				const spec = input as ContractLaunchSpec;
 				if (spec.id !== target.attemptId) throw new LaunchSpecMismatch(target.attemptId, spec.id);
-				const outcome = await start(target, await fullSpec(spec), () => descriptorFingerprint(target));
+				const outcome = await start(target, await fullSpec(spec), () => descriptorDigest(target));
 				if (outcome.kind === "unknown") return outcome;
 				const session = await client.inspect(target.attemptId);
 				if (mode.kind === "resume" && session.agent?.sessionId !== mode.sessionId)

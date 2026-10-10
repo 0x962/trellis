@@ -8,12 +8,12 @@ import type { LaunchOutcome } from "../LaunchOutcome";
 // with a socket timeout, and the "connection closed" error of a socket that
 // closed before the reply. Both become a `LaunchUnknown`. Every other error,
 // including LAUNCH_CONFLICT from the runtime, propagates.
-// `descriptorFingerprint` runs only after the runtime answered, so an
-// unknown outcome reads no file.
+// `descriptorDigest` runs only after the runtime answered, so an unknown
+// outcome reads no file.
 export async function runLaunch(
 	target: ExecutionTarget,
 	run: () => Promise<RuntimeSession>,
-	descriptorFingerprint: () => Promise<string | null>,
+	descriptorDigest: () => Promise<string | null>,
 ): Promise<LaunchOutcome> {
 	let session: RuntimeSession;
 	try {
@@ -26,5 +26,5 @@ export async function runLaunch(
 			return { kind: "unknown", target, reason: "connection-closed", message };
 		throw error;
 	}
-	return { kind: "receipt", target, session, descriptorFingerprint: await descriptorFingerprint() };
+	return { kind: "receipt", target, session, descriptorDigest: await descriptorDigest() };
 }

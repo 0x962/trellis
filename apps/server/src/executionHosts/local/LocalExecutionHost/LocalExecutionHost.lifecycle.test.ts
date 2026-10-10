@@ -1,8 +1,9 @@
 import { afterAll, afterEach, expect, spyOn, test } from "bun:test";
+import { createHash } from "node:crypto";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { ExecutionTarget } from "@trellis/runtime-protocol/execution";
+import { type ExecutionTarget, fingerprintDigest } from "@trellis/runtime-protocol/execution";
 import { FIXTURE_AMBIENT, FIXTURE_BEARER, scriptedRuntime } from "@trellis/runtime-protocol/execution/contract-fixture";
 import { HarnessHost } from "../../../agents/harnessHost/harnessHost.ts";
 import type { HarnessDescriptor } from "../../../agents/harnessHost/types.ts";
@@ -23,22 +24,27 @@ const foreign = { ...target, controllerOwnerEpoch: 2 };
 const captured = Buffer.from("captured output\n");
 const status = pauseRestartFixture(target.attemptId, at);
 // The record on disk holds the full environment of the process, the bearer
-// among it. Every value that leaves the host must lose that environment.
+// among it, in its spec and in its fingerprint, the way `prepareAttempt`
+// writes it. Every value that leaves the host must lose that environment.
+const processEnv = { ...FIXTURE_AMBIENT, TRELLIS_ATTEMPT_TOKEN: "token" };
 const record: HarnessDescriptor = {
 	harness: "pi",
 	prompt: "Read the source",
-	fingerprint: "fixture-fingerprint",
+	fingerprint: JSON.stringify(["pi", "/nowhere", "Read the source", null, "token", null, null, processEnv]),
 	spec: {
 		id: target.attemptId,
 		command: "/usr/local/bin/pi",
 		args: [],
 		cwd: "/nowhere",
 		mode: "pty",
-		env: { ...FIXTURE_AMBIENT, TRELLIS_ATTEMPT_TOKEN: "token" },
+		env: processEnv,
 	},
 };
+const digest = fingerprintDigest(record.fingerprint);
+const { fingerprint: _fingerprint, ...recordWithoutFingerprint } = record;
 const redacted: LocalDescriptor = {
-	...record,
+	...recordWithoutFingerprint,
+	fingerprintDigest: digest,
 	spec: { id: target.attemptId, command: "/usr/local/bin/pi", args: [], cwd: "/nowhere", mode: "pty" },
 };
 // The input of `prepare.descriptor` and `launch.confirmed`. The host strips
@@ -135,7 +141,10 @@ test("files.captureExists and files.writeCapture use the capture file of the att
 });
 
 test("files.descriptor and prepare.descriptor return the record without its environment", async () => {
-	expect(await host.files.descriptor(target)).toEqual(redacted);
+	const stored = await host.files.descriptor(target);
+	expect(stored).toEqual(redacted);
+	clean(stored);
+	expect(stored.fingerprintDigest).toBe(createHash("sha256").update(record.fingerprint).digest("hex"));
 	const prepare = spyOn(HarnessHost.prototype, "prepare").mockResolvedValue(record);
 	spies.push(prepare);
 	const prepared = await host.prepare.descriptor(target, input);
@@ -155,7 +164,7 @@ test("launch.confirmed delegates to HarnessHost.start and HarnessHost.resume", a
 	const resume = spyOn(HarnessHost.prototype, "resume").mockResolvedValue({ process: status });
 	spies.push(start, resume);
 	const started = await host.launch.confirmed(target, input, { kind: "start" });
-	expect(started).toEqual({ kind: "receipt", target, session: status, descriptorFingerprint: record.fingerprint });
+	expect(started).toEqual({ kind: "receipt", target, session: status, descriptorDigest: digest });
 	clean(started);
 	expect(start.mock.calls).toEqual([[launch]]);
 	const resumed = await host.launch.confirmed(target, input, { kind: "resume", sessionId: "provider-session" });

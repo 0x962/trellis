@@ -1,17 +1,19 @@
 import { join } from "node:path";
 import type { LaunchSpec, RuntimeSession } from "@trellis/runtime-protocol";
-import { assertTarget, runLaunch, startLaunch } from "@trellis/runtime-protocol/execution";
+import { assertTarget, fingerprintDigest, runLaunch, startLaunch } from "@trellis/runtime-protocol/execution";
 import { definedEnvironment } from "../../../../executionEnvironment/executionEnvironment.ts";
 import type { LocalExecutionHost, LocalHostDeps } from "../LocalExecutionHost.ts";
 import { prepareHost } from "./prepareHost.ts";
 import { readLocalDescriptor } from "./readLocalDescriptor.ts";
 
 export const localLaunch = (deps: LocalHostDeps): Pick<LocalExecutionHost, "launch"> => {
-	// The fingerprint of the prepared launch record, or null when the attempt
-	// has no record or a record without one, which is a custom launch.
-	const descriptorFingerprint = async (attemptId: string) => {
+	// The digest of the fingerprint of the prepared launch record, or null when
+	// the attempt has no record or a record without a fingerprint, which is a
+	// custom launch.
+	const descriptorDigest = async (attemptId: string) => {
 		if (!(await Bun.file(join(deps.home, "harness-attempts", attemptId, "launch.json")).exists())) return null;
-		return (await readLocalDescriptor(deps.home, attemptId)).fingerprint ?? null;
+		const { fingerprint } = await readLocalDescriptor(deps.home, attemptId);
+		return fingerprint === undefined ? null : fingerprintDigest(fingerprint);
 	};
 	return {
 		launch: {
@@ -19,13 +21,14 @@ export const localLaunch = (deps: LocalHostDeps): Pick<LocalExecutionHost, "laun
 				assertTarget(deps.binding, target);
 				const client = await deps.connection.ensure();
 				// The login environment of the host goes under the attempt
-				// environment of the spec, so a caller cannot replace a value of it.
+				// environment of the spec. An attempt value replaces a host value of
+				// the same name, and the type of the spec admits no other key.
 				const full: LaunchSpec = { ...spec, env: { ...definedEnvironment(await deps.env()), ...spec.env } };
 				return startLaunch(
 					(launch) => client.start(launch),
 					target,
 					full,
-					() => descriptorFingerprint(target.attemptId),
+					() => descriptorDigest(target.attemptId),
 				);
 			},
 			async startPrepared(target, timeoutMs) {
@@ -38,14 +41,14 @@ export const localLaunch = (deps: LocalHostDeps): Pick<LocalExecutionHost, "laun
 				if (!answer.complete)
 					throw new Error(`The execution service did not answer whether attempt ${target.attemptId} exists`);
 				const [session] = answer.sessions;
-				if (session !== undefined)
-					return { kind: "receipt", target, session, descriptorFingerprint: descriptor.fingerprint };
+				const digest = fingerprintDigest(descriptor.fingerprint);
+				if (session !== undefined) return { kind: "receipt", target, session, descriptorDigest: digest };
 				const spec = timeoutMs === undefined ? descriptor.spec : { ...descriptor.spec, timeoutMs };
 				return startLaunch(
 					(launch) => client.start(launch),
 					target,
 					spec,
-					async () => descriptor.fingerprint,
+					async () => digest,
 				);
 			},
 			async confirmed(target, input, mode) {
@@ -60,7 +63,7 @@ export const localLaunch = (deps: LocalHostDeps): Pick<LocalExecutionHost, "laun
 						? await host.start(launch)
 						: await host.resume({ ...launch, sessionId: mode.sessionId })
 					).process;
-				return runLaunch(target, confirm, () => descriptorFingerprint(target.attemptId));
+				return runLaunch(target, confirm, () => descriptorDigest(target.attemptId));
 			},
 		},
 	};

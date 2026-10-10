@@ -12,7 +12,7 @@ import {
 import type { ContractLaunchSpec } from "../ContractLaunchSpec";
 import type { ExecutionTarget } from "../ExecutionTarget";
 import { clientExecutionHost } from "./clientExecutionHost.ts";
-import { executionHostContract, FIXTURE_AMBIENT } from "./contractFixture.ts";
+import { executionHostContract, FIXTURE_AMBIENT, FIXTURE_TOKEN } from "./contractFixture.ts";
 import { scriptedRuntime } from "./scriptedRuntime.ts";
 
 type Message = { hash: string; status: "written" | "unknown"; acknowledged: boolean };
@@ -197,6 +197,14 @@ executionHostContract(async () => {
 			args: [],
 			cwd: home,
 			mode: "stdio",
+			env: {
+				TRELLIS_URL: "http://127.0.0.1:1",
+				TRELLIS_ACTOR: `agent:${target.runId}`,
+				TRELLIS_RUN_ID: target.runId,
+				TRELLIS_ATTEMPT_ID: target.attemptId,
+				TRELLIS_RUNTIME_HOME: `${home}/runtime`,
+				TRELLIS_ATTEMPT_TOKEN: FIXTURE_TOKEN,
+			},
 		} satisfies ContractLaunchSpec,
 		requests: () => runtime.requests.length,
 		close: async () => {
