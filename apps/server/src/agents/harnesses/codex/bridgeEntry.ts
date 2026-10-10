@@ -1,5 +1,4 @@
 import { type ChildProcess, spawn } from "node:child_process";
-import { watch } from "node:fs";
 import { chmod, mkdir, readFile, rm } from "node:fs/promises";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
@@ -14,6 +13,7 @@ import { CodexAppServerClient } from "./appServerClient.ts";
 import { CodexAppServerEvents } from "./appServerEvents.ts";
 import { codexControl } from "./codexControl.ts";
 import { recordEngineDiagnostics } from "./components/engineDiagnostics/index.ts";
+import { waitForEngineSocket } from "./components/waitForEngineSocket/index.ts";
 import { engineOptions } from "./engineOptions.ts";
 import { updateCheckOption } from "./updateCheckOption.ts";
 
@@ -45,19 +45,7 @@ await chmod(directory, 0o700);
 let client: CodexAppServerClient | undefined;
 let terminal: ChildProcess | undefined;
 let control: Awaited<ReturnType<typeof codexControl>> | undefined;
-const socketReady = new Promise<void>((resolve, reject) => {
-	const watcher = watch(directory, (_, name) => {
-		if (name === "engine.sock") {
-			watcher.close();
-			clearTimeout(timer);
-			resolve();
-		}
-	});
-	const timer = setTimeout(() => {
-		watcher.close();
-		reject(new Error("Codex app-server socket did not appear within 15 seconds"));
-	}, 15000);
-});
+const engineSocket = waitForEngineSocket(directory);
 const engine = spawn(
 	env.TRELLIS_CODEX_EXECUTABLE,
 	[
@@ -113,7 +101,7 @@ async function start() {
 	diagnostics = recordEngineDiagnostics(engine.stderr!, join(dirname(launchPath), "codex-engine.log"), (entry) => {
 		if (parser) observe(parser.compactionProgress(entry));
 	}).catch(reportFailure);
-	await socketReady;
+	await engineSocket.ready;
 	client = new CodexAppServerClient(
 		env.TRELLIS_CODEX_ENGINE_SOCKET,
 		(notification) => {
@@ -185,9 +173,8 @@ async function start() {
 		else stopNormally();
 	});
 }
-// `start()` waits for the Codex engine for as long as the engine takes. A
-// signal that arrives in that time ends the run here, and not after `start()`
-// returns. A rejection of `start()` reaches this race through `reportFailure`.
+// A stop signal can arrive while start() awaits the engine. The outer race
+// starts cleanup before that wait completes.
 try {
 	start().catch(reportFailure);
 	await Promise.race([terminated, engineFailed, observationFailed]);
@@ -215,6 +202,7 @@ try {
 	process.exitCode = 1;
 } finally {
 	acceptingEvents = false;
+	engineSocket.close();
 	// A signal can end the run while a write of an event is open. The process
 	// exits after this block, so `eventQueue` settles first.
 	await eventQueue.catch((failure: unknown) => {
