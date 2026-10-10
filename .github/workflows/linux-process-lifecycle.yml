@@ -64,6 +64,7 @@ jobs:
         working-directory: apps/runtime
         env:
           TRELLIS_REQUIRE_LINUX_LIFECYCLE: "1"
+          TRELLIS_REQUIRE_PID_REUSE: "1"
           TRELLIS_LINUX_PROOF: ${{ runner.temp }}/proof/lifecycle.json
         run: |
           systemd-run --user --scope --quiet -p Delegate=yes -- sh -c 'cat /proc/self/cgroup; exec bun test src/platform/linux/linuxLifecycle.process.test.ts'

@@ -197,6 +197,7 @@ if (mode === "cases") {
 			if (candidate.pid === pid) reused = candidate;
 			else candidate.kill("SIGKILL");
 		}
+		if (process.env.TRELLIS_REQUIRE_PID_REUSE === "1") assert.ok(reused, `No process received PID ${pid} again`);
 		const details: Record<string, unknown> = { pid, recorded: recorded.process.identity, realReuse: false };
 		if (reused !== undefined) {
 			await waitFor(() => inspectProcess(pid).kind === "live", "the reused process");

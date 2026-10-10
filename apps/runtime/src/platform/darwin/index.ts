@@ -7,7 +7,8 @@ import { DarwinProcessExitWatcher } from "./processExitWatcher.ts";
 import { processIdentity } from "./processIdentity.ts";
 import { stopProcessTree } from "./stopProcessTree.ts";
 
-const sessionOf = load(null).func("int getsid(int pid)");
+const library = load(null);
+const sessionOf = library.func("int getsid(int pid)");
 
 // macOS launches need no preparation. A launch creates an OS session, and
 // `stopProcessTree` stops the process groups of that session.

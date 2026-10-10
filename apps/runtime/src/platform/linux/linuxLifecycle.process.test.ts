@@ -9,6 +9,8 @@ import { join, resolve } from "node:path";
 // TRELLIS_REQUIRE_LINUX_LIFECYCLE=1 turns a host without cgroup delegation
 // into a failure. TRELLIS_EXPECT_LINUX_REFUSAL=1 runs only the refusal case,
 // for a runtime in a cgroup that this user cannot write.
+// TRELLIS_REQUIRE_PID_REUSE=1 requires a real reused PID, which needs
+// passwordless sudo and /proc/sys/kernel/ns_last_pid.
 // TRELLIS_LINUX_PROOF names the file that receives the proof record.
 const refusal = process.env.TRELLIS_EXPECT_LINUX_REFUSAL === "1";
 const required = process.env.TRELLIS_REQUIRE_LINUX_LIFECYCLE === "1";

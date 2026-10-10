@@ -57,7 +57,21 @@ Each launch creates an OS session. The launch PID identifies that session while 
 
 The runtime reports `exited` only after those sessions contain no live processes. A failed identity query, refused signal, or two-second cleanup deadline records `unknown`. An unknown cleanup prevents a successful shutdown response. Recorded PIDs from another daemon instance never authorize signals.
 
-This runtime is not a security sandbox. A descendant that calls `setsid(2)` and loses its parent before cleanup observes it can survive. Such a process requires separate inspection. The runtime does not claim containment of arbitrary programs.
+This runtime is not a security sandbox. On macOS, a descendant that calls `setsid(2)` and loses its parent before cleanup observes it can survive. Such a process requires separate inspection. The runtime does not claim containment of arbitrary programs.
+
+The process code of each host is in `src/platform/`. `src/platform/platform.ts` loads the macOS or the Linux implementation for the current host.
+
+## Linux
+
+The runtime supports Ubuntu 24.04 with glibc on x86_64 and arm64. A Linux launch requires a cgroup v2 subtree that is delegated to the runtime user, for example a systemd unit with `Delegate=yes`. Without that subtree, the launch fails with an error that starts with `Linux agent launch requires a delegated cgroup v2 subtree`.
+
+Each launch starts `/bin/sh`. The shell creates the cgroup `trellis-attempts/session-<pid>` below the runtime cgroup, moves itself into it, and then runs the agent with the same PID. Every descendant of the agent starts in that cgroup. A descendant stays in the cgroup after `setsid(2)` and after the exit of its parent.
+
+`stop` writes `cgroup.kill`. The runtime reports `exited` after `cgroup.events` shows `populated 0` and the OS session has no live process. Then it removes the cgroup. A process that moves itself to another cgroup it can write, such as a new systemd user scope, and stays in the OS session keeps the stop `unknown` after two seconds.
+
+A Linux process identity is `linux:<boot ID>:<PID>:<start ticks>`. The boot ID comes from `/proc/sys/kernel/random/boot_id`, and the start ticks come from `/proc/<pid>/stat`. A reboot or a reused PID gives a different identity. A macOS identity is `<PID>:<start seconds>:<start microseconds>`.
+
+An agent continues to run after a runtime restart. The new runtime finds the cgroup of a recorded session by its name. `.github/workflows/linux-process-lifecycle.yml` runs the real process cases on both architectures.
 
 ## Output and lifetime
 

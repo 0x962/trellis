@@ -117,14 +117,14 @@ export function createLinuxCgroupLifecycle(operations: LinuxCgroupOperations): L
 				if (leader.kind === "unknown") throw new Error(leader.error);
 				const members = operations.inspectProcessSession(sessionId);
 				if (members.kind === "unknown") throw new Error(members.error);
-				const outside = members.kind === "live" ? members.pids : [];
+				const remaining = members.kind === "live" ? members.pids : [];
 				if (
 					leader.kind === "live" &&
 					leader.process.parentPid === operations.runtimePid &&
-					!outside.includes(sessionId)
+					!remaining.includes(sessionId)
 				)
-					outside.push(sessionId);
-				if (!busy && outside.length === 0) {
+					remaining.push(sessionId);
+				if (!busy && remaining.length === 0) {
 					if (contained) removeTree(path);
 					return;
 				}
@@ -132,7 +132,7 @@ export function createLinuxCgroupLifecycle(operations: LinuxCgroupOperations): L
 					throw new Error(
 						busy
 							? `The cgroup ${path} still has live processes after cgroup.kill`
-							: `Process session ${sessionId} has live processes outside its attempt cgroup: ${outside.join(", ")}`,
+							: `Process session ${sessionId} has live processes outside its attempt cgroup: ${remaining.join(", ")}`,
 					);
 				await operations.wait(stopPollMs);
 			}
