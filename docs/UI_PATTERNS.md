@@ -188,6 +188,8 @@ It replaces the URL with the home route, so closing the sheet leaves a page to u
 The table's Enter, Space, and O keys open the same sheet.
 In the project session list, hold T and click a ticket agent to open its ticket sheet directly.
 A plain click selects the conversation. A session without a ticket keeps this behavior with T held.
+Hold S and click a ticket to open its existing agent session. The choice matches the ticket agent line.
+A ticket without a session opens its ticket sheet. S alone opens the status picker on key release.
 Markdown links and resolved ticket record links also open the sheet over the current page.
 Page links inside a session open the complete Page viewer in a sheet above that session.
 The session keeps its content, and the background route stays in place.

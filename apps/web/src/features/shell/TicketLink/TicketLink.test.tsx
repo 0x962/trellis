@@ -1,5 +1,6 @@
-import { afterEach, expect, test } from "bun:test";
+import { afterEach, beforeEach, expect, test } from "bun:test";
 import { createMemoryHistory, createRootRouteWithContext, createRoute, createRouter } from "@tanstack/react-router";
+import { Window } from "happy-dom";
 import { act, type MouseEvent } from "react";
 import { createRoot } from "test-renderer";
 import type { RouterContext } from "../../../lib/appContext";
@@ -9,7 +10,19 @@ import { TicketLink } from "./TicketLink";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
-afterEach(() => pageSheetActions.closeTicket());
+let browser: Window;
+let originalWindow: PropertyDescriptor | undefined;
+beforeEach(() => {
+	browser = new Window();
+	originalWindow = Object.getOwnPropertyDescriptor(globalThis, "window");
+	Object.defineProperty(globalThis, "window", { configurable: true, writable: true, value: browser });
+});
+afterEach(async () => {
+	pageSheetActions.closeTicket();
+	await browser.happyDOM.abort();
+	if (originalWindow) Object.defineProperty(globalThis, "window", originalWindow);
+	else Reflect.deleteProperty(globalThis, "window");
+});
 
 function makeRouter(initialEntries: string[]) {
 	const root = createRootRouteWithContext<RouterContext>()();

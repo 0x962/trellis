@@ -10,6 +10,7 @@ export type CardKeyDownOptions = {
 	// list, so they never reach a card the board hides.
 	cardsOf: CardsOfColumn;
 	openTicket: (identifier: string) => void;
+	deferStatus: (action: () => void) => void;
 	// Offers every status of the board for the card.
 	chooseStatus: (move: BoardMove) => void;
 	// Moves the card to another column, which asks for a status when that
@@ -60,6 +61,7 @@ export const cardKeyDown =
 		columns,
 		cardsOf,
 		openTicket,
+		deferStatus,
 		chooseStatus,
 		moveTo,
 		setLabels,
@@ -112,10 +114,12 @@ export const cardKeyDown =
 			return;
 		}
 		if (event.key === "Enter") openTicket(ticket.identifier);
-		if (key === "s" && !mod) {
+		if (key === "s" && !mod && !event.altKey && !event.shiftKey && !event.nativeEvent.isComposing) {
 			event.preventDefault();
-			if (selected) openBulk("status");
-			else chooseStatus({ ticket, column });
+			deferStatus(() => {
+				if (selected) openBulk("status");
+				else chooseStatus({ ticket, column });
+			});
 			return;
 		}
 		if (key === "l" && !mod) {

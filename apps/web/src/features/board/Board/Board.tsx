@@ -11,11 +11,13 @@ import { Button, EmptyState, toast, useMediaQuery, useTheme } from "@trellis/ui"
 import { type MouseEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { useArchivedProjects } from "../../../hooks/useArchivedProjects";
+import { useSessionClickKey } from "../../../hooks/useSessionClickKey";
 import { useApp } from "../../../lib/appContext";
 import { conflictCurrent, conflictMessage, errorMessage } from "../../../lib/conflict";
 import { uiActions, useUiStore } from "../../../stores/uiStore";
 import { useWorkingAgents } from "../../agents/useWorkingAgents";
 import { useCommandContext } from "../../command/hooks/useCommandContext";
+import { useTicketClick } from "../../shell/useTicketClick";
 import { BoardLineStatsContext } from "../BoardLineStatsContext";
 import { categoryColumns, moveInBoard, projectColumns, workingFirst, workingGroupInsertIndex } from "../columns";
 import { BoardBulkBar } from "../components/BoardBulkBar";
@@ -51,6 +53,8 @@ const closedCategories = ["done", "canceled"];
 
 export function Board({ projectRef, filters = {}, storageKey, onOpenTicket }: BoardProps) {
 	const context = useApp();
+	const clickTicket = useTicketClick(onOpenTicket);
+	const { defer: deferStatus } = useSessionClickKey();
 	const boardRef = useRef<HTMLDivElement>(null);
 	const [announcement, setAnnouncement] = useState("");
 	const [showAllDone, setShowAllDone] = useState(false);
@@ -195,6 +199,7 @@ export function Board({ projectRef, filters = {}, storageKey, onOpenTicket }: Bo
 		columns,
 		cardsOf,
 		openTicket: onOpenTicket,
+		deferStatus,
 		chooseStatus: (move) => setPendingChoice({ ...move, statuses: columns.flatMap((entry) => entry.statuses) }),
 		moveTo: chooseOrMove,
 		setLabels: setLabelTicketId,
@@ -205,7 +210,7 @@ export function Board({ projectRef, filters = {}, storageKey, onOpenTicket }: Bo
 	});
 
 	const cardClick = (event: MouseEvent<HTMLElement>, column: BoardColumnModel, ticket: TicketSummary) => {
-		if (!selection.click(column.id, ticket.id, event)) onOpenTicket(ticket.identifier);
+		if (!selection.click(column.id, ticket.id, event)) clickTicket(ticket.identifier, event);
 	};
 
 	const failed = boardQuery.data === undefined && boardQuery.failureCount > 0;
