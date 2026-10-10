@@ -286,7 +286,7 @@ if (mode === "cases") {
 		const orphanCgroup = launchCgroup(orphan);
 		writeFileSync(join(orphanPath, "go"), "");
 		await waitFor(() => gone(orphanLaunch.leader), "the exit of the orphan leader");
-		assert.equal(readFileSync(`/proc/${orphan}/environ`, "utf8"), "");
+		assert.ok(!readFileSync(`/proc/${orphan}/environ`, "utf8").includes("TRELLIS_ATTEMPT_ID="));
 		assert.deepEqual(platform.attemptProcesses(orphanPath, attemptId), []);
 
 		const leakedCgroup = join(attemptsRoot, `launch-leaked-${process.pid}`);

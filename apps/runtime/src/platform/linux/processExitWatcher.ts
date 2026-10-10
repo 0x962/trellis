@@ -1,6 +1,6 @@
 import { closeSync, writeSync } from "node:fs";
 import { constants } from "node:os";
-import { errno, type load } from "koffi";
+import type { load } from "koffi";
 
 export type LinuxExitWatcherOperations = {
 	createQueue: () => { queue: number; wake: number };
@@ -37,11 +37,13 @@ export const exitWatcherSignatures = {
 	eventfd: "int eventfd(unsigned int initval, int flags)",
 };
 
+// `errno` is koffi.errno. The caller binds every native function, so this
+// module loads no native code and its tests run under Bun.
 export function nodeExitWatcherOperations(
-	native: Record<keyof typeof exitWatcherSignatures, NativeFunction>,
+	native: Record<keyof typeof exitWatcherSignatures, NativeFunction> & { errno: () => number },
 ): LinuxExitWatcherOperations {
 	const layout = eventLayout();
-	const { pidfdOpen, epollCreate, epollControl, epollWait, eventfd } = native;
+	const { pidfdOpen, epollCreate, epollControl, epollWait, eventfd, errno } = native;
 	const add = (queue: number, descriptor: number) => {
 		const event = Buffer.alloc(layout.size);
 		event.writeUInt32LE(epollIn, 0);

@@ -11,7 +11,7 @@ import {
 	statSync,
 	writeFileSync,
 } from "node:fs";
-import { load } from "koffi";
+import { errno, load } from "koffi";
 import type { RuntimePlatform } from "../runtimePlatform.ts";
 import { createLinuxAttemptProcesses } from "./attemptProcesses.ts";
 import { createLinuxCgroupLifecycle } from "./cgroupLifecycle.ts";
@@ -28,6 +28,7 @@ const exitWatcherNatives = {
 	epollControl: library.func(exitWatcherSignatures.epollControl),
 	epollWait: library.func(exitWatcherSignatures.epollWait),
 	eventfd: library.func(exitWatcherSignatures.eventfd),
+	errno,
 };
 // unistd.h defines _SC_CLK_TCK as 2 on Linux.
 const clockTicks = Number(sysconf(2));
