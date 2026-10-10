@@ -27,6 +27,7 @@ export function useTicketComposer(instance?: ComposerInstance) {
 	const { draft, setDraft, clearDraft } = useComposerDraft(
 		instance ? `${instance.storagePrefix}-draft` : undefined,
 		instance ? { title: instance.initialTitle, description: "", project: instance.options.project } : undefined,
+		options,
 	);
 	const defaults = useComposerDefaults(options, draft.project);
 	const recent = useRecentChoices((state) => state.recent);

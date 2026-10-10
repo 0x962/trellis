@@ -1,123 +1,11 @@
-import { afterAll, afterEach, expect, test } from "bun:test";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { createMemoryHistory, createRootRoute, createRouter, RouterContextProvider } from "@tanstack/react-router";
-import type { AgentRun, TicketClassification, TicketClassificationInput } from "@trellis/api";
-import { act } from "react";
-import { createRoot } from "test-renderer";
-import { type AppContext, AppProvider } from "../../../../../lib/appContext";
+import { expect, test } from "bun:test";
+import type { AgentRun } from "@trellis/api";
 import type { AssignChoice } from "../../../../agents/AssignAgent/assignChoice";
 import { useRecentChoices } from "../../../../agents/AssignAgent/recentChoices";
-import type { ComposerInstance } from "../../../composerScope";
-import { composerActions, useComposerStore } from "../../../composerStore";
-import { useTicketComposer } from "./useTicketComposer";
-
-(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
-const originalStorage = Object.getOwnPropertyDescriptor(globalThis, "sessionStorage");
-const storage = new Map<string, string>();
-Object.defineProperty(globalThis, "sessionStorage", {
-	configurable: true,
-	value: {
-		getItem: (key: string) => storage.get(key) ?? null,
-		setItem: (key: string, value: string) => storage.set(key, value),
-		removeItem: (key: string) => storage.delete(key),
-	},
-});
-afterAll(() => {
-	if (originalStorage) Object.defineProperty(globalThis, "sessionStorage", originalStorage);
-	else Reflect.deleteProperty(globalThis, "sessionStorage");
-});
-const disposals: Array<() => Promise<void>> = [];
-afterEach(async () => {
-	for (const dispose of disposals.splice(0)) await dispose();
-	storage.clear();
-	useRecentChoices.setState({ recent: [] });
-	composerActions.close();
-});
-const wait = () =>
-	act(async () => {
-		await new Promise((resolve) => setTimeout(resolve, 650));
-	});
-const remembered: AssignChoice = {
-	preset: "codex",
-	model: "openai/gpt-6-astra",
-	effort: "high",
-	accountId: "saved-account",
-};
-
-async function fixture(fixed = false, instance?: ComposerInstance, start?: () => Promise<AgentRun>) {
-	useRecentChoices.setState({ recent: [remembered] });
-	composerActions.open({ project: "TRL", ...(fixed ? { wave: "TRL/plan/work", priority: "high" as const } : {}) });
-	const queryClient = new QueryClient({ defaultOptions: { queries: { staleTime: Infinity, retry: false } } });
-	const query = (key: string, data: unknown) => {
-		queryClient.setQueryData([key], data);
-		return { queryOptions: () => ({ queryKey: [key], queryFn: async () => data }) };
-	};
-	const requests: Array<{ input: TicketClassificationInput; resolve: (result: TicketClassification) => void }> = [];
-	const app = {
-		queryClient,
-		orpc: {
-			agentRuns: { list: { key: () => ["agentRuns"] } },
-			tickets: { key: () => ["tickets"] },
-			projects: { get: query("project", { statuses: [], ticketTemplate: "" }) },
-			epics: { list: query("epics", []), get: query("epic", { waves: [] }) },
-			harnessAccounts: { list: query("accounts", [{ id: "saved-account", harness: "codex" }]) },
-			labels: { list: query("labels", { labels: [], groups: [] }) },
-		},
-		client: {
-			agentRuns: {
-				start:
-					start ??
-					(async () => {
-						throw new Error("Unexpected agent start");
-					}),
-			},
-			tickets: {
-				classify: (input: TicketClassificationInput) =>
-					new Promise<TicketClassification>((resolve) => requests.push({ input, resolve })),
-			},
-		},
-	} as unknown as AppContext;
-	const router = createRouter({
-		routeTree: createRootRoute(),
-		history: createMemoryHistory({ initialEntries: ["/"] }),
-	});
-	let composer: ReturnType<typeof useTicketComposer>;
-	function Probe() {
-		composer = useTicketComposer(instance);
-		return null;
-	}
-	const root = createRoot();
-	const render = () =>
-		act(async () => {
-			root.render(
-				<RouterContextProvider router={router}>
-					<QueryClientProvider client={queryClient}>
-						<AppProvider value={app}>
-							<Probe />
-						</AppProvider>
-					</QueryClientProvider>
-				</RouterContextProvider>,
-			);
-		});
-	await render();
-	disposals.push(async () => {
-		await act(async () => root.unmount());
-		queryClient.clear();
-	});
-	return {
-		requests,
-		app,
-		current: () => composer!,
-		reopen: async () => {
-			await act(async () => {
-				composer!.close();
-				root.render(<div />);
-			});
-			composerActions.open({ project: "TRL" });
-			await render();
-		},
-	};
-}
+import { routeDefaults } from "../../../../command/utils/routeDefaults";
+import { useComposerStore } from "../../../composerStore";
+import { draftKey } from "../../../hooks/useComposerDraft/useComposerDraft";
+import { act, fixture, remembered, storage, wait } from "./fixture";
 
 test("the composer keeps the last preference through classification, reopen, and Create another", async () => {
 	const f = await fixture();
@@ -146,6 +34,69 @@ test("fixed ticket fields need no Jev call to keep the last preference", async (
 	expect(f.current().choice).toEqual(remembered);
 });
 
+test.each(["button", "keyboard"])("the %s keeps the page epic over a saved automatic placement", async (entry) => {
+	storage.set(
+		draftKey,
+		JSON.stringify({
+			title: "Fix a label",
+			description: "",
+			project: "OLD",
+			epic: "OLD/closed",
+			wave: "OLD/closed/work",
+			parent: "OLD-1",
+			labels: [{ id: "old-label" }],
+			automatic: ["epic", "wave"],
+		}),
+	);
+	const f = await fixture(false, {}, "/p/TRL/epics/current");
+	if (entry === "button") await f.clickNew();
+	else await f.open(routeDefaults("/p/TRL/epics/current", {}));
+	expect(f.current().draft).toMatchObject({
+		project: "TRL",
+		epic: "TRL/current",
+		wave: undefined,
+		parent: null,
+		labels: [],
+	});
+	await wait();
+	expect(f.requests.at(-1)!.input).toMatchObject({ project: "TRL", epic: "TRL/current" });
+	await act(async () => f.requests.at(-1)!.resolve({ epic: "TRL/current", wave: null, priority: "high" }));
+	expect(f.current().placement).toMatchObject({ epic: "TRL/current", newWave: true, ready: true });
+});
+
+test.each(["!high", "high,low"])("the button preserves default priority rules for %s", async (priority) => {
+	const f = await fixture(false, {}, `/p/TRL/epics/current?priority=${priority}`);
+	await f.clickNew();
+	expect(useComposerStore.getState().options).toEqual({ project: "TRL", epic: "TRL/current" });
+	expect(f.current().priority).toBe("none");
+});
+
+test("page context applies to an initial draft and explicit choices remain editable", async () => {
+	storage.set(
+		draftKey,
+		JSON.stringify({ title: "Fix a label", description: "", epic: "TRL/other", wave: "TRL/other/work" }),
+	);
+	const f = await fixture(false, { epic: "TRL/current" });
+	expect(f.current().draft.epic).toBe("TRL/current");
+	await act(async () => f.current().chooseClassification({ epic: "TRL/manual", wave: "TRL/manual/work" }));
+	await wait();
+	expect(f.requests.at(-1)!.input).toMatchObject({ epic: "TRL/manual", wave: "TRL/manual/work" });
+	expect(f.current().draft.epic).toBe("TRL/manual");
+});
+
+test("a delayed classification cannot replace the epic of a new open", async () => {
+	const f = await fixture();
+	await act(async () => f.current().setDraft({ title: "Fix a label", description: "" }));
+	await wait();
+	const old = f.requests[0]!;
+	await act(async () => f.current().close());
+	await f.open({ project: "TRL", epic: "TRL/current" });
+	await act(async () => old.resolve({ epic: "TRL/closed", wave: "TRL/closed/work", priority: "high" }));
+	expect(f.current().draft.epic).toBe("TRL/current");
+	await wait();
+	expect(f.requests.at(-1)!.input.epic).toBe("TRL/current");
+});
+
 test("an isolated composer keeps the parent draft, receipt, and preferences through close and completion", async () => {
 	const parentDraft = JSON.stringify({ title: "Parent draft", description: "Keep text" });
 	const parentReceipt = JSON.stringify({ identifier: "TRL-10", assignment: null });
@@ -155,7 +106,7 @@ test("an isolated composer keeps the parent draft, receipt, and preferences thro
 	storage.set(`${childKey}-submission`, JSON.stringify({ identifier: "TRL-20", assignment: null }));
 	const selected: string[] = [];
 	let closed = 0;
-	const f = await fixture(false, {
+	const f = await fixture(false, {}, "/", {
 		storagePrefix: childKey,
 		initialTitle: "Child title",
 		options: { project: "TRL" },
@@ -192,7 +143,7 @@ test("a saved child receipt permits missing-file recovery but keeps ticket field
 	const scope = "related-missing-files";
 	storage.set(`${scope}-submission`, JSON.stringify({ identifier: "TRL-30", assignment: null }));
 	storage.set(`${scope}:uploads`, JSON.stringify([{ id: "file-1", name: "proof.txt", size: 5, lastModified: 12 }]));
-	const f = await fixture(false, {
+	const f = await fixture(false, {}, "/", {
 		storagePrefix: scope,
 		initialTitle: "Child",
 		options: { project: "TRL" },
@@ -224,6 +175,8 @@ test("a child assignment preserves the parent's recent agent preference", async 
 	let assigned = 0;
 	const f = await fixture(
 		false,
+		{},
+		"/",
 		{
 			storagePrefix: scope,
 			initialTitle: "Child",

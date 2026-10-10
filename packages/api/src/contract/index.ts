@@ -20,6 +20,7 @@ import { pullRequests } from "./pullRequests.ts";
 import { resourceComments } from "./resourceComments.ts";
 import { resources } from "./resources.ts";
 import { reviews } from "./reviews";
+import { roles } from "./roles.ts";
 import { search } from "./search.ts";
 import { sessionObservers } from "./sessionObservers.ts";
 import { sessions } from "./sessions.ts";
@@ -51,6 +52,7 @@ export const contract = {
 	statuses: oc.tag("statuses").router(statuses),
 	tickets: oc.tag("tickets").router(tickets),
 	timeline: oc.tag("timeline").router(timeline),
+	roles: oc.tag("roles").router(roles),
 	notes: oc.tag("notes").router(notes),
 	pages: oc.tag("pages").router(pages),
 	epicChatter: oc.tag("epic chatter").router(epicChatter),

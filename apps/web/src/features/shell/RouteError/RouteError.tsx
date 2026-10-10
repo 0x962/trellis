@@ -1,4 +1,4 @@
-import { useRouter } from "@tanstack/react-router";
+import { useRouter, useRouterState } from "@tanstack/react-router";
 import { Button, FailureState } from "@trellis/ui";
 import { useEffect, useRef } from "react";
 import { useApp } from "../../../lib/appContext";
@@ -18,6 +18,7 @@ export type RouteErrorProps = {
 // a new build replaced the old one, so Reload fetches the new files.
 export function RouteError({ error }: RouteErrorProps) {
 	const router = useRouter();
+	const pathname = useRouterState({ select: (state) => (state.resolvedLocation ?? state.location).pathname });
 	const { live } = useApp();
 	const status = useLiveStatus(live);
 	const previous = useRef(status);
@@ -34,6 +35,7 @@ export function RouteError({ error }: RouteErrorProps) {
 	if (kind === "chunk")
 		return (
 			<FailureState
+				key={pathname}
 				variant="page"
 				className="page-card"
 				title="Trellis has a new version on the server"
@@ -48,6 +50,7 @@ export function RouteError({ error }: RouteErrorProps) {
 	if (kind === "refused")
 		return (
 			<FailureState
+				key={pathname}
 				variant="page"
 				className="page-card"
 				title="The server refused this browser"
@@ -68,6 +71,7 @@ export function RouteError({ error }: RouteErrorProps) {
 	if (kind === "offline")
 		return (
 			<FailureState
+				key={pathname}
 				variant="page"
 				className="page-card"
 				title="The server does not answer"
@@ -91,6 +95,7 @@ export function RouteError({ error }: RouteErrorProps) {
 		);
 	return (
 		<FailureState
+			key={pathname}
 			variant="page"
 			className="page-card"
 			title="This page did not load"

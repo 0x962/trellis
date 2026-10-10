@@ -11,6 +11,8 @@ export function eventInvalidations(event: InvalidatingEvent): Matcher[] {
 		case "attachment.created":
 		case "attachment.deleted":
 			return [forTicket(["attachments", "list"], event.ticketId), ...ticketDetail(event.ticketId)];
+		case "roles.changed":
+			return [family("roles")];
 		case "notes.changed":
 			return [family("notes")];
 		// A ticket row copies the name and the ref of its epic and of its
