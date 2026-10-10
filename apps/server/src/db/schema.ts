@@ -293,3 +293,4 @@ export {
 export * from "./tables/langflowExecution/index.ts";
 export * from "./tables/nativeMigrations.ts";
 export * from "./tables/notes.ts";
+export * from "./tables/roles.ts";
