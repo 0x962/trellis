@@ -45,6 +45,7 @@ import * as notes from "./notes/notes.ts";
 import { pageServices } from "./pages/registry";
 import * as prFiles from "./prFiles/prFiles.ts";
 import * as projects from "./projects.ts";
+import { prepareRewrite } from "./promptRewrite/index.ts";
 import { prepareCheck } from "./providers/check.ts";
 import { prepareDraftCheck } from "./providers/draftCheck/index.ts";
 import { prepareModels } from "./providers/models.ts";
@@ -69,6 +70,7 @@ import * as reviewStatus from "./reviews/status";
 import * as reviewSubmissions from "./reviews/submissions";
 import * as reviewThreads from "./reviews/threads";
 import * as reviewTransfers from "./reviews/transfers";
+import * as roles from "./roles";
 import * as search from "./search.ts";
 import {
 	finishSessionObserverGenerations,
@@ -135,6 +137,7 @@ export const services = {
 	"harnessAccounts.remove": io("mutation", harnessAccounts.remove),
 	"harnessAccounts.quota": prepared("read", prepareQuota, agentTerminal.result),
 	"providers.models": prepared("read", prepareModels, agentTerminal.result),
+	"promptRewrite.rewrite": prepared("mutation", prepareRewrite, agentTerminal.result),
 	"providers.publicModels": prepared("read", preparePublicModels, agentTerminal.result),
 	"providers.check": prepared("read", prepareCheck, agentTerminal.result),
 	"providers.checkDraft": prepared("read", prepareDraftCheck, agentTerminal.result),
@@ -238,6 +241,11 @@ export const services = {
 	"statuses.delete": core("mutation", statuses.delete),
 	...ticketServices,
 	"timeline.list": core("read", timeline.list),
+	"roles.list": core("read", roles.list),
+	"roles.get": core("read", roles.get),
+	"roles.create": core("mutation", roles.create),
+	"roles.update": core("mutation", roles.update),
+	"roles.delete": core("mutation", roles.remove),
 	"notes.list": core("read", notes.list),
 	"notes.get": core("read", notes.get),
 	"notes.create": core("mutation", notes.create),

@@ -1,10 +1,11 @@
-import { createRootRouteWithContext, Link, Outlet, redirect, useRouterState } from "@tanstack/react-router";
-import { EmptyState, Toaster } from "@trellis/ui";
+import { createRootRouteWithContext, Outlet, redirect, useRouterState } from "@tanstack/react-router";
+import { Toaster } from "@trellis/ui";
 import { lazy, Suspense } from "react";
+import { RewriteHotkey } from "../features/promptRewrite/RewriteHotkey";
 import { NewSessionHost } from "../features/sessions/NewSessionHost";
 import { GlobalHotkeys } from "../features/shell/GlobalHotkeys";
 import { LinkCapture } from "../features/shell/LinkCapture";
-import { linkButtonClass } from "../features/shell/linkButtonClass";
+import { PageNotFound } from "../features/shell/PageNotFound";
 import { PageTabsHost } from "../features/shell/PageTabsHost";
 import { RouteError } from "../features/shell/RouteError";
 import { ShellFrame, ShellSidebar } from "../features/shell/ShellFrame";
@@ -87,26 +88,11 @@ function RootComponent() {
 			</div>
 			<div data-command-palette="" hidden />
 			<GlobalHotkeys />
+			<RewriteHotkey />
 			<LinkCapture />
 			<ShellOverlays />
 			<NewSessionHost />
 			<Toaster />
 		</div>
-	);
-}
-
-function PageNotFound() {
-	return (
-		<EmptyState
-			variant="page"
-			className="page-card"
-			title="Page not found"
-			description="No page has this URL."
-			action={
-				<Link to="/search" className={linkButtonClass}>
-					Search
-				</Link>
-			}
-		/>
 	);
 }

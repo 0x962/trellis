@@ -126,6 +126,7 @@ export const NarrowComments: Story = {
 		const trigger = await canvas.findByRole("button", { name: "Comments" });
 		await userEvent.click(trigger);
 		const dialog = await body.findByRole("dialog", { name: "Comments" });
+		await waitFor(() => expect(dialog.contains(canvasElement.ownerDocument.activeElement)).toBe(true));
 		await expect(
 			within(dialog).getByRole("button", { name: "“The title remains readable.”" }).getBoundingClientRect().height,
 		).toBeGreaterThanOrEqual(44);

@@ -12,6 +12,7 @@ import { sessionStateLabel } from "../../../sessionStateLabel";
 import { isHistoricalSession } from "../../isHistoricalSession";
 import { keptSessionRows, nextSessionRow, SESSION_ROW_HEIGHT, sessionRowRange } from "../../sessionGroups";
 import { RunLineChanges } from "./components/RunLineChanges";
+import { useSessionRowClick } from "./components/useSessionRowClick";
 
 const dateFormat = new Intl.DateTimeFormat(undefined, {
 	month: "short",
@@ -66,6 +67,7 @@ export function SessionGroup({
 	showHeader?: boolean;
 }) {
 	const contentId = useId();
+	const onRowClick = useSessionRowClick(onSelect);
 	const routeKey = `/sessions/project/${projectKey}`;
 	const collapsed = useUiStore((state) => showHeader && (state.collapsedGroups[routeKey]?.includes(group) ?? false));
 	const phone = useMediaQuery("(max-width: 767px)");
@@ -219,7 +221,7 @@ export function SessionGroup({
 								title={`${name}${run.ticketTitle ? ` · ${run.ticketTitle}` : ""} · ${state} · ${new Date(run.createdAt).toLocaleString()}`}
 								aria-current={selectedId === run.id ? "page" : undefined}
 								className="sidebar-item"
-								onClick={() => onSelect(run.id)}
+								onClick={(event) => onRowClick(run, event)}
 							>
 								<span aria-hidden="true" className="flex shrink-0">
 									{avatar}

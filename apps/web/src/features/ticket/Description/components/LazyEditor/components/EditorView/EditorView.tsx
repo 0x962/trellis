@@ -1,6 +1,7 @@
 import { Editor, EditorContent } from "@tiptap/react";
 import type { ResourceCommentAnchor } from "@trellis/api";
 import { useEffect, useRef } from "react";
+import { useRewriteEditor } from "../../../../../../promptRewrite/useRewriteEditor";
 import "./editor.css";
 import { editorHost } from "../../editorHost";
 import { SlashMenuList, useSlashMenuStore } from "../SlashMenu";
@@ -194,6 +195,7 @@ export function EditorView({
 		openThread: comments?.onOpenThread ?? null,
 	});
 	const editor = getEditor();
+	useRewriteEditor(editor, contentKey);
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: the content loads once per ticket
 	useEffect(() => {

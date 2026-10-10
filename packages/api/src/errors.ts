@@ -19,6 +19,16 @@ const IssueSchema = z.looseObject({
 // An error without a payload declares `z.undefined()`, so `data` is typed
 // as absent instead of as an empty object.
 export const errors = {
+	PROMPT_REWRITE_UNAVAILABLE: {
+		status: 503,
+		message: "Text rewrite needs an enabled Vercel provider in Settings.",
+		data: z.undefined(),
+	},
+	PROMPT_REWRITE_FAILED: {
+		status: 502,
+		message: "The model could not return a complete rewrite. Your original text stays unchanged.",
+		data: z.undefined(),
+	},
 	SESSION_ATTENTION_CHANGED: {
 		status: 409,
 		message: "The session changed. Read it again before you continue.",

@@ -1,0 +1,1 @@
+export { registerRichRewriteTarget } from "./richRewriteTarget";

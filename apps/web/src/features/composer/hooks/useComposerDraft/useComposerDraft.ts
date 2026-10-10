@@ -1,6 +1,7 @@
 import type { Priority, TicketLabel } from "@trellis/api";
 import { useCallback, useRef, useState } from "react";
 import type { AssignChoice } from "../../../agents/AssignAgent/assignChoice";
+import type { ComposerOptions } from "../../composerStore";
 
 export type ComposerDraft = {
 	title: string;
@@ -20,6 +21,19 @@ export type ComposerDraft = {
 export const draftKey = "trellis-composer-draft";
 
 const empty: ComposerDraft = { title: "", description: "" };
+const noContext: ComposerOptions = {};
+
+const withContext = (draft: ComposerDraft, options: ComposerOptions): ComposerDraft => {
+	if (options.epic === undefined) return draft;
+	return {
+		...draft,
+		...(options.project === undefined ? {} : { project: options.project }),
+		...(options.project !== undefined && draft.project !== options.project ? { parent: null, labels: [] } : {}),
+		epic: options.epic,
+		wave: options.wave ?? (draft.epic === options.epic ? draft.wave : undefined),
+		automatic: draft.automatic?.filter((field) => field !== "epic" && (field !== "wave" || options.wave === undefined)),
+	};
+};
 
 const read = (): ComposerDraft => {
 	const stored = sessionStorage.getItem(draftKey);
@@ -28,8 +42,9 @@ const read = (): ComposerDraft => {
 
 // The composer's text, kept in sessionStorage until a create or a discard.
 // A closed dialog loses nothing; a reopened one reads the draft back.
-export const useComposerDraft = () => {
-	const [draft, setState] = useState<ComposerDraft>(read);
+export const useComposerDraft = (options: ComposerOptions = noContext) => {
+	const [draft, setState] = useState<ComposerDraft>(() => withContext(read(), options));
+	const [previousOptions, setPreviousOptions] = useState(options);
 	const current = useRef(draft);
 	const setDraft = useCallback((change: ComposerDraft | ((draft: ComposerDraft) => ComposerDraft)) => {
 		const next = typeof change === "function" ? change(current.current) : change;
@@ -42,5 +57,9 @@ export const useComposerDraft = () => {
 		setState(empty);
 		sessionStorage.removeItem(draftKey);
 	}, []);
+	if (previousOptions !== options) {
+		setPreviousOptions(options);
+		setDraft((current) => withContext(current, options));
+	}
 	return { draft, setDraft, clearDraft };
 };

@@ -1,5 +1,6 @@
 import { isTextEntry, useHotkey } from "@trellis/ui";
 import type { RefObject } from "react";
+import { useSessionClickKey } from "../../../../hooks/useSessionClickKey";
 import { useStableCallback } from "../../../../hooks/useStableCallback";
 import { useEscapeLayer } from "../../../../lib/hotkeys";
 import type { EditField } from "../../Row";
@@ -39,6 +40,7 @@ const digits = ["1", "2", "3", "4", "5", "6", "7", "8", "9"] as const;
 // The keyboard map of the table. Every handler reads the
 // controller of the latest render, so the listeners bind once.
 export const useTableHotkeys = (controller: TableController) => {
+	const { defer: deferStatus } = useSessionClickKey();
 	const active = useStableCallback(() => {
 		const element = document.activeElement;
 		if (element === null || element === document.body) return true;
@@ -119,7 +121,7 @@ export const useTableHotkeys = (controller: TableController) => {
 	useHotkey(" ", openFocusedTicket);
 	useHotkey("o", useStableCallback(withFocused((id) => controller.openTicket(id))));
 	useHotkey("x", useStableCallback(withFocused((id) => controller.selection.toggle(id))));
-	useHotkey("s", useStableCallback(withFocused((id) => controller.openField(id, "status"))));
+	useHotkey("s", useStableCallback(withFocused((id) => deferStatus(() => controller.openField(id, "status")))));
 	useHotkey("p", useStableCallback(withFocused((id) => controller.openField(id, "priority"))));
 	useHotkey("shift+p", useStableCallback(withFocused((id) => controller.openField(id, "parent"))));
 	useHotkey("l", useStableCallback(withFocused((id) => controller.openField(id, "labels"))));
