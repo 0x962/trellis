@@ -67,8 +67,8 @@ export type FailureStateProps = {
 // 5. `detail` holds what a developer needs. It sits in a closed
 //    disclosure, under the action, never in the title.
 // 6. The words carry no blame, no apology and no exclamation mark.
-// 7. It draws the empty state shape with no picture, so the words take the
-//    top of the pane. Red marks one thing: the small sign beside the title.
+// 7. Page failures use the animal card from EmptyState. Red marks the
+//    small sign beside the title.
 //    The `inline` variant draws one line instead, and keeps rules 1, 3 and 6.
 export function FailureState({
 	title,
@@ -96,7 +96,6 @@ export function FailureState({
 		<EmptyState
 			role="alert"
 			variant={variant}
-			image={null}
 			className={className}
 			title={
 				<span className="flex items-start gap-2">
