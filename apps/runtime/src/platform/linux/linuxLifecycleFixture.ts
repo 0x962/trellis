@@ -322,7 +322,8 @@ if (mode === "cases") {
 		const others = [adopted.leader, adoptedPids.child, adoptedPids.grandchild];
 		for (const pid of others) process.kill(pid, "SIGKILL");
 		await waitFor(() => others.every(gone), "the exit of the adopted leader session");
-		assert.deepEqual(platform.inspectProcessSession(adopted.leader), { kind: "empty" });
+		// The agent loop can leave a short `sleep 0.05` in the leader session.
+		await waitFor(() => platform.inspectProcessSession(adopted.leader).kind === "empty", "an empty leader session");
 		await stopProcessTree(adopted.leader);
 		assert.ok(gone(adoptedPids.escaped), `${adoptedPids.escaped} exited`);
 		assert.equal(existsSync(adoptedCgroup), false);
