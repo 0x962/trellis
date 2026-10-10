@@ -131,10 +131,10 @@ export const NarrowComments: Story = {
 		).toBeGreaterThanOrEqual(44);
 		for (let index = 0; index < 8; index++) {
 			await userEvent.tab();
-			expect(dialog.contains(canvasElement.ownerDocument.activeElement)).toBe(true);
+			await waitFor(() => expect(dialog.contains(canvasElement.ownerDocument.activeElement)).toBe(true));
 		}
 		await userEvent.tab({ shift: true });
-		expect(dialog.contains(canvasElement.ownerDocument.activeElement)).toBe(true);
+		await waitFor(() => expect(dialog.contains(canvasElement.ownerDocument.activeElement)).toBe(true));
 		await userEvent.keyboard("{Escape}");
 		await waitFor(() => expect(dialog).not.toBeVisible());
 		await waitFor(() => expect(trigger).toHaveFocus());
