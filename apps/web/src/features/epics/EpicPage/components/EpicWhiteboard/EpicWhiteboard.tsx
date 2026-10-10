@@ -8,11 +8,16 @@ import { useApp } from "../../../../../lib/appContext";
 import { useTheme } from "../../../../../lib/theme";
 import { pageSheetActions } from "../../../../../stores/pageSheetStore";
 import { CardContent } from "../../../../board/components/CardContent";
+import { composerActions } from "../../../../composer/composerStore";
 import type { View } from "../../../../filters/grammar";
 import type { WaveEditing } from "../../../../table/hooks/useWaveEditing";
 import type { WaveStartAssignmentState } from "../../../../table/TicketTable/useWaveStart";
 import { useEpicWhiteboardWaves } from "./EpicWhiteboardWaves";
+import { useWhiteboardConnections } from "./useWhiteboardConnections";
 import { useWhiteboardMatches } from "./useWhiteboardMatches";
+import { useWhiteboardOutputs } from "./useWhiteboardOutputs";
+import { useWhiteboardSessions } from "./useWhiteboardSessions";
+import { useWhiteboardWaves } from "./useWhiteboardWaves";
 import { whiteboardDraft } from "./whiteboardDraft";
 
 const Canvas = lazy(() => import("@trellis/ui/epic-whiteboard").then((module) => ({ default: module.EpicWhiteboard })));
@@ -29,6 +34,7 @@ function Board({ initial, ...props }: Props & { initial: WhiteboardDocument }) {
 	const { client, orpc, queryClient } = useApp();
 	const { resolved } = useTheme();
 	const [reload, setReload] = useState(false);
+	const [ticketPlacements, setTicketPlacements] = useState<EpicWhiteboardProps["ticketPlacements"]>([]);
 	const [draft] = useState(() => {
 		const beforeUnload = (event: BeforeUnloadEvent) => {
 			event.preventDefault();
@@ -57,6 +63,10 @@ function Board({ initial, ...props }: Props & { initial: WhiteboardDocument }) {
 	useEffect(() => draft.subscribe(setSaved), [draft]);
 	const waveContent = useEpicWhiteboardWaves(props.epic, props.editing, props.assignment, props.readOnly);
 	const filters = useWhiteboardMatches(props.project, props.epic.ref, props.search);
+	const connections = useWhiteboardConnections(props.readOnly);
+	const waveCreation = useWhiteboardWaves(props.epic, props.readOnly);
+	const sessionCreation = useWhiteboardSessions(props.epic.projectKey, props.readOnly);
+	const outputs = useWhiteboardOutputs(props.epic);
 	const tickets = props.epic.tickets.map((ticket) => ({
 		id: ticket.id,
 		label: ticket.identifier,
@@ -78,12 +88,21 @@ function Board({ initial, ...props }: Props & { initial: WhiteboardDocument }) {
 				<p className="text-xs text-fg-muted">
 					{filters.filtered
 						? `${filters.matches?.size ?? "…"} match the filters. Other tickets stay on the board.`
-						: "Draw anywhere. Select a ticket to open it. Blue arrows show unfinished dependencies in this epic."}
+						: "T: ticket. S: session. W: wave from selection. X: dependency. Shift+T: text. A: sketch arrow."}
 				</p>
 				<FormStatus status={saved.status} message={props.readOnly ? "Read only" : undefined} />
 			</div>
 			{filters.error && (
 				<FailureState variant="section" title="Ticket filters did not load." detail={filters.error.message} />
+			)}
+			{connections.error && (
+				<FailureState variant="section" title="The dependency was not added." detail={connections.error.message} />
+			)}
+			{sessionCreation.error && (
+				<FailureState variant="section" title="Session details did not load." detail={sessionCreation.error.message} />
+			)}
+			{outputs.error && (
+				<FailureState variant="section" title="Some outputs did not load." detail={outputs.error.message} />
 			)}
 			{saved.error && (
 				<FailureState
@@ -107,6 +126,40 @@ function Board({ initial, ...props }: Props & { initial: WhiteboardDocument }) {
 					colorScheme={resolved}
 					focusWaveId={props.editing.renamingId}
 					licenseKey={import.meta.env.VITE_TLDRAW_LICENSE_KEY}
+					ticketPlacements={ticketPlacements}
+					onConnectTickets={connections.connect}
+					onCreateWave={waveCreation.select}
+					wavePlacements={waveCreation.placements}
+					onWavesPlaced={waveCreation.placed}
+					waveDraft={waveCreation.draft}
+					sessions={[...sessionCreation.sessions, ...outputs.sessions]}
+					onSessionReferencesChange={outputs.setBareRunIds}
+					outputs={outputs.outputs}
+					outputLinks={outputs.links}
+					outputsReady={outputs.ready}
+					onOpenOutput={outputs.open}
+					subagent={outputs.subagent}
+					subagentLoad={outputs.subagentLoad}
+					onCreateSession={sessionCreation.create}
+					onOpenSession={pageSheetActions.openSession}
+					sessionPlacements={sessionCreation.placements}
+					onSessionsPlaced={sessionCreation.placed}
+					onTicketsPlaced={(ids) =>
+						setTicketPlacements((pending) => pending.filter((point) => !ids.includes(point.ticketId)))
+					}
+					onCreateTicket={(point, waveId) => {
+						composerActions.open({
+							project: props.epic.projectKey,
+							epic: props.epic.ref,
+							wave: props.epic.waves.find((wave) => wave.id === waveId)?.ref,
+							applyPlacement: true,
+							allowLoose: true,
+							onCreated: (ticket) => {
+								if (ticket.epic?.id === props.epic.id)
+									setTicketPlacements((pending) => [...pending, { ticketId: ticket.id, ...point }]);
+							},
+						});
+					}}
 					onOpenTicket={(id) =>
 						pageSheetActions.openTicket(props.epic.tickets.find((ticket) => ticket.id === id)!.identifier)
 					}

@@ -70,6 +70,23 @@ test("a selected empty epic creates and reuses its default wave", async () => {
 	expect(second.wave).toEqual(first.wave);
 });
 
+test("explicit loose tickets keep their epic without a default wave", async () => {
+	const key = await project();
+	const epic = await run((tx) => createEpic(ctx, tx, { project: key, name: "Plan" }));
+	const first = await run((tx) => create(ctx, tx, { project: key, title: "Loose", epic: epic.id, wave: null }));
+	expect(first.epic?.id).toBe(epic.id);
+	expect(first.wave).toBeNull();
+	const count = await db.execute(sql`SELECT count(*)::int AS count FROM waves WHERE epic_id = ${epic.id}`);
+	expect(count.rows).toEqual([{ count: 0 }]);
+	await run((tx) => createWave(ctx, tx, { epic: epic.id, name: "First" }));
+	const second = await run((tx) => create(ctx, tx, { project: key, title: "Still loose", epic: epic.ref, wave: null }));
+	expect(second.wave).toBeNull();
+	await expect(run((tx) => create(ctx, tx, { project: key, title: "No epic", wave: null }))).rejects.toMatchObject({
+		code: "INPUT_VALIDATION_FAILED",
+		data: { issues: [{ path: ["epic"] }] },
+	});
+});
+
 test("existing choices require selection and a wave determines its epic", async () => {
 	const key = await project();
 	const epic = await run((tx) => createEpic(ctx, tx, { project: key, name: "Plan" }));
@@ -213,6 +230,9 @@ test("the HTTP API returns saved defaults and rejects missing or null selections
 	expect(await missing.json()).toMatchObject({ code: "INPUT_VALIDATION_FAILED" });
 	const cleared = await post({ project: key, title: "Null", epic: null, wave: null });
 	expect(cleared.status).toBe(400);
+	const looseResponse = await post({ project: key, title: "Loose", epic: ticket.epic!.ref, wave: null });
+	expect(looseResponse.status).toBe(201);
+	expect(await looseResponse.json()).toMatchObject({ epic: { id: ticket.epic!.id }, wave: null });
 	const selected = await post({ project: key, title: "Child", parent: ticket.identifier, wave: ticket.wave!.ref });
 	expect(selected.status).toBe(201);
 	const child = (await selected.json()) as Ticket;

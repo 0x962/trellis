@@ -58,7 +58,9 @@ export function useClassifiedDraft({
 					selected.wave !== request.wave
 				)
 					return current;
-				const automatic = fields.filter((field) => !selected[field]);
+				const automatic = fields.filter(
+					(field) => !selected[field] && !(field === "wave" && options.allowLoose && current.wave === null),
+				);
 				const next: ComposerDraft = {
 					...current,
 					...Object.fromEntries(automatic.map((field) => [field, result[field]])),

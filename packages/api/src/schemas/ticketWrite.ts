@@ -73,7 +73,7 @@ export const TicketCreateInputSchema = z.strictObject({
 	status: StatusRefStringSchema.optional(),
 	parent: TicketRefStringSchema.optional(),
 	epic: EpicRefStringSchema.optional(),
-	wave: WaveRefStringSchema.optional(),
+	wave: WaveRefStringSchema.nullable().optional(),
 	labels: LabelRefListSchema.optional(),
 	after: TicketDependencyListSchema.optional(),
 });

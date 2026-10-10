@@ -55,7 +55,7 @@ Do not assume that a wave starts agents or enforces those dependencies.
 
 A ticket describes a unit of work.
 It has an identifier, a title, a description, a status, and a priority.
-Every new ticket belongs to an epic and a wave.
+Every new ticket belongs to an epic. Whiteboard tickets can stay outside waves until the person groups them.
 It can also have labels, dependencies, sub-tickets, attachments, and diffs.
 
 A ticket contract can define the result, file ownership, verification commands, and review focus.
@@ -290,7 +290,7 @@ Use `--all` when you need every matching ticket.
 The default list limit is 50.
 
 `ticket create` and `ticket edit` accept `--description`, `--priority`, `--epic`, and `--wave`.
-Every new ticket needs an epic and a wave, including a sub-ticket.
+Every new ticket needs an epic, including a sub-ticket. An explicit null wave keeps a whiteboard ticket outside waves.
 A wave reference also selects its epic.
 The server rejects a wave outside the selected epic or project.
 A sub-ticket uses the same selection rules as any new ticket.
@@ -1080,9 +1080,9 @@ Avoid one ticket that blocks many others.
 Split broad prerequisites into smaller results so independent work can proceed.
 Keep only dependencies on results that the work actually needs; do not remove a real dependency to claim concurrency.
 
-Every ticket must always belong to an epic and a wave.
-Select both when you create a ticket, including a sub-ticket, using the default rules where they apply.
-Keep both associations when you edit or move the ticket.
+Every ticket must belong to an epic. A whiteboard ticket can remain outside waves until the person groups it.
+Select the epic when you create a ticket. CLI creation uses the default wave rules when you omit the wave.
+Keep the epic and the person's wave choice when you edit or move the ticket. W assigns selected whiteboard tickets to a new wave.
 
 ## Use sub-agents
 

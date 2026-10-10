@@ -278,8 +278,19 @@ Ticket cards show their status and assigned agent. Their actions remain in the t
 Escape cancels the canvas selection or tool. The ticket sheet retains its own Escape behavior.
 A freehand stroke stays a drawing, including when it crosses a ticket.
 The toolbar uses circular `IconButton` controls with `Tooltip` labels.
-Its tools are Select, Move canvas, Draw, Sketch arrow, Text, Erase drawing, Undo, Redo, and Fit whiteboard.
+Its tools include Ticket (T), Session (S), Wave from selection (W), Dependency (X), Text (Shift+T), and Sketch arrow (A).
+Select, Move canvas, Draw, Erase drawing, Undo, Redo, and Fit whiteboard retain their standard behavior.
+Ticket and Session capture the clicked page point before they open their canonical forms.
+A ticket outside a wave stays loose. A ticket inside a wave starts with that wave selected in its form.
+Wave from selection opens a name dialog. Confirm creates the wave and moves only its selected tickets in one transaction.
+The selected tickets and annotations keep their page positions. Escape closes the form without a wave mutation.
+Dependency connects the prerequisite to the ticket that waits for it. A drag or two clicks select these endpoints.
+Session disks use the canonical agent avatar and open the existing session sheet. Delete removes a standalone disk from the board alone.
 Blue arrows show unfinished dependencies between tickets in this epic. Sketch arrows remain notes.
+Dashed labeled arrows show source relationships. Shared PR nodes open the canonical PR sheet; sub-ticket links reuse existing ticket cards.
+Recorded subagent disks open a read-only output sheet. The sheet shows recorded fields and an action to open the source session.
+More outputs reads another bounded history page. The output control names incomplete source history.
+Source projections retain their positions across pending reads and updates. The board protects derived output nodes from record edits and deletion.
 Ticket and wave shapes refer to source records. The drawing tools cannot delete or duplicate those records.
 A wave moves its ticket cards together. A card drag preserves its wave membership.
 The host saves card positions and drawings with revision checks. Each device keeps its own camera position.

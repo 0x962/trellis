@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useApp } from "../../../../lib/appContext";
 
-export function useCreatePlacement(project?: string, epic?: string, wave?: string) {
+export function useCreatePlacement(project?: string, epic?: string, wave?: string | null, allowLoose = false) {
 	const { orpc } = useApp();
 	const list = useQuery({
 		...orpc.epics.list.queryOptions({ input: { project: project ?? "" } }),
@@ -20,19 +20,21 @@ export function useCreatePlacement(project?: string, epic?: string, wave?: strin
 	});
 	const waves = detail.data?.waves;
 	const chosenWave = waves?.find((entry) => entry.ref === wave || entry.id === wave);
-	const newWave = newEpic || waves?.length === 0;
+	const loose = allowLoose && wave === null && chosenEpic !== undefined;
+	const newWave = !loose && (newEpic || waves?.length === 0);
 	const pending = project !== undefined && (list.isPending || (chosenEpic !== undefined && detail.isPending));
 	const error = list.error ?? (chosenEpic !== undefined ? detail.error : null);
 	const ready =
 		project !== undefined &&
 		!pending &&
 		!error &&
-		(newEpic || (chosenEpic !== undefined && (newWave || chosenWave !== undefined)));
+		(newEpic || (chosenEpic !== undefined && (loose || newWave || chosenWave !== undefined)));
 	return {
+		allowLoose,
 		epic: chosenEpic?.ref,
-		wave: chosenWave?.ref,
+		wave: loose ? null : chosenWave?.ref,
 		epicName: chosenEpic?.name ?? (newEpic ? "Default (new)" : "Choose an epic"),
-		waveName: chosenWave?.name ?? (newWave ? "Default (new)" : "Choose a wave"),
+		waveName: chosenWave?.name ?? (loose ? "No wave" : newWave ? "Default (new)" : "Choose a wave"),
 		newEpic,
 		newWave,
 		ready,

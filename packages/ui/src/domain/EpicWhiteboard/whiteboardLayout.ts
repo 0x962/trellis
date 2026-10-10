@@ -34,7 +34,11 @@ export function reconcileWhiteboard(
 						y: 0,
 						props: { recordId: wave.id, w: 368, h: Math.max(304, 112 + count * 248) },
 					});
-				} else if (existing.type === "trellis-wave" && existing.props.h < 112 + count * 248) {
+				} else if (
+					existing.type === "trellis-wave" &&
+					!existing.meta.trellisSection &&
+					existing.props.h < 112 + count * 248
+				) {
 					editor.updateShape({ id, type: "trellis-wave", props: { h: 112 + count * 248 } });
 				}
 			}

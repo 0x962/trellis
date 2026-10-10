@@ -51,6 +51,9 @@ export const projectResponses = {
 	"epics.saveWhiteboard": (input: { expectedRevision: number }) => ({ revision: input.expectedRevision + 1 }),
 	"agentRuns.list": { items: [], nextCursor: null },
 	"agentRuns.latestByEpicTicket": [],
+	"agentRuns.pullRequests": [],
+	"agentRuns.subagents": (input: { runs: { id: string }[] }) =>
+		input.runs.map(({ id }) => ({ runId: id, observations: [], nextCursor: null, hasMore: false, issues: [] })),
 	"agentRuns.workspaceLineStats": [],
 	"harnessAccounts.list": [],
 	"actors.list": [],

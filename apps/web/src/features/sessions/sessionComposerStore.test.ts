@@ -1,5 +1,5 @@
 import { beforeEach, expect, test } from "bun:test";
-import { HarnessSchema } from "@trellis/api";
+import { HarnessSchema, type SessionDetail } from "@trellis/api";
 import { sessionComposerActions, useSessionComposerStore } from "./sessionComposerStore";
 
 beforeEach(() => {
@@ -69,4 +69,41 @@ test("close and reopen retain a choice but successful creation restores automati
 	expect(useSessionComposerStore.getState()).toMatchObject({ accountId: "manual", accountSelection: "manual" });
 	sessionComposerActions.clear();
 	expect(useSessionComposerStore.getState()).toMatchObject({ accountId: "", accountSelection: "automatic" });
+});
+
+const session = { id: "session", runId: "run" } as SessionDetail;
+
+test("a board session reports its record once and stays on the page", () => {
+	const created: SessionDetail[] = [];
+	sessionComposerActions.open("TRL", { onCreated: (value) => created.push(value) });
+	const { openingId } = useSessionComposerStore.getState();
+	expect(sessionComposerActions.created(openingId, session)).toBe(false);
+	expect(sessionComposerActions.created(openingId, session)).toBe(false);
+	expect(created).toEqual([session]);
+	expect(useSessionComposerStore.getState().open).toBe(false);
+	sessionComposerActions.open("TRL");
+	expect(sessionComposerActions.created(useSessionComposerStore.getState().openingId, session)).toBe(true);
+});
+
+test("close and route dismissal discard a session callback", () => {
+	for (const dismiss of [sessionComposerActions.close, sessionComposerActions.clearOnCreated]) {
+		const created: SessionDetail[] = [];
+		sessionComposerActions.open("TRL", { onCreated: (value) => created.push(value) });
+		const { openingId } = useSessionComposerStore.getState();
+		dismiss();
+		expect(sessionComposerActions.created(openingId, session)).toBe(false);
+		expect(created).toEqual([]);
+	}
+});
+
+test("an old response leaves a replacement session composer intact", () => {
+	const created: SessionDetail[] = [];
+	sessionComposerActions.open("TRL", { onCreated: (value) => created.push(value) });
+	const old = useSessionComposerStore.getState().openingId;
+	sessionComposerActions.open("OP", { onCreated: (value) => created.push(value) });
+	expect(sessionComposerActions.created(old, session)).toBe(false);
+	expect(useSessionComposerStore.getState()).toMatchObject({ open: true, project: "OP" });
+	expect(created).toEqual([]);
+	expect(sessionComposerActions.created(useSessionComposerStore.getState().openingId, session)).toBe(false);
+	expect(created).toEqual([session]);
 });

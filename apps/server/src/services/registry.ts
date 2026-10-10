@@ -8,10 +8,12 @@ import * as agentCommunication from "./agentRuns/communication.ts";
 import * as agentLifecycle from "./agentRuns/lifecycle.ts";
 import * as agentRunList from "./agentRuns/list.ts";
 import { setPinned as setAgentRunPinned } from "./agentRuns/pin.ts";
+import { pullRequests as agentRunPullRequests } from "./agentRuns/pullRequests/index.ts";
 import { prepareResume } from "./agentRuns/resume.ts";
 import { prepareRetry } from "./agentRuns/retry.ts";
 import { prepareSetModel } from "./agentRuns/setModel/setModel.ts";
 import { stopNativeWork } from "./agentRuns/stopNativeWork.ts";
+import { subagents as agentSubagents } from "./agentRuns/subagents/index.ts";
 import { prepareSwitchAccount } from "./agentRuns/switchAccount/switchAccount.ts";
 import * as agentTerminal from "./agentRuns/terminal.ts";
 import { file as workspaceFile } from "./agentRuns/workspace/file.ts";
@@ -97,6 +99,7 @@ import { prepareMachinePressure, prepareSystemProcesses, prepareSystemUsage } fr
 import { ticketServices } from "./tickets/registry";
 import * as timeline from "./timeline.ts";
 import { usageServices } from "./usage/registry";
+import { createWithTickets } from "./waves/createWithTickets/index.ts";
 import * as waves from "./waves/waves.ts";
 
 const { prepareBroadcastRecipients, broadcastRecipients } = broadcast;
@@ -192,6 +195,8 @@ export const services = {
 	"agentRuns.output": prepared("read", agentCommunication.prepareOutput, agentCommunication.output),
 	"agentRuns.list": prepared("read", agentRunList.prepareList, agentTerminal.result),
 	"agentRuns.latestByEpicTicket": prepared("read", agentRunList.prepareLatestByEpicTicket, agentTerminal.result),
+	"agentRuns.pullRequests": core("read", agentRunPullRequests),
+	"agentRuns.subagents": prepared("read", agentSubagents, agentTerminal.result),
 	"agentRuns.setPinned": prepared("mutation", prepareSessionUpdate(setAgentRunPinned, "run"), agentTerminal.result),
 	"agentRuns.ticketMetrics": prepared("read", agentRuns.prepareTicketMetrics, agentTerminal.result),
 	"agentRuns.start": prepared(
@@ -260,6 +265,7 @@ export const services = {
 	"epics.cancel": core("mutation", cancelEpic),
 	"epics.delete": core("mutation", epics.remove),
 	"waves.create": core("mutation", waves.create),
+	"waves.createWithTickets": core("mutation", createWithTickets),
 	"waves.update": core("mutation", waves.update),
 	"waves.reorder": core("mutation", waves.reorder),
 	"waves.delete": core("mutation", waves.remove),

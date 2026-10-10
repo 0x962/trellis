@@ -52,7 +52,7 @@ export function NewSessionDialog({ onClose }: NewSessionDialogProps) {
 		[draft.harness, draft.accountId, choices, quotas],
 	);
 	const create = useMutation({
-		mutationFn: () =>
+		mutationFn: (_openingId: number) =>
 			client.sessions.create({
 				prompt: draft.prompt.trim(),
 				name: draft.name.trim() || undefined,
@@ -62,7 +62,8 @@ export function NewSessionDialog({ onClose }: NewSessionDialogProps) {
 				files: draft.files,
 				requestId: draft.requestId,
 			}),
-		onSuccess: async (session) => {
+		onSuccess: async (session, openingId) => {
+			const navigateToSession = sessionComposerActions.created(openingId, session);
 			const { run, ...record } = session;
 			queryClient.setQueryData(orpc.sessions.get.queryOptions({ input: { id: session.id } }).queryKey, session);
 			queryClient.setQueryData(orpc.sessions.list.queryOptions({ input: {} }).queryKey, (current) => [
@@ -77,18 +78,17 @@ export function NewSessionDialog({ onClose }: NewSessionDialogProps) {
 						nextCursor: current?.nextCursor ?? null,
 					}),
 				);
-			sessionComposerActions.clear();
 			void Promise.all([
 				queryClient.invalidateQueries({ queryKey: orpc.sessions.key() }),
 				queryClient.invalidateQueries({ queryKey: orpc.agentRuns.key() }),
 			]);
-			if (session.projectId)
+			if (navigateToSession && session.projectId)
 				await navigate({
 					to: "/sessions/project/$project",
 					params: { project: session.projectKey },
 					hash: session.runId,
 				});
-			else await navigate({ to: "/sessions/$id", params: { id: session.id } });
+			else if (navigateToSession) await navigate({ to: "/sessions/$id", params: { id: session.id } });
 			if (session.run.error) toast.error("The session could not start", { description: session.run.error });
 		},
 	});
@@ -96,7 +96,7 @@ export function NewSessionDialog({ onClose }: NewSessionDialogProps) {
 		if (accounts.data && !create.isPending) sessionComposerActions.automaticAccount(automaticAccountId);
 	}, [accounts.data, automaticAccountId, create.isPending]);
 	const submit = () => {
-		if (!create.isPending && (draft.prompt.trim() || draft.files.length)) create.mutate();
+		if (!create.isPending && (draft.prompt.trim() || draft.files.length)) create.mutate(draft.openingId);
 	};
 	const close = () => {
 		if (!create.isPending) onClose();

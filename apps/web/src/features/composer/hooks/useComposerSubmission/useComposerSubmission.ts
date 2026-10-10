@@ -9,14 +9,15 @@ export type ComposerReceipt = {
 };
 type Phase = "idle" | "creating" | "uploading" | "assigning";
 
-type Services = {
-	create: (input: TicketCreateInput) => Promise<{ identifier: string }>;
+type Services<CreatedTicket> = {
+	create: (input: TicketCreateInput) => Promise<CreatedTicket>;
+	onCreated?: (ticket: CreatedTicket) => void;
 	upload: (identifier: string) => Promise<boolean>;
 	assign: (input: AgentRunStartInput) => Promise<AgentRun>;
 	onAssigned: (run: AgentRun, choice: AssignChoice) => void;
 };
 
-export function useComposerSubmission(services: Services) {
+export function useComposerSubmission<CreatedTicket extends { identifier: string }>(services: Services<CreatedTicket>) {
 	const [receipt, setReceipt] = useState<ComposerReceipt | null>(() => {
 		const stored = sessionStorage.getItem(submissionKey);
 		return stored === null ? null : (JSON.parse(stored) as ComposerReceipt);
@@ -44,6 +45,7 @@ export function useComposerSubmission(services: Services) {
 				const ticket = await services.create(input);
 				saved = { identifier: ticket.identifier, assignment };
 				save(saved);
+				services.onCreated?.(ticket);
 			}
 			stage = "uploading";
 			setPhase(stage);

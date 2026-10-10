@@ -1,6 +1,6 @@
 import { useRouterState } from "@tanstack/react-router";
 import { toast } from "@trellis/ui";
-import { lazy, Suspense, useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { useArchivedProjects } from "../../../hooks/useArchivedProjects";
 import { projectRefOfPathname } from "../../../lib/projectUrl";
 import { composerActions, useComposerStore } from "../composerStore";
@@ -17,6 +17,12 @@ export function ComposerHost() {
 	if (open && !mounted) setMounted(true);
 	const project = useComposerStore((state) => state.options.project);
 	const pathname = useRouterState({ select: (state) => state.location.pathname });
+	const previousPathname = useRef(pathname);
+	useEffect(() => {
+		if (previousPathname.current !== pathname) composerActions.clearOnCreated();
+		previousPathname.current = pathname;
+	}, [pathname]);
+	useEffect(() => () => composerActions.clearOnCreated(), []);
 	const { isArchived, notice } = useArchivedProjects();
 	const target = project ?? projectRefOfPathname(pathname) ?? undefined;
 	const refused = open && target !== undefined && isArchived(target);

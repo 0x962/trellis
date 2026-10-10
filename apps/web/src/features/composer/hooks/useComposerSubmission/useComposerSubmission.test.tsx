@@ -120,6 +120,39 @@ test("an attachment failure holds assignment and retries on the saved ticket", a
 	expect(f.assignments).toHaveLength(1);
 });
 
+test("creation reports once before attachments and survives an attachment retry", async () => {
+	const events: string[] = [];
+	let uploaded = false;
+	const f = await mount({
+		onCreated: (ticket) => events.push(`created:${ticket.identifier}`),
+		upload: async () => {
+			events.push("upload");
+			return uploaded;
+		},
+	});
+	expect(await f.submit(null)).toBe(false);
+	expect(events).toEqual(["created:PR-1", "upload"]);
+	uploaded = true;
+	expect(await f.submit(null)).toBe(true);
+	expect(events).toEqual(["created:PR-1", "upload", "upload"]);
+	expect(f.creates).toHaveLength(1);
+});
+
+test("a callback failure retains the created ticket for the next submit", async () => {
+	let called = 0;
+	const f = await mount({
+		onCreated: () => {
+			called++;
+			throw new Error("Placement failed");
+		},
+	});
+	expect(await f.submit(null)).toBe(false);
+	expect(f.state().receipt?.identifier).toBe("PR-1");
+	expect(await f.submit(null)).toBe(true);
+	expect(f.creates).toHaveLength(1);
+	expect(called).toBe(1);
+});
+
 test("No agent creates and uploads without a start request", async () => {
 	const f = await mount();
 	expect(await f.submit(null)).toBe(true);

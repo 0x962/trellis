@@ -139,3 +139,50 @@ test("fixed ticket fields need no Jev call to keep the last preference", async (
 	expect(f.requests).toHaveLength(0);
 	expect(f.current().choice).toEqual(remembered);
 });
+
+test("a placement launch keeps draft text and applies its fields only once", async () => {
+	const f = await fixture();
+	await act(async () =>
+		f.current().setDraft({
+			title: "Keep this title",
+			description: "Keep this description",
+			project: "OLD",
+			epic: "OLD/old",
+			wave: "OLD/old/first",
+			parent: "OLD-1",
+			labels: [{ id: "old-label", name: "Old", group: null, color: "gray" }],
+			automatic: ["epic", "wave", "priority"],
+		}),
+	);
+	await act(async () =>
+		composerActions.open({
+			project: "TRL",
+			epic: "TRL/plan",
+			wave: "TRL/plan/work",
+			applyPlacement: true,
+		}),
+	);
+	expect(f.current().draft).toMatchObject({
+		title: "Keep this title",
+		description: "Keep this description",
+		project: "TRL",
+		epic: "TRL/plan",
+		wave: "TRL/plan/work",
+		parent: null,
+		labels: [],
+		automatic: ["priority"],
+	});
+	await act(async () => f.current().chooseClassification({ wave: "TRL/plan/next" }));
+	expect(f.current().draft.wave).toBe("TRL/plan/next");
+	await act(async () => f.current().finish(true));
+	expect(f.current().draft.wave).toBe("TRL/plan/next");
+});
+
+test("ordinary composer launch retains its existing draft placement", async () => {
+	const f = await fixture();
+	await act(async () =>
+		f.current().setDraft({ title: "Draft", description: "", project: "OLD", epic: "OLD/old", wave: "OLD/old/one" }),
+	);
+	await act(async () => composerActions.open({ project: "TRL", epic: "TRL/plan", wave: "TRL/plan/work" }));
+	expect(f.current().draft).toMatchObject({ project: "OLD", epic: "OLD/old", wave: "OLD/old/one" });
+});

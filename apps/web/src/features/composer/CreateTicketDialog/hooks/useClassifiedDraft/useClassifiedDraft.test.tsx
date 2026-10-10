@@ -145,6 +145,18 @@ test("classification leaves the recent assignment available for a new draft", as
 	expect(f.draft().automatic).toEqual(["epic", "wave", "priority"]);
 });
 
+test("classification keeps an explicit loose placement and allows a later wave choice", async () => {
+	const f = await fixture({ allowLoose: true }, { title: "Fix form", description: "", epic: "TRL/forms", wave: null });
+	await wait();
+	await act(async () => f.requests[0]!.resolve(suggestion));
+	expect(f.draft()).toMatchObject({ epic: "TRL/forms", wave: null, priority: "high", automatic: ["priority"] });
+	await f.choose({ wave: "TRL/forms/second" });
+	await f.edit({ title: "Fix another form" });
+	await wait();
+	await act(async () => f.requests.at(-1)!.resolve(suggestion));
+	expect(f.draft().wave).toBe("TRL/forms/second");
+});
+
 test("manual model choices and No agent persist across edits and pending responses", async () => {
 	const f = await fixture({}, { title: "Fix form", description: "" });
 	await wait();

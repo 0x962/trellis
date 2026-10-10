@@ -276,8 +276,9 @@ Repository instructions describe note behavior. The ticket brief carries note co
 
 ### Ticket creation
 
-Every new ticket belongs to an epic and a wave in its project.
-The server applies this rule to UI, CLI, API, and sub-ticket requests.
+Every new ticket belongs to an epic in its project.
+An explicit `wave: null` keeps a ticket outside waves. The epic whiteboard uses this value for a ticket placed outside a section.
+When `wave` is omitted, the server applies the default and selection rules below to UI, CLI, API, and sub-ticket requests.
 A selected wave determines the epic and must match any explicit epic or project.
 A sub-ticket uses the same selection rules as any new ticket.
 
@@ -1255,7 +1256,25 @@ Empty waves retain their frame and their actions in that panel.
 Ticket and wave shapes use stable record IDs. Reconciliation adds and removes source records without a layout reset.
 A position change affects the board document alone. Wave membership changes through the ticket API.
 The canvas protects these record shapes from Delete, Erase, and Duplicate.
+T selects the ticket placement tool. Its canvas point opens the canonical composer with the epic and the clicked wave.
+A point outside all waves seeds an explicit null wave. The composer retains its draft text and permits later property edits.
+The first created ticket receives the captured page position, even when the person chooses another wave in the form.
+The composer reports that record before attachment and assignment steps. A retry reuses the same record and placement receipt.
+S places a bare session through the canonical prompt form. The board stores its session ID, run ID, and position.
+The session disk opens the existing sheet by run ID. Delete removes its board reference without a session mutation.
+W collects selected tickets and annotations. A name dialog calls `waves.createWithTickets` to create the wave and move its tickets in one transaction.
+The wave frame contains the selected shapes at their original page positions. Only ticket records change wave membership.
+X connects a prerequisite ticket to the ticket that waits for it through `tickets.updateDependencies`.
+Shift+T selects text, and A selects a sketch arrow. The board handles these keys only while the canvas owns focus.
 Blue arrows project `TicketSummary.waitsOn` for tickets inside the epic. These arrows describe unfinished dependencies.
+Dashed labeled arrows show source relationships for sub-tickets, pull requests, agent sessions, and recorded subagent outputs.
+Pull requests share one board node per real ID. Agent actor links provide exact session-to-PR provenance through `agentRuns.pullRequests`.
+The board queries these links in batches of at most 200 run IDs. Existing epic ticket data provides ticket PRs and sub-ticket parents.
+`agentRuns.subagents` reads retained tool observations in bounded pages for at most 20 runs per request.
+Recorded subagents use the parent run, attempt, and tool-call IDs. Provider child IDs update only a matching recorded spawn.
+Their detail sheet shows recorded prompt, state, result, and time. It opens the real source session instead of treating provider IDs as Trellis sessions.
+Output reads retain prior records when files are incomplete or unavailable. Explicit More outputs reads historical pages; cursor refresh reads new observations at the tail.
+New output nodes start near their source. Source refresh preserves their positions and their board sections.
 Freehand strokes, text, and sketch arrows are ordinary whiteboard shapes.
 The host retains the document through `epics.whiteboard` and `epics.saveWhiteboard`.
 The web serializes saves, advances the accepted revision, and retains pending drafts across route changes.

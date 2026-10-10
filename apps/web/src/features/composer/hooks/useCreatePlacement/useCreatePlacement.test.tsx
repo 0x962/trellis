@@ -9,7 +9,7 @@ const plan: Choice = { id: "epic", ref: "PR/plan", name: "Plan", slug: "plan" };
 const wave: Choice = { id: "wave", ref: "PR/plan/first", name: "First", slug: "first" };
 const defaultEpic: Choice = { ...plan, ref: "PR/default", name: "Default", slug: "default" };
 const defaultWave: Choice = { ...wave, ref: "PR/default/default", name: "Default", slug: "default" };
-const render = (epics?: Choice[], waves?: Choice[], epicRef?: string, waveRef?: string) => {
+const render = (epics?: Choice[], waves?: Choice[], epicRef?: string, waveRef?: string | null, allowLoose = false) => {
 	const queryClient = new QueryClient();
 	const listKey = ["epics"];
 	const detailKey = ["epic"];
@@ -25,7 +25,7 @@ const render = (epics?: Choice[], waves?: Choice[], epicRef?: string, waveRef?: 
 	} as unknown as AppContext;
 	let result: ReturnType<typeof useCreatePlacement>;
 	function Probe() {
-		result = useCreatePlacement("PR", epicRef, waveRef);
+		result = useCreatePlacement("PR", epicRef, waveRef, allowLoose);
 		return null;
 	}
 	renderToStaticMarkup(
@@ -62,6 +62,21 @@ test("existing choices require an epic and wave even when each list has one entr
 	expect(render([plan])).toMatchObject({ ready: false, message: "Choose an epic." });
 	expect(render([plan], [wave], plan.ref)).toMatchObject({ ready: false, message: "Choose a wave." });
 	expect(render([plan], [wave], plan.ref, wave.ref)).toMatchObject({ ready: true, epic: plan.ref, wave: wave.ref });
+});
+
+test("explicit loose placement keeps the epic and creates no default wave", () => {
+	for (const waves of [[], [wave]]) {
+		expect(render([plan], waves, plan.ref, null, true)).toMatchObject({
+			ready: true,
+			epic: plan.ref,
+			wave: null,
+			waveName: "No wave",
+			newWave: false,
+		});
+	}
+	expect(render([plan], [wave], plan.ref, wave.ref, true)).toMatchObject({ ready: true, wave: wave.ref });
+	expect(render([plan], [wave], undefined, null, true)).toMatchObject({ ready: false });
+	expect(render([plan], [wave], plan.ref, null)).toMatchObject({ ready: false });
 });
 
 test("a sole Default wave requires selection", () => {

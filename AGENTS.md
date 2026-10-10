@@ -29,7 +29,7 @@ Create a scratch checkout or a temporary directory only under `$TMPDIR`, with th
 - A link to a design document supplements the requirements; it never replaces them.
 - Plan waves so several agents can work at the same time. Define shared interfaces and separate ownership before parallel work starts.
 - Avoid one ticket that blocks many others. Split broad prerequisites and retain only dependencies on results that the work actually needs.
-- Every ticket, including a sub-ticket, must always belong to an epic and a wave.
+- Every ticket, including a sub-ticket, must belong to an epic. Whiteboard tickets can stay outside waves until the person groups them.
 
 The shared agent guide in `packages/api/src/agentGuide/template.md` gives the rules for each record and the CLI commands.
 

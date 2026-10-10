@@ -17,6 +17,7 @@ import { useClassifiedDraft } from "../../hooks/useClassifiedDraft";
 export function useTicketComposer() {
 	const { client, orpc, queryClient } = useApp();
 	const options = useComposerStore((state) => state.options);
+	const openingId = useComposerStore((state) => state.openingId);
 	const assignAgent = useComposerStore((state) => state.assignAgent);
 	const createMore = useComposerStore((state) => state.createMore);
 	const { draft, setDraft, clearDraft } = useComposerDraft();
@@ -30,8 +31,8 @@ export function useTicketComposer() {
 	const priority = draft.priority ?? options.priority ?? defaults.priority;
 	const parent = draft.parent === undefined ? defaults.parent : draft.parent;
 	const epic = draft.epic === undefined ? defaults.epic : (draft.epic ?? undefined);
-	const wave = draft.wave === undefined ? defaults.wave : (draft.wave ?? undefined);
-	const placement = useCreatePlacement(project, epic, wave);
+	const wave = draft.wave === undefined ? defaults.wave : draft.wave;
+	const placement = useCreatePlacement(project, epic, wave, options.allowLoose);
 	const defaultAssignment = recent[0] ?? DEFAULT_CHOICE;
 	const choice = draft.assignment === undefined ? defaultAssignment : draft.assignment;
 	const labels = draft.labels ?? [];
@@ -40,6 +41,7 @@ export function useTicketComposer() {
 	const uploads = useUploads(undefined, false);
 	const submission = useComposerSubmission({
 		create: useCreateTicket(),
+		onCreated: (ticket) => composerActions.created(openingId, ticket),
 		upload: uploads.uploadPending,
 		assign: client.agentRuns.start,
 		onAssigned: (_run, selected) => {
@@ -48,6 +50,20 @@ export function useTicketComposer() {
 			void queryClient.invalidateQueries({ queryKey: orpc.tickets.key() });
 		},
 	});
+	const appliedOpening = useRef<number | null>(null);
+	useEffect(() => {
+		if (!options.applyPlacement || appliedOpening.current === openingId || submission.receipt !== null) return;
+		appliedOpening.current = openingId;
+		setDraft((current) => ({
+			...current,
+			project: options.project,
+			epic: options.epic ?? null,
+			wave: options.wave ?? null,
+			parent: null,
+			...(current.project !== options.project ? { labels: [], status: undefined } : {}),
+			automatic: current.automatic?.filter((field) => field !== "epic" && field !== "wave"),
+		}));
+	}, [openingId, options, setDraft, submission.receipt]);
 	const [asking, setAsking] = useState(false);
 	const [validation, setValidation] = useState<string | null>(null);
 	const [editorKey, setEditorKey] = useState(0);
@@ -130,7 +146,7 @@ export function useTicketComposer() {
 					priority,
 					...(parent ? { parent } : {}),
 					...(placement.epic ? { epic: placement.epic } : {}),
-					...(placement.wave ? { wave: placement.wave } : {}),
+					...(placement.wave !== undefined ? { wave: placement.wave } : {}),
 					...(labels.length ? { labels: labels.map((label) => label.id) } : {}),
 				},
 				assignAgent ? choice : null,
