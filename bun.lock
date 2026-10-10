@@ -205,6 +205,9 @@
     "packages/runtime-protocol": {
       "name": "@trellis/runtime-protocol",
       "version": "0.0.0",
+      "dependencies": {
+        "zod": "4.5.4",
+      },
     },
     "packages/ui": {
       "name": "@trellis/ui",
