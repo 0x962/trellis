@@ -186,6 +186,8 @@ A list never navigates to `/t/$identifier`.
 This URL opens the sheet over the home page when a link arrives from outside the app or opens in a new tab.
 It replaces the URL with the home route, so closing the sheet leaves a page to use.
 The table's Enter, Space, and O keys open the same sheet.
+In the project session list, hold T and click a ticket agent to open its ticket sheet directly.
+A plain click selects the conversation. A session without a ticket keeps this behavior with T held.
 Markdown links and resolved ticket record links also open the sheet over the current page.
 Page links inside a session open the complete Page viewer in a sheet above that session.
 The session keeps its content, and the background route stays in place.
