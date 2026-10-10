@@ -1,41 +1,32 @@
 import assert from "node:assert/strict";
 import { type ChildProcess, spawn, spawnSync } from "node:child_process";
-import {
-	existsSync,
-	mkdirSync,
-	mkdtempSync,
-	readdirSync,
-	readFileSync,
-	readlinkSync,
-	rmSync,
-	writeFileSync,
-} from "node:fs";
+import { existsSync, mkdtempSync, readdirSync, readFileSync, readlinkSync, rmSync, writeFileSync } from "node:fs";
 import { arch, release, tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 import type { RuntimeSession } from "@trellis/runtime-protocol";
-import { stopAttemptProcesses } from "../../attemptProcesses";
 import { inspectProcess } from "../../inspectProcess.ts";
 import { observedSession } from "../../observedSession.ts";
 import { ProcessExitWatcher } from "../../processExitWatcher.ts";
 import { processIdentity } from "../../processIdentity";
-import type { SessionRecord } from "../../sessionRecord.ts";
 import { stopProcessTree } from "../../stopProcessTree.ts";
-import { watchRecoveredSession } from "../../watchRecoveredSession.ts";
 import { platform } from "../index.ts";
-import { linuxCgroupDirectory } from "./cgroupLifecycle.ts";
 import { linuxCgroupLifecycle } from "./index.ts";
 import {
+	attemptId,
 	cgroupProcesses,
+	exitOf,
+	gone,
 	launch,
+	launchCgroup,
 	startTicks,
 	treePids,
 	treeSpec,
 	waitFor,
-	writeOrphanAgent,
 	writeTreeAgent,
 } from "./linuxProcessFixture.ts";
 import { createLinuxProcessInspector } from "./linuxProcessInspector.ts";
+import { adoptionAndSweep, type RecoveryContext, setsidSurvivor } from "./linuxRecoveryCases.ts";
 
 // Node runs this program. `linuxLifecycle.process.test.ts` bundles it.
 // `node fixture.js cases <proof.json>` runs every real process case.
@@ -44,14 +35,10 @@ import { createLinuxProcessInspector } from "./linuxProcessInspector.ts";
 // `node fixture.js runtime-death <directory> [orphan]` acts as a runtime that
 // dies; "orphan" launches the agent of writeOrphanAgent.
 const [mode, target, variant] = process.argv.slice(2) as [string, string, string | undefined];
-const exitOf = (child: ChildProcess) =>
-	new Promise<[number | null, string | null]>((resolve) =>
-		child.once("exit", (code, signal) => resolve([code, signal])),
-	);
-const gone = (pid: number) => inspectProcess(pid).kind === "missing";
-const launchCgroup = (pid: number) =>
-	linuxCgroupDirectory(readFileSync(`/proc/${pid}/cgroup`, "utf8"), readFileSync("/proc/self/mountinfo", "utf8"));
-const attemptId = "runtime-death";
+// A dead runtime and the runtime of the cases bind the same home, the
+// directory of the cases, so they share one home tag.
+const scratch = mode === "cases" ? mkdtempSync(join(tmpdir(), "trellis-linux-lifecycle-")) : undefined;
+platform.useRuntimeHome(mode === "runtime-death" ? dirname(target) : (scratch ?? tmpdir()));
 
 if (mode === "runtime-death") {
 	const spec = treeSpec(target, "stdio");
@@ -87,22 +74,22 @@ if (mode === "refusal") {
 }
 
 if (mode === "cases") {
-	const scratch = mkdtempSync(join(tmpdir(), "trellis-linux-lifecycle-"));
 	const bootId = readFileSync("/proc/sys/kernel/random/boot_id", "utf8").trim();
-	const attemptsRoot = linuxCgroupLifecycle.attemptsRoot();
+	const launchRoot = linuxCgroupLifecycle.launchRoot();
 	const cleanup: ChildProcess[] = [];
 	const cases: { name: string; details: Record<string, unknown> }[] = [];
 	const directory = (name: string) => {
-		const path = mkdtempSync(join(scratch, `${name}-`));
+		const path = mkdtempSync(join(scratch!, `${name}-`));
 		writeTreeAgent(path);
 		return path;
 	};
-	const launchDirectories = () => readdirSync(attemptsRoot).filter((name) => name.startsWith("launch-"));
+	const launchDirectories = () => readdirSync(launchRoot).filter((name) => name.startsWith("launch-"));
+	const context: RecoveryContext = { directory, cleanup, record: (name, details) => cases.push({ name, details }) };
 	const proof = (status: string, error?: string) =>
 		writeFileSync(
 			target,
 			JSON.stringify(
-				{ arch: arch(), kernel: release(), node: process.version, bootId, attemptsRoot, status, error, cases },
+				{ arch: arch(), kernel: release(), node: process.version, bootId, launchRoot, status, error, cases },
 				null,
 				2,
 			),
@@ -114,7 +101,7 @@ if (mode === "cases") {
 		const pids = await treePids(path);
 		const leader = handle.pid;
 		const cgroup = launchCgroup(leader);
-		assert.ok(cgroup.startsWith(`${attemptsRoot}/launch-`), cgroup);
+		assert.ok(cgroup.startsWith(`${launchRoot}/launch-`), cgroup);
 		const members = cgroupProcesses(cgroup);
 		for (const pid of [leader, pids.child, pids.grandchild, pids.escaped])
 			assert.ok(members.includes(pid), `${pid} in ${cgroup}`);
@@ -173,29 +160,6 @@ if (mode === "cases") {
 			assert.ok(gone(pid), `${pid} exited`);
 		assert.equal(existsSync(cgroup), false);
 		cases.push({ name: "runtime-death", details: { runtime: runtime.pid, ...recorded, ...pids, cgroup } });
-	};
-
-	// The runtime dies, then every process of the agent exits except one that
-	// started its own OS session. The stop by the attempt markers passes the
-	// session of that process, and the stop finds the launch cgroup from it.
-	const setsidSurvivor = async () => {
-		const path = directory("setsid-survivor");
-		const runtime = spawn(process.execPath, [process.argv[1]!, "runtime-death", path], { stdio: "inherit" });
-		cleanup.push(runtime);
-		assert.deepEqual(await exitOf(runtime), [null, "SIGKILL"]);
-		const recorded = JSON.parse(readFileSync(join(path, "runtime.json"), "utf8")) as { leader: number };
-		const pids = await treePids(path);
-		const cgroup = launchCgroup(pids.escaped);
-		const others = [recorded.leader, pids.child, pids.grandchild];
-		for (const pid of others) process.kill(pid, "SIGKILL");
-		await waitFor(() => others.every(gone), "the exit of every process except the survivor");
-		const survivorSession = platform.sessionOf(pids.escaped);
-		assert.equal(survivorSession, pids.escaped);
-		assert.ok(cgroupProcesses(cgroup).includes(pids.escaped));
-		await stopAttemptProcesses(path, attemptId);
-		assert.ok(gone(pids.escaped), `${pids.escaped} exited`);
-		assert.equal(existsSync(cgroup), false);
-		cases.push({ name: "setsid-survivor", details: { leader: recorded.leader, ...pids, survivorSession, cgroup } });
 	};
 
 	const cancellation = async () => {
@@ -263,84 +227,6 @@ if (mode === "cases") {
 		cases.push({ name: "pid-reuse", details });
 	};
 
-	const deadRuntime = async (path: string, ...args: string[]) => {
-		const runtime = spawn(process.execPath, [process.argv[1]!, "runtime-death", path, ...args], { stdio: "inherit" });
-		cleanup.push(runtime);
-		assert.deepEqual(await exitOf(runtime), [null, "SIGKILL"]);
-		return JSON.parse(readFileSync(join(path, "runtime.json"), "utf8")) as { leader: number; identity: string };
-	};
-
-	// Three launches of a runtime that died: one with a live leader, one with a
-	// dead leader and a process without attempt markers, and one empty cgroup.
-	// The new runtime adopts the first by identity and then sweeps once.
-	const adoptionAndSweep = async () => {
-		const adoptedPath = directory("adopted");
-		const adopted = await deadRuntime(adoptedPath);
-		const adoptedPids = await treePids(adoptedPath);
-		const adoptedCgroup = launchCgroup(adopted.leader);
-
-		const orphanPath = directory("orphan");
-		writeOrphanAgent(orphanPath);
-		const orphanLaunch = await deadRuntime(orphanPath, "orphan");
-		const orphan = Number(readFileSync(join(orphanPath, "orphan"), "utf8"));
-		const orphanCgroup = launchCgroup(orphan);
-		writeFileSync(join(orphanPath, "go"), "");
-		await waitFor(() => gone(orphanLaunch.leader), "the exit of the orphan leader");
-		assert.ok(!readFileSync(`/proc/${orphan}/environ`, "utf8").includes("TRELLIS_ATTEMPT_ID="));
-		assert.deepEqual(platform.attemptProcesses(orphanPath, attemptId), []);
-
-		const leakedCgroup = join(attemptsRoot, `launch-leaked-${process.pid}`);
-		mkdirSync(leakedCgroup);
-
-		const record = {
-			session: { pid: adopted.leader, endedAt: null },
-			identity: adopted.identity,
-			watchedPids: new Set<number>(),
-			listeners: new Set<() => void>(),
-		} as unknown as SessionRecord;
-		const exits = new ProcessExitWatcher();
-		watchRecoveredSession(record, exits);
-		assert.equal(linuxCgroupLifecycle.registeredCgroup(adopted.leader), adoptedCgroup);
-
-		const swept = await linuxCgroupLifecycle.sweep();
-		assert.deepEqual(
-			swept.map((event) => [event.cgroup, event.outcome]).sort(),
-			[
-				[leakedCgroup, "removed"],
-				[orphanCgroup, "removed"],
-			].sort(),
-		);
-		assert.ok(swept.find((event) => event.cgroup === orphanCgroup)?.pids.includes(orphan));
-		assert.ok(gone(orphan), `${orphan} exited`);
-		assert.equal(existsSync(orphanCgroup), false);
-		assert.equal(existsSync(leakedCgroup), false);
-		assert.ok(existsSync(adoptedCgroup));
-		for (const pid of [adopted.leader, ...Object.values(adoptedPids)]) assert.ok(!gone(pid), `${pid} still runs`);
-
-		// Only the process in its own OS session stays, so only the registry
-		// leads the stop of the leader session to the adopted cgroup.
-		const others = [adopted.leader, adoptedPids.child, adoptedPids.grandchild];
-		for (const pid of others) process.kill(pid, "SIGKILL");
-		await waitFor(() => others.every(gone), "the exit of the adopted leader session");
-		// The agent loop can leave a short `sleep 0.05` in the leader session.
-		await waitFor(() => platform.inspectProcessSession(adopted.leader).kind === "empty", "an empty leader session");
-		await stopProcessTree(adopted.leader);
-		assert.ok(gone(adoptedPids.escaped), `${adoptedPids.escaped} exited`);
-		assert.equal(existsSync(adoptedCgroup), false);
-		assert.equal(linuxCgroupLifecycle.registeredCgroup(adopted.leader), undefined);
-		exits.close();
-		cases.push({
-			name: "adoption-and-sweep",
-			details: {
-				adopted: { ...adopted, ...adoptedPids, cgroup: adoptedCgroup },
-				orphan,
-				orphanCgroup,
-				leakedCgroup,
-				swept,
-			},
-		});
-	};
-
 	const exitWatcher = async () => {
 		const watcher = new ProcessExitWatcher();
 		const child = spawn("sleep", ["300"]);
@@ -354,18 +240,19 @@ if (mode === "cases") {
 	};
 
 	try {
-		for (const run of [
+		const runs = {
 			processTree,
 			parentDeath,
 			runtimeDeath,
-			setsidSurvivor,
-			adoptionAndSweep,
+			setsidSurvivor: () => setsidSurvivor(context),
+			adoptionAndSweep: () => adoptionAndSweep(context),
 			cancellation,
 			pidReuse,
 			exitWatcher,
-		]) {
+		};
+		for (const [name, run] of Object.entries(runs)) {
 			await run();
-			assert.deepEqual(launchDirectories(), [], `${run.name} leaves no launch cgroup`);
+			assert.deepEqual(launchDirectories(), [], `${name} leaves no launch cgroup`);
 		}
 		proof("passed");
 		setImmediate(() => process.exit(0));
@@ -374,6 +261,6 @@ if (mode === "cases") {
 		throw error;
 	} finally {
 		for (const child of cleanup) if (child.exitCode === null && child.signalCode === null) child.kill("SIGKILL");
-		rmSync(scratch, { recursive: true, force: true });
+		rmSync(scratch!, { recursive: true, force: true });
 	}
 }

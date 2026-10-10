@@ -1,6 +1,7 @@
 import { posix } from "node:path";
 import type { LaunchSpec } from "@trellis/runtime-protocol";
 import type { PreparedLaunch, ProcessIdentityObservation, ProcessSessionObservation } from "../runtimePlatform.ts";
+import { cgroupV2Path, homeTag, linuxCgroupDirectory, populated } from "./cgroupPaths.ts";
 import { wrapLinuxLaunch } from "./launchWrapper.ts";
 
 export type LinuxCgroupOperations = {
@@ -31,47 +32,19 @@ export type LinuxLaunchSweep = {
 };
 
 export type LinuxCgroupLifecycle = {
+	// Binds the lifecycle to the runtime home before the first other call.
+	useHome: (home: string) => void;
 	adopt: (pid: number) => void;
 	registeredCgroup: (sessionId: number) => string | undefined;
 	sweep: () => Promise<LinuxLaunchSweep[]>;
 	prepareLaunch: (spec: LaunchSpec) => PreparedLaunch;
 	stopProcessTree: (sessionId: number) => Promise<void>;
 	attemptsRoot: () => string;
+	launchRoot: () => string;
 };
 
 const stopDeadlineMs = 2000;
 const stopPollMs = 20;
-
-const decodeMountPath = (value: string) =>
-	value.replace(/\\([0-7]{3})/g, (_match, digits: string) => String.fromCharCode(Number.parseInt(digits, 8)));
-
-// /proc/self/cgroup names the cgroup v2 path of the runtime on its "0::" line.
-// mountinfo(5) maps that path to a directory of the cgroup2 mount.
-export function linuxCgroupDirectory(cgroup: string, mountInfo: string): string {
-	const membership = cgroup
-		.split("\n")
-		.map((line) => line.split(":"))
-		.find(([hierarchy, controllers]) => hierarchy === "0" && controllers === "");
-	if (membership === undefined || membership[2] === undefined)
-		throw new Error("the runtime has no cgroup v2 membership");
-	const current = decodeMountPath(membership.slice(2).join(":"));
-	for (const line of mountInfo.split("\n")) {
-		const [mount, filesystem] = line.split(" - ");
-		if (mount === undefined || filesystem?.split(" ")[0] !== "cgroup2") continue;
-		const fields = mount.split(" ");
-		const root = decodeMountPath(fields[3]!);
-		const mountPoint = decodeMountPath(fields[4]!);
-		if (current !== root && !current.startsWith(root === "/" ? "/" : `${root}/`)) continue;
-		return posix.join(mountPoint, current.slice(root.length));
-	}
-	throw new Error(`no cgroup2 mount contains ${current}`);
-}
-
-const populated = (events: string) => {
-	const match = /^populated\s+([01])$/m.exec(events);
-	if (match === null) throw new Error("The cgroup events file has no populated state");
-	return match[1] === "1";
-};
 
 const absent = (error: unknown) => {
 	const code = (error as NodeJS.ErrnoException).code;
@@ -90,20 +63,25 @@ export function createLinuxCgroupLifecycle(operations: LinuxCgroupOperations): L
 	const runtimeCgroup = () =>
 		linuxCgroupDirectory(operations.readFile("/proc/self/cgroup"), operations.readFile("/proc/self/mountinfo"));
 	const attemptsRoot = () => posix.join(runtimeCgroup(), "trellis-attempts");
+	let tag: string | undefined;
+	const launchRoot = () => {
+		if (tag === undefined) throw new Error("The Linux cgroup lifecycle has no runtime home");
+		return posix.join(attemptsRoot(), tag);
+	};
 
 	// The launch shell moves itself from the runtime cgroup into a child cgroup.
 	// cgroup v2 permits that move only for a user who can write cgroup.procs of
 	// the runtime cgroup, which a delegated subtree grants.
-	const delegatedAttemptsRoot = () => {
+	const delegatedLaunchRoot = () => {
 		const refuse = (reason: string) =>
 			new Error(`Linux agent launch requires a delegated cgroup v2 subtree: ${reason}`);
 		let root: string;
 		try {
-			root = attemptsRoot();
+			root = launchRoot();
 		} catch (error) {
 			throw refuse((error as Error).message);
 		}
-		const runtime = posix.dirname(root);
+		const runtime = posix.dirname(posix.dirname(root));
 		if (!operations.isWritable(runtime) || !operations.isWritable(posix.join(runtime, "cgroup.procs")))
 			throw refuse(`this user cannot create cgroups or move processes in ${runtime}`);
 		try {
@@ -144,11 +122,15 @@ export function createLinuxCgroupLifecycle(operations: LinuxCgroupOperations): L
 	const isPopulated = (path: string) => populated(operations.readFile(posix.join(path, "cgroup.events")));
 
 	return {
+		useHome(home) {
+			tag = homeTag(home);
+		},
 		attemptsRoot,
-		// A recovered leader whose identity matches its record belongs to this
+		launchRoot,
+		// A recovered leader that adoptsRecoveredLeader accepts belongs to this
 		// runtime, so its launch cgroup joins the registry.
 		adopt(pid) {
-			const root = attemptsRoot();
+			const root = launchRoot();
 			const cgroup = launchCgroupOf(pid, root, operations.readFile("/proc/self/mountinfo"));
 			if (cgroup !== undefined) launches.set(pid, cgroup);
 		},
@@ -158,12 +140,8 @@ export function createLinuxCgroupLifecycle(operations: LinuxCgroupOperations): L
 		// an earlier runtime, or a stop of that runtime did not finish. Its
 		// processes can lack the attempt markers, so no other stop finds them.
 		async sweep() {
-			let root: string;
-			try {
-				root = attemptsRoot();
-			} catch {
-				return [];
-			}
+			if (cgroupV2Path(operations.readFile("/proc/self/cgroup")) === undefined) return [];
+			const root = launchRoot();
 			if (!operations.exists(root)) return [];
 			const registered = new Set(launches.values());
 			const orphans = operations
@@ -193,7 +171,7 @@ export function createLinuxCgroupLifecycle(operations: LinuxCgroupOperations): L
 			});
 		},
 		prepareLaunch(spec) {
-			const cgroup = posix.join(delegatedAttemptsRoot(), operations.launchName());
+			const cgroup = posix.join(delegatedLaunchRoot(), operations.launchName());
 			return {
 				spec: wrapLinuxLaunch(spec, cgroup, operations.canExecute),
 				started: (pid) => launches.set(pid, cgroup),
@@ -205,7 +183,7 @@ export function createLinuxCgroupLifecycle(operations: LinuxCgroupOperations): L
 		// live leader that is a child of this runtime keeps the stop going, and a
 		// later pass kills it inside its cgroup.
 		async stopProcessTree(sessionId) {
-			const root = attemptsRoot();
+			const root = launchRoot();
 			const cgroups = new Set<string>();
 			const registered = launches.get(sessionId);
 			if (registered !== undefined) cgroups.add(registered);

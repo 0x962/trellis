@@ -1,8 +1,24 @@
+import type { ChildProcess } from "node:child_process";
 import { chmodSync, existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 import type { LaunchSpec } from "@trellis/runtime-protocol";
+import { inspectProcess } from "../../inspectProcess.ts";
 import { createProcessHandle } from "../../processHandle.ts";
+import { linuxCgroupDirectory } from "./cgroupPaths.ts";
+
+// The attempt ID that a dead runtime of the fixture puts in the agent markers.
+export const attemptId = "runtime-death";
+
+export const exitOf = (child: ChildProcess) =>
+	new Promise<[number | null, string | null]>((resolve) =>
+		child.once("exit", (code, signal) => resolve([code, signal])),
+	);
+
+export const gone = (pid: number) => inspectProcess(pid).kind === "missing";
+
+export const launchCgroup = (pid: number) =>
+	linuxCgroupDirectory(readFileSync(`/proc/${pid}/cgroup`, "utf8"), readFileSync("/proc/self/mountinfo", "utf8"));
 
 // The agent of these tests. It starts a child that starts a grandchild, and a
 // process in a new OS session. Each process writes its PID to a file in the

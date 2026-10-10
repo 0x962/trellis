@@ -21,6 +21,7 @@ export const darwinPlatform: RuntimePlatform = {
 	attemptProcesses,
 	createExitWatcher: () => new DarwinProcessExitWatcher(),
 	prepareLaunch: (spec) => ({ spec, started: () => {} }),
+	useRuntimeHome: () => {},
 	adoptProcess: () => {},
 	sweepLaunches: async () => {},
 	stopProcessTree,

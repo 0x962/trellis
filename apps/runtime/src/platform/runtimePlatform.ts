@@ -42,8 +42,11 @@ export type RuntimePlatform = {
 	createExitWatcher: () => ExitWatcher;
 	// Throws when the host cannot contain and stop the process tree of a launch.
 	prepareLaunch: (spec: LaunchSpec) => PreparedLaunch;
-	// Records that a recovered leader, whose identity matches its saved record,
-	// belongs to this runtime.
+	// Binds host state to the runtime home. The runtime calls it once at start,
+	// before it recovers records.
+	useRuntimeHome: (home: string) => void;
+	// Records that a recovered leader belongs to this runtime. The callers
+	// decide with adoptsRecoveredLeader.
 	adoptProcess: (pid: number) => void;
 	// Runs once after recovery at runtime start. Stops and removes the host
 	// state of each launch that no adopted or started launch holds.

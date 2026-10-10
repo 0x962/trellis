@@ -20,7 +20,6 @@ import { launchSession } from "./launchSession";
 import { matchesProcessFilters } from "./matchesProcessFilters.ts";
 import { observeHarness } from "./observeHarness.ts";
 import { observeLegacyTurn } from "./observeLegacyTurn.ts";
-import { platform } from "./platform/index.ts";
 import { ProcessExitWatcher } from "./processExitWatcher.ts";
 import { flushQueuedInputs, queueInput } from "./queuedInput";
 import { recoverAttemptRecord } from "./recoverAttemptRecord";
@@ -52,7 +51,6 @@ export class SessionStore {
 			this.save(record);
 			watchRecoveredSession(record, this.exits);
 		});
-		void platform.sweepLaunches();
 		this.sweep();
 		this.records.removeOrphanFiles();
 		this.sweeper = setInterval(() => this.sweep(), sweepIntervalMs);

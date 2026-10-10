@@ -3,13 +3,14 @@ import type { LaunchSpec } from "@trellis/runtime-protocol";
 
 // The shell creates the cgroup of this launch, moves itself into it, and then
 // replaces itself with the agent, so the agent keeps the PID of the shell.
-// Every descendant of the agent starts inside that cgroup. mkdir fails when
-// the directory exists, so a launch never joins the cgroup of another launch.
+// Every descendant of the agent starts inside that cgroup. The cgroup is
+// trellis-attempts/<home tag>/launch-<UUID>. mkdir fails when the directory
+// exists, so a launch never joins the cgroup of another launch.
 // Exit code 125 means the shell could not create or join the cgroup.
 const script = [
 	'cgroup="$1"',
 	"shift",
-	'mkdir "$cgroup" || { echo "trellis: cannot create the attempt cgroup $cgroup" >&2; exit 125; }',
+	'mkdir "$cgroup" || { echo "trellis: cannot create the attempt cgroup $cgroup of this runtime home: a cgroup with that name exists, or this user cannot create it" >&2; exit 125; }',
 	'printf "%s" "$$" > "$cgroup/cgroup.procs" || { echo "trellis: cannot join the attempt cgroup $cgroup" >&2; exit 125; }',
 	'exec "$@"',
 ].join("\n");

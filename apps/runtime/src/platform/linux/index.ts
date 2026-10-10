@@ -91,6 +91,7 @@ export const linuxPlatform: RuntimePlatform = {
 	}),
 	createExitWatcher: () => new LinuxProcessExitWatcher(nodeExitWatcherOperations(exitWatcherNatives)),
 	prepareLaunch: linuxCgroupLifecycle.prepareLaunch,
+	useRuntimeHome: linuxCgroupLifecycle.useHome,
 	adoptProcess: linuxCgroupLifecycle.adopt,
 	sweepLaunches: async () => {
 		await linuxCgroupLifecycle.sweep();

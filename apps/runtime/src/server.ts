@@ -9,6 +9,7 @@ import {
 	type RuntimeRequest,
 } from "@trellis/runtime-protocol";
 import { outputSubscription } from "./outputSubscription.ts";
+import { platform } from "./platform/index.ts";
 import { acquireRuntimeLock } from "./runtimeLock.ts";
 import { SessionStore } from "./sessionStore.ts";
 import { validateSocketPath } from "./socketPath.ts";
@@ -177,7 +178,11 @@ export async function startRuntime(home: string) {
 		server.once("error", reject);
 		server.listen(socketPath, resolve);
 	});
+	platform.useRuntimeHome(home);
 	store = new SessionStore(join(home, "sessions"), hello.daemonId);
+	// The store adopts the launches of its recovered records. The sweep then
+	// stops every other launch of this home that an earlier runtime left.
+	await platform.sweepLaunches();
 	chmodSync(socketPath, 0o600);
 	writeFileSync(join(home, "manifest.json"), JSON.stringify({ ...hello, releaseId: process.env.TRELLIS_RELEASE_ID }), {
 		mode: 0o600,
