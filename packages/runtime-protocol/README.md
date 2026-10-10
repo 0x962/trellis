@@ -28,4 +28,4 @@ Read the saved runtime state before a repeat mutation.
 - `AttemptEnvironmentSchema` is the strict set of six `TRELLIS_*` values a contract carries.
 - `readAllOutput` pages one stream of a session to its end.
 
-`@trellis/runtime-protocol/execution/contract-fixture` holds `executionHostContract(make)`, which registers the seven contract cases as `bun:test` cases, `scriptedRuntime(reply)`, a runtime stand-in on a Unix socket, and `clientExecutionHost`, the smallest host over one `RuntimeClient`. Every subject gives its host `FIXTURE_AMBIENT` as the login environment; it holds a bearer and the `PATH` of the test process, and case 7 asserts that no contract value echoes either.
+`@trellis/runtime-protocol/execution/contract-fixture` holds `executionHostContract(make)`, which registers the eight contract cases as `bun:test` cases, `scriptedRuntime(reply)`, a runtime stand-in on a Unix socket, and `clientExecutionHost`, the smallest host over one `RuntimeClient`. Every subject gives its host `FIXTURE_AMBIENT` as the login environment; it holds a bearer and the `PATH` of the test process, and case 7 asserts that no contract value echoes either.

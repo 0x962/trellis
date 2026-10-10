@@ -1,19 +1,22 @@
 import { join } from "node:path";
 import type { LaunchSpec, RuntimeSession } from "@trellis/runtime-protocol";
 import { assertTarget, fingerprintDigest, runLaunch, startLaunch } from "@trellis/runtime-protocol/execution";
+import type { HarnessDescriptor } from "../../../../agents/harnessHost/types.ts";
 import { definedEnvironment } from "../../../../executionEnvironment/executionEnvironment.ts";
 import type { LocalExecutionHost, LocalHostDeps } from "../LocalExecutionHost.ts";
 import { prepareHost } from "./prepareHost.ts";
 import { readLocalDescriptor } from "./readLocalDescriptor.ts";
 
 export const localLaunch = (deps: LocalHostDeps): Pick<LocalExecutionHost, "launch"> => {
-	// The digest of the fingerprint of the prepared launch record, or null when
-	// the attempt has no record or a record without a fingerprint, which is a
-	// custom launch.
+	// The digest of the fingerprint of a prepared launch record, or null for a
+	// record without a fingerprint, which is a custom launch.
+	const recordDigest = ({ fingerprint }: HarnessDescriptor) =>
+		(fingerprint as string | undefined) === undefined ? null : fingerprintDigest(fingerprint);
+	// The digest of the record of the attempt, or null when the attempt has no
+	// record.
 	const descriptorDigest = async (attemptId: string) => {
 		if (!(await Bun.file(join(deps.home, "harness-attempts", attemptId, "launch.json")).exists())) return null;
-		const { fingerprint } = await readLocalDescriptor(deps.home, attemptId);
-		return fingerprint === undefined ? null : fingerprintDigest(fingerprint);
+		return recordDigest(await readLocalDescriptor(deps.home, attemptId));
 	};
 	return {
 		launch: {
@@ -41,7 +44,7 @@ export const localLaunch = (deps: LocalHostDeps): Pick<LocalExecutionHost, "laun
 				if (!answer.complete)
 					throw new Error(`The execution service did not answer whether attempt ${target.attemptId} exists`);
 				const [session] = answer.sessions;
-				const digest = fingerprintDigest(descriptor.fingerprint);
+				const digest = recordDigest(descriptor);
 				if (session !== undefined) return { kind: "receipt", target, session, descriptorDigest: digest };
 				const spec = timeoutMs === undefined ? descriptor.spec : { ...descriptor.spec, timeoutMs };
 				return startLaunch(

@@ -206,4 +206,20 @@ export function executionHostContract(make: () => Promise<ContractSubject>): voi
 			expect(text).not.toContain(process.env.PATH!);
 		}
 	});
+
+	test("8. launch.startPrepared starts a custom launch record, whose digest is null", async () => {
+		const { host, target, cwd } = subject!;
+		// A second attempt of the same run, so that the record of this case is
+		// the only record of its attempt.
+		const fresh: ExecutionTarget = { ...target, attemptId: `${target.attemptId}-custom`, generation: 2 };
+		const custom = await host.prepare.custom(fresh, { command: "/bin/cat", cwd, token: FIXTURE_TOKEN });
+		expect(custom.id).toBe(fresh.attemptId);
+		const outcome = await host.launch.startPrepared(fresh);
+		expect(outcome.kind).toBe("receipt");
+		const started = outcome as LaunchReceipt;
+		expect(started.session.id).toBe(fresh.attemptId);
+		expect(started.descriptorDigest).toBeNull();
+		const stopped = await host.stop.stop(fresh);
+		expect(stopped.status).toBe("exited");
+	}, 15_000);
 }
