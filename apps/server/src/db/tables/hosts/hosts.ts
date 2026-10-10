@@ -4,8 +4,8 @@ import { checkIn } from "../../enums.ts";
 import { at } from "../actors.ts";
 import { projects } from "../projects.ts";
 
-// The closed sets of the host tables. The API schemas of a later ticket take
-// their options from these lists.
+// The closed sets of the host tables. The `CHECK` constraint of each column
+// below allows only the values in its list.
 export const HOST_KINDS = ["local", "ssh"] as const;
 export const HOST_STATES = ["active", "retired", "revoked"] as const;
 export const HOST_OBSERVATION_RESULTS = ["reachable", "unreachable", "identity_mismatch", "incompatible"] as const;

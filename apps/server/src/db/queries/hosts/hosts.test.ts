@@ -18,7 +18,7 @@ import {
 	setDefaultHost,
 	setHostState,
 } from "./index.ts";
-import { seedProject, seedRun } from "./testSeed.ts";
+import { seedAccount, seedAttempt, seedFlow, seedProject, seedProjectPath, seedRun, seedTicket } from "./testSeed.ts";
 
 let db: Awaited<ReturnType<typeof openTestDb>>;
 const now = new Date("2026-10-10T16:00:00.000Z");
@@ -49,28 +49,11 @@ test("a fresh database has one local host and one control row with ULID ids", as
 test("an insert without host_id receives the local host", async () => {
 	const local = await db.transaction((tx) => localHost(tx));
 	const runId = await seedRun(db);
-	const attemptId = ulid();
-	await db.execute(sql`
-		INSERT INTO agent_execution_attempts (id, run_id, generation, token_hash, created_at)
-		VALUES (${attemptId}, ${runId}, 1, 'hash', ${now})
-	`);
+	const attemptId = await seedAttempt(db, runId);
 	const project = await seedProject(db, null);
-	const ticketId = ulid();
-	await db.execute(sql`
-		INSERT INTO tickets (id, project_id, number, title, status_id, position, created_at, updated_at)
-		VALUES (${ticketId}, ${project.id}, 1, 'Ticket', ${project.statusId}, 1024, ${now}, ${now})
-	`);
-	const flowId = ulid();
-	await db.execute(sql`
-		INSERT INTO flow_executions
-			(id, flow_id, ticket_id, project_id, actor_kind, actor_name, request_id, request, doc, state, revision, created_at, updated_at)
-		VALUES (${flowId}, 'flow', ${ticketId}, ${project.id}, 'human', 'tester', ${ulid()}, '{}', '{}', '{}', 1, ${now}, ${now})
-	`);
-	const accountId = ulid();
-	await db.execute(sql`
-		INSERT INTO harness_accounts (id, name, harness, profile_path, created_at, updated_at)
-		VALUES (${accountId}, 'Account', 'claude', ${`/profiles/${accountId}`}, ${now}, ${now})
-	`);
+	const ticketId = await seedTicket(db, project, null);
+	const flowId = await seedFlow(db, ticketId, project.id);
+	const accountId = await seedAccount(db, `/profiles/${ulid()}`);
 	const found = await db.execute(sql`
 		SELECT
 			(SELECT host_id FROM agent_runs WHERE id = ${runId}) AS run,
@@ -161,14 +144,14 @@ test("a retired host keeps its references and stays readable", async () => {
 
 test("deleteHost refuses the local host and a referenced host", async () => {
 	const local = await db.transaction((tx) => localHost(tx));
-	const refused = await db.transaction((tx) => deleteHost(tx, { id: local.id }));
-	expect(refused.deleted).toBe(false);
-	if (!refused.deleted) expect(refused.references.workspaceDefault).toBe(true);
+	expect(await db.transaction((tx) => deleteHost(tx, { id: local.id }))).toEqual({ deleted: false, reason: "local" });
+	expect(await db.transaction((tx) => hostReferences(tx, { id: local.id }))).toMatchObject({ workspaceDefault: true });
 	const host = await ssh("Referenced");
 	await seedRun(db, host.id);
 	const withRun = await db.transaction((tx) => deleteHost(tx, { id: host.id }));
 	expect(withRun).toEqual({
 		deleted: false,
+		reason: "referenced",
 		references: {
 			runs: 1,
 			attempts: 0,
@@ -182,6 +165,44 @@ test("deleteHost refuses the local host and a referenced host", async () => {
 	});
 	await expect(db.execute(sql`DELETE FROM hosts WHERE id = ${host.id}`)).rejects.toMatchObject({ code: "23503" });
 	expect(await db.transaction((tx) => getHost(tx, { id: host.id }))).not.toBeNull();
+});
+
+test("deleteHost refuses a host that an attempt, a flow, an account, or a project path names", async () => {
+	const host = await ssh("Bound");
+	await seedAttempt(db, await seedRun(db), host.id);
+	const project = await seedProject(db, null);
+	await seedFlow(db, await seedTicket(db, project, null), project.id, host.id);
+	await seedAccount(db, `/profiles/${ulid()}`, host.id);
+	await seedProjectPath(db, project.id, host.id);
+	const references = await db.transaction((tx) => hostReferences(tx, { id: host.id }));
+	expect(references).toEqual({
+		runs: 0,
+		attempts: 1,
+		flows: 1,
+		accounts: 1,
+		projectPaths: 1,
+		projectDefaults: 0,
+		ticketPreferences: 0,
+		workspaceDefault: false,
+	});
+	expect(await db.transaction((tx) => deleteHost(tx, { id: host.id }))).toEqual({
+		deleted: false,
+		reason: "referenced",
+		references,
+	});
+});
+
+test("deleteHost reports an unknown id as missing", async () => {
+	expect(await db.transaction((tx) => deleteHost(tx, { id: ulid() }))).toEqual({ deleted: false, reason: "missing" });
+});
+
+test("two hosts can hold one harness profile path each", async () => {
+	const first = await ssh("Profile first");
+	const second = await ssh("Profile second");
+	const profilePath = `/profiles/${ulid()}`;
+	await seedAccount(db, profilePath, first.id);
+	await seedAccount(db, profilePath, second.id);
+	await expect(seedAccount(db, profilePath, second.id)).rejects.toThrow("harness_accounts_profile_idx");
 });
 
 test("deleteHost removes an unreferenced host and its observation", async () => {
@@ -223,11 +244,7 @@ test("placementInputs reads the workspace, the project, and the ticket", async (
 	const projectHost = await ssh("Project host");
 	const ticketHost = await ssh("Ticket host");
 	const project = await seedProject(db, projectHost.id);
-	const ticketId = ulid();
-	await db.execute(sql`
-		INSERT INTO tickets (id, project_id, number, title, status_id, position, host_id, created_at, updated_at)
-		VALUES (${ticketId}, ${project.id}, 1, 'Placed', ${project.statusId}, 1024, ${ticketHost.id}, ${now}, ${now})
-	`);
+	const ticketId = await seedTicket(db, project, ticketHost.id);
 	expect(await db.transaction((tx) => placementInputs(tx, { ticketId, projectId: project.id }))).toEqual({
 		workspaceDefaultHostId: local.id,
 		projectDefaultHostId: projectHost.id,

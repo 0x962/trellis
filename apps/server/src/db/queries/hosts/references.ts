@@ -34,18 +34,26 @@ export const hostReferences = async (tx: Tx, input: { id: string }): Promise<Hos
 	return found[0]!;
 };
 
-export type DeleteHostResult = { deleted: true } | { deleted: false; references: HostReferences };
+// `missing`: no host has the id. `local`: the host is the local host, which
+// stays for the life of the workspace. `referenced`: at least one row names
+// the host, and `references` holds the counts.
+export type DeleteHostResult =
+	| { deleted: true }
+	| { deleted: false; reason: "missing" }
+	| { deleted: false; reason: "local" }
+	| { deleted: false; reason: "referenced"; references: HostReferences };
 
 const referenced = (references: HostReferences) =>
 	references.workspaceDefault || Object.values(references).some((value) => typeof value === "number" && value > 0);
 
-// The local host and a referenced host stay. The caller runs this inside
-// one transaction, and the foreign keys refuse a reference that another
-// transaction writes between the count and the delete.
+// The caller runs this inside one transaction. The foreign keys refuse a
+// reference that another transaction writes between the count and the delete.
 export const deleteHost = async (tx: Tx, input: { id: string }): Promise<DeleteHostResult> => {
+	const host = await rows<{ local: boolean }>(tx, sql`SELECT local FROM hosts WHERE id = ${input.id}`);
+	if (host.length === 0) return { deleted: false, reason: "missing" };
+	if (host[0]!.local) return { deleted: false, reason: "local" };
 	const references = await hostReferences(tx, input);
-	const local = await rows<{ local: boolean }>(tx, sql`SELECT local FROM hosts WHERE id = ${input.id}`);
-	if (local[0]?.local === true || referenced(references)) return { deleted: false, references };
+	if (referenced(references)) return { deleted: false, reason: "referenced", references };
 	await tx.execute(sql`DELETE FROM hosts WHERE id = ${input.id}`);
 	return { deleted: true };
 };

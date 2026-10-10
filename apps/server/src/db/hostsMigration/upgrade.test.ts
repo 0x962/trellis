@@ -1,4 +1,4 @@
-import { afterAll, expect, test } from "bun:test";
+import { afterAll, beforeAll, expect, test } from "bun:test";
 import { rm } from "node:fs/promises";
 import { UlidSchema } from "@trellis/api";
 import type { Db } from "../client.ts";
@@ -9,9 +9,12 @@ import { migrateHostsUpgrade, openPriorDatabase, originalRows } from "./history.
 
 let db: Db;
 let directory: string;
+beforeAll(async () => {
+	({ db, directory } = await openPriorDatabase());
+});
 afterAll(async () => {
-	await db?.$client.close();
-	if (directory) await rm(directory, { recursive: true });
+	await db.$client.close();
+	await rm(directory, { recursive: true });
 });
 
 const TABLES = [
@@ -69,7 +72,6 @@ const hostIds = async (database: Db) =>
 	).rows;
 
 test("0152 keeps every row and binds each reference to the local host", async () => {
-	({ db, directory } = await openPriorDatabase());
 	await db.$client.exec(seed);
 	const before = await originalRows(db, TABLES);
 	expect(await migrateHostsUpgrade(db, directory)).toBe(1);

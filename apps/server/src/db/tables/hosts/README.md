@@ -1,6 +1,6 @@
 # Host tables
 
-A host is a machine that runs agents. These tables store the hosts of a workspace, the health of each host, the one control row of the workspace, and the repository directory of each project on each host. Migration `0152_hosts` creates them.
+A host is a machine that runs agents. These tables store the hosts of a workspace, the health of each host, and the one control row of the workspace. They also store the repository directory of each project on each host. Migration `0152_hosts` creates them.
 
 ```mermaid
 erDiagram
@@ -61,7 +61,7 @@ A retired or revoked host keeps its row. `listHosts` hides it unless the caller 
 
 ## The local host
 
-Exactly one row has `local = true`. The partial unique index `hosts_local_idx` refuses a second one, and the check `hosts_local_check` ties `local` to `kind = 'local'`. Migration `0152_hosts` inserts the row with the name `Execution host`, because a migration cannot read the machine name. TRL-1618 renames it to the machine name on the first start through the revision edit. The identity is the id, not the name.
+Exactly one row has `local = true`. The partial unique index `hosts_local_idx` refuses a second one, and the check `hosts_local_check` ties `local` to `kind = 'local'`. Migration `0152_hosts` inserts the row with the name `Execution host`, because a migration cannot read the machine name. The stored name is display text. The identity is the id, so a rename never changes a saved reference.
 
 The migration also creates the SQL function `local_host_id()`. It returns the id of the local host. The `host_id` columns on `agent_runs`, `agent_execution_attempts`, `flow_executions`, and `harness_accounts` use it as the default. A service that writes one of these rows and names no host therefore binds the row to the local host. The migration binds every existing row the same way.
 
@@ -75,8 +75,10 @@ The migration also creates the SQL function `local_host_id()`. It returns the id
 
 ## Project paths
 
-`project_host_paths` holds the repository directory of a project on one host. The migration inserts one row per project with a nonempty `projects.directory`, bound to the local host. `projects.directory` stays as it is. TRL-1627 and TRL-1653 move its consumers to this table.
+`project_host_paths` holds the repository directory of a project on one host. The migration inserts one row per project with a nonempty `projects.directory`, bound to the local host. `projects.directory` holds the local path for its current consumers. `project_host_paths` holds the path for each host.
 
 ## Queries
 
 `apps/server/src/db/queries/hosts/` holds the queries. Every function takes `(tx, input)`. `editHost` and `setHostState` write with one UPDATE that names the revision the caller read. The revision grows by one on success, and a stale revision changes no row and returns null.
+
+`deleteHost` reads the host row first and returns `{ deleted: true }` after the DELETE. It refuses with `reason: "missing"` when no host has the id. It refuses with `reason: "local"` for the local host. It refuses with `reason: "referenced"` when a row names the host, and that result carries the `references` counts from `hostReferences`.
