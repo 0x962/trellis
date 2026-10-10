@@ -1,0 +1,10 @@
+export { advanceControllerOwnerEpoch, control, setDefaultHost, type WorkspaceControl } from "./control.ts";
+export { type CreateHostInput, createHost } from "./create.ts";
+export { editHost, type HostPatch, setHostState } from "./edit.ts";
+export { getHost } from "./get.ts";
+export type { HostObservationRow, HostRow } from "./hostRow.ts";
+export { type HostListRow, listHosts } from "./list.ts";
+export { localHost } from "./localHost.ts";
+export { type RecordObservationInput, recordObservation } from "./observe.ts";
+export { type PlacementInputs, placementInputs } from "./placement.ts";
+export { type DeleteHostResult, deleteHost, type HostReferences, hostReferences } from "./references.ts";
