@@ -14,6 +14,7 @@ export type NotFoundStateProps = {
 export function NotFoundState({ ref, searchFor }: NotFoundStateProps) {
 	return (
 		<FailureState
+			key={ref}
 			variant="page"
 			className="page-card"
 			title={`${ref} does not exist`}
