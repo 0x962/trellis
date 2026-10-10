@@ -125,6 +125,8 @@ Ticket, flow, and session agents use native permission bypass settings.
 The first prompt contains only the saved run instruction.
 Claude hooks, the OpenCode plugin, and the Pi extension report provider identity, prompt receipts, tools, results, and errors.
 Codex runs one private app-server per attempt. Its native terminal and Trellis event client connect to that engine.
+The Codex socket deadline and the native host observation wait share a 60-second budget.
+Engine exit or a stop signal closes the socket watcher and cancels its timer.
 The Codex adapter maps native thread, turn, tool, result, and error events into the runtime journal.
 The bridge streams engine diagnostics to a private `codex-engine.log` beside the attempt launch file.
 These diagnostics stay outside the terminal screen. Structured log entries still report compaction progress.
@@ -1037,7 +1039,11 @@ a collision takes the next free suffix: `review`, `review-2`.
 
 A node is one step. An `agent` node runs one agent. A `gate` runs one agent that
 answers YES or NO. A gate can instead select a Jev frontend or backend review area.
-Jev receives every changed file path from the linked diff, with its file name and extension.
+Jev receives the unique production paths from the linked diff.
+The host removes tests, fixtures, snapshots, stories, explicit documentation paths, conventional document names, lockfiles, and clear build output.
+It retains production source, executable configuration, and database migrations.
+If no relevant path remains, the host returns neither without a Jev request.
+The complete diff remains available to review agents.
 The host checks the reviewed commit and the complete file count before classification.
 One classification per flow execution gives independent frontend and backend decisions.
 A mixed change selects both review branches. The neither result skips both review branches.
