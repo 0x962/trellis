@@ -82,6 +82,8 @@ A form uses these four sizes. `FieldHint` supplies the shared hint style for sec
 An error takes precedence over a read-only reason.
 A trailing icon action uses `IconButton` inside `Tooltip`.
 A read-only text value remains selectable and focusable.
+Text fields and document editors use `fg-faint` for visible focus borders and outlines.
+The existing soft ring and danger border retain their roles.
 A hint states what the value does. For example, "Every ticket ID starts with OP."
 A field uses its hint slot for an error or reason, with no second message beneath it.
 `FormStatus` reports a save through `status` and optional `message`.

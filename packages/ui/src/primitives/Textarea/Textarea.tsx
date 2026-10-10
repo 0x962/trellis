@@ -44,7 +44,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(function 
 					"w-full rounded-md text-sm leading-5 text-fg placeholder:text-fg-faint outline-none transition duration-hover ease-out",
 					variant === "composer"
 						? "resize-none border-0 bg-transparent py-1.5"
-						: "resize-y border bg-surface px-2.5 py-1.5 focus-visible:border-accent focus-visible:ring-3 focus-visible:ring-accent-soft",
+						: "resize-y border bg-surface px-2.5 py-1.5 focus-visible:border-fg-faint focus-visible:ring-3 focus-visible:ring-accent-soft",
 					"disabled:opacity-50 read-only:bg-bg aria-invalid:border-danger aria-invalid:focus-visible:border-danger",
 					variant === "default" &&
 						(error !== undefined ? "border-danger" : "border-border enabled:hover:border-border-strong"),
