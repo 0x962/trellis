@@ -396,3 +396,15 @@ The agent picker holds the harness, model, effort, and account. Automatic accoun
 The footer holds Add attachment and Start session. Paste and drop also add files.
 Escape and Close keep the draft and its files. Command-Enter or Control-Enter starts the session from any field.
 The pending request disables edits and Close. A failure keeps the draft and shows its details through `FailureState`.
+
+## Create shortcut
+
+Press C to use the create action of the current page.
+The epics list opens New epic. The flows list opens New flow.
+A session page opens New session with its current project.
+The project board, ticket table, Search, and epic Overview open New ticket.
+The epic Overview supplies its epic to the ticket composer.
+The epic Resources tab creates a document through New document.
+Pages without a create action leave C unchanged.
+Text fields, document editors, terminals, dialogs, and open menus retain their keys.
+Archived project lists disable the create shortcut.

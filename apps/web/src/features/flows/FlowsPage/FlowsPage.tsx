@@ -5,6 +5,7 @@ import { flowProjectLabel } from "@trellis/api";
 import { Badge, Button, EmptyState, EntityCard, FailureState, IconButton, Skeleton, Tooltip } from "@trellis/ui";
 import { useState } from "react";
 import { useApp } from "../../../lib/appContext";
+import { usePageCreate } from "../../../lib/usePageCreate";
 import { PageTitle } from "../../shell/PageTitle";
 import { Topbar, TopbarActionButton } from "../../shell/Topbar";
 import { NewFlowDialog } from "./components/NewFlowDialog";
@@ -14,6 +15,8 @@ export function FlowsPage() {
 	const navigate = useNavigate();
 	const flows = useQuery(orpc.flows.list.queryOptions({ input: {}, retry: false }));
 	const [creating, setCreating] = useState(false);
+	const createFlow = () => setCreating(true);
+	usePageCreate(createFlow);
 	const open = (slug: string) => void navigate({ to: "/ai/flows/$slug", params: { slug } });
 
 	return (
@@ -21,7 +24,7 @@ export function FlowsPage() {
 			<Topbar
 				actions={
 					<Tooltip content="New flow">
-						<TopbarActionButton label="New flow" icon={<Plus />} onClick={() => setCreating(true)} />
+						<TopbarActionButton label="New flow" icon={<Plus />} onClick={createFlow} />
 					</Tooltip>
 				}
 			>
@@ -34,7 +37,7 @@ export function FlowsPage() {
 					title="No flows yet"
 					description="Create a flow to define a repeatable process."
 					action={
-						<Button size="md" onClick={() => setCreating(true)}>
+						<Button size="md" onClick={createFlow}>
 							New flow
 						</Button>
 					}

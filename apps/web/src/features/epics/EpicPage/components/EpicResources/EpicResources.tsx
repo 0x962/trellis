@@ -5,6 +5,7 @@ import { IconButton, Tooltip } from "@trellis/ui";
 import { useEffect, useMemo, useState } from "react";
 import { useApp } from "../../../../../lib/appContext";
 import { errorMessage } from "../../../../../lib/conflict";
+import { usePageCreate } from "../../../../../lib/usePageCreate";
 import { PLAN_DOC_ID, planTitle } from "../../../epicDocs";
 import { ResourceList } from "../../../ResourceList";
 import { CommentedDocument } from "./components/CommentedDocument";
@@ -56,6 +57,8 @@ export function EpicResources({ epic, description, readOnly, resourceId }: EpicR
 			setOpenDocId(created.id);
 		},
 	});
+	const createDocument = () => create.mutate();
+	usePageCreate(createDocument, !readOnly && !create.isPending);
 	const saveDescription = async (markdown: string) => {
 		await client.epics.update({ epic, description: markdown });
 		await queryClient.invalidateQueries({ queryKey: orpc.epics.key() });
@@ -89,7 +92,7 @@ export function EpicResources({ epic, description, readOnly, resourceId }: EpicR
 					onRetry={() => void list.refetch()}
 					openError={target.error === null ? null : errorMessage(target.error)}
 					onRetryOpen={() => void target.refetch()}
-					onNewDocument={readOnly ? undefined : () => create.mutate()}
+					onNewDocument={readOnly ? undefined : createDocument}
 					newDocumentPending={create.isPending}
 					newDocumentError={create.error?.message}
 				/>

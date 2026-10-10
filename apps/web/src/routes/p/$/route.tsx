@@ -245,7 +245,7 @@ function ProjectPage() {
 	// only read, so they stay outside it.
 	return (
 		<>
-			<Topbar actions={<NewTicketButton />}>
+			<Topbar actions={<NewTicketButton disabled={archived} />}>
 				<PageTitle title={project.name} />
 				<FilterBar
 					lead={<ViewSwitch value={listView} onChange={switchView} />}

@@ -6,10 +6,10 @@ import { parseProjectSplat, projectHref } from "./projectUrl";
 import { toggleSidebarOnce } from "./sidebarHotkey";
 import { toggleTheme } from "./theme";
 
-// The keyboard map at work. `useGlobalHotkeys` binds every row of
-// `shortcuts` whose scope is global. Every other row is delegated: the
-// focused surface registers its handlers with `useHotkeyTarget`, and the
-// innermost registered target receives the key. `g s` focuses the Filter
+// `useGlobalHotkeys` binds navigation and command shortcuts.
+// Each page registers its create action through `usePageCreate`.
+// A focused surface registers other keys with `useHotkeyTarget`.
+// The innermost registered target receives the key. `g s` focuses the Filter
 // button of the list's filter bar, or the bar itself when the page draws
 // no button. `g e` clicks the epic switcher, which only the epic page draws.
 
@@ -24,8 +24,6 @@ export type GlobalHotkeyOptions = {
 	onPalette: () => void;
 	// `/`.
 	onSearch: () => void;
-	// `c`.
-	onCompose: () => void;
 	// `g p`.
 	onProjectPicker: () => void;
 	onBack: () => void;
@@ -105,10 +103,10 @@ export const useHotkeyTarget = (scope: HotkeyTargetScope, handlers: HotkeyHandle
 
 export { useEscapeLayer } from "./escapeLayers";
 
-// Binds every global row. Returns the first key of a pending sequence, so
+// Binds navigation and command shortcuts. Returns a pending sequence key, so
 // the shell can draw the hint, or null.
 export const useGlobalHotkeys = (options: GlobalHotkeyOptions): string | null => {
-	const { navigate, pathname, onPalette, onSearch, onCompose, onProjectPicker, onBack, onForward } = options;
+	const { navigate, pathname, onPalette, onSearch, onProjectPicker, onBack, onForward } = options;
 	const scheduler = options.scheduler ?? realScheduler;
 	const [pending, setPending] = useState<string | null>(null);
 	const timer = useRef<unknown>(undefined);
@@ -125,10 +123,6 @@ export const useGlobalHotkeys = (options: GlobalHotkeyOptions): string | null =>
 		onPalette();
 	});
 	useHotkey("/", onSearch);
-	useHotkey("c", (event) => {
-		event.preventDefault();
-		onCompose();
-	});
 	useHotkey("mod+\\", toggleTheme);
 	useHotkey("mod+[", (event) => {
 		event.preventDefault();
