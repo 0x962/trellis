@@ -947,6 +947,14 @@ Compatible models without name or type fields use their identifier and the langu
 Vercel key checks return the credit balance string. Compatible key checks return a null balance.
 Each mutation emits `providers.changed {id}`.
 
+`promptRewrite.rewrite` accepts source text and returns rewritten text through `POST /api/prompt-rewrite`.
+It selects the oldest enabled Vercel provider and uses `openai/gpt-6-luna` with low reasoning effort.
+This feature selects its model independently of the provider's saved model list.
+The prepare step reads the provider and key in one short transaction, then calls the gateway outside that transaction.
+The system instructions require every requirement, constraint, literal value, ambiguity, and contradiction to remain intact.
+The source occupies a separate user message. The service writes no source text, result text, or key to logs.
+An empty, refused, malformed, or truncated response returns a declared error. The editor retains its original text after an error.
+
 ### Usage
 
 The Usage page at `/usage` shows what every agent on the machine consumed.

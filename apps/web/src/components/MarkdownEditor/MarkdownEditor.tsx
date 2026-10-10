@@ -2,6 +2,7 @@ import { Markdown } from "@tiptap/markdown";
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { useEffect } from "react";
+import { useRewriteEditor } from "../../features/promptRewrite/useRewriteEditor";
 import { ListDash } from "./utils/listDash";
 
 export type MarkdownEditorProps = {
@@ -37,6 +38,7 @@ export function MarkdownEditor({
 			},
 		},
 	});
+	useRewriteEditor(editor, "markdown");
 	useEffect(() => {
 		editor?.setEditable(!disabled, false);
 	}, [editor, disabled]);

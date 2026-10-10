@@ -45,6 +45,7 @@ import * as notes from "./notes/notes.ts";
 import { pageServices } from "./pages/registry";
 import * as prFiles from "./prFiles/prFiles.ts";
 import * as projects from "./projects.ts";
+import { prepareRewrite } from "./promptRewrite/index.ts";
 import { prepareCheck } from "./providers/check.ts";
 import { prepareDraftCheck } from "./providers/draftCheck/index.ts";
 import { prepareModels } from "./providers/models.ts";
@@ -136,6 +137,7 @@ export const services = {
 	"harnessAccounts.remove": io("mutation", harnessAccounts.remove),
 	"harnessAccounts.quota": prepared("read", prepareQuota, agentTerminal.result),
 	"providers.models": prepared("read", prepareModels, agentTerminal.result),
+	"promptRewrite.rewrite": prepared("mutation", prepareRewrite, agentTerminal.result),
 	"providers.publicModels": prepared("read", preparePublicModels, agentTerminal.result),
 	"providers.check": prepared("read", prepareCheck, agentTerminal.result),
 	"providers.checkDraft": prepared("read", prepareDraftCheck, agentTerminal.result),
