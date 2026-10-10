@@ -53,6 +53,9 @@ const name = `Project ${"界🙂é".repeat(3000)}`;
 const description = "Review the complete result 界🙂é\n".repeat(1000);
 const randomText = Array.from({ length: 400 }, () => crypto.randomUUID().replaceAll("-", "")).join("");
 const statusName = `Review ${randomText} 界🙂é`;
+// A later migration may add columns. The test checks the columns the target migration touched.
+const project = (rows: Record<string, unknown>[], shape: Record<string, unknown>[]) =>
+	rows.map((row) => Object.fromEntries(Object.keys(shape[0]!).map((column) => [column, row[column]])));
 
 beforeAll(async () => {
 	fixtureDirectory = await mkdtemp(join(tmpdir(), "trellis-project-metadata-"));
@@ -88,9 +91,14 @@ beforeAll(async () => {
 		{ conname: "statuses_project_name_equality", contype: "x" },
 		{ conname: "statuses_project_slug_equality", contype: "x" },
 	]);
-	expect((await db.execute(sql`SELECT * FROM projects WHERE key = 'OLD'`)).rows).toEqual(originalProject);
+	expect(project((await db.execute(sql`SELECT * FROM projects WHERE key = 'OLD'`)).rows, originalProject)).toEqual(
+		originalProject,
+	);
 	expect(
-		(await db.execute(sql`SELECT * FROM statuses WHERE project_id = '01J00000000000000000000100' ORDER BY id`)).rows,
+		project(
+			(await db.execute(sql`SELECT * FROM statuses WHERE project_id = '01J00000000000000000000100' ORDER BY id`)).rows,
+			originalStatuses,
+		),
 	).toEqual(originalStatuses);
 	await withTx(db, (tx) => cache.rebuild(tx));
 	expect(await getProject("OLD")).toMatchObject({ id: "01J00000000000000000000100", name: "Existing project" });

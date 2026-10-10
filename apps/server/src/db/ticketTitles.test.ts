@@ -24,6 +24,9 @@ const originalTitle = "Existing title 漢字";
 const title = "漢字 café 𠮷 ".repeat(120).trim();
 const at = "2026-09-29T20:00:00.000Z";
 const run = <T>(fn: (tx: Tx) => Promise<T>) => withTx(db, fn).then(({ result }) => result);
+// A later migration may add columns. The test checks the columns the target migration touched.
+const project = (rows: Record<string, unknown>[], shape: Record<string, unknown>[]) =>
+	rows.map((row) => Object.fromEntries(Object.keys(shape[0]!).map((column) => [column, row[column]])));
 
 beforeAll(async () => {
 	const migrationsDir = join(import.meta.dir, "../../drizzle");
@@ -70,7 +73,7 @@ test("the forward migration preserves rows and complete multibyte titles across 
 		"tickets_title_check",
 	);
 	expect(await migrate(db)).toBeGreaterThanOrEqual(1);
-	expect((await db.execute(sql`SELECT * FROM tickets WHERE id = ${originalId}`)).rows).toEqual(before);
+	expect(project((await db.execute(sql`SELECT * FROM tickets WHERE id = ${originalId}`)).rows, before)).toEqual(before);
 	const created = await run((tx) => create(ctx, tx, { project: "TTL", title }));
 	expect(TicketSchema.parse(created).title).toBe(title);
 	const editedTitle = `${title} amended 終`;

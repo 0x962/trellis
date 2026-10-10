@@ -15,6 +15,9 @@ const journal = JSON.parse(await readFile(join(migrationsDir, "meta/_journal.jso
 };
 const fixturesDir = await mkdtemp(join(tmpdir(), "trellis-session-names-migration-"));
 let db: Db;
+// A later migration may add columns. The test checks the columns the target migration touched.
+const project = (rows: Record<string, unknown>[], shape: Record<string, unknown>[]) =>
+	rows.map((row) => Object.fromEntries(Object.keys(shape[0]!).map((column) => [column, row[column]])));
 
 afterAll(async () => {
 	await db?.$client.close();
@@ -49,10 +52,12 @@ test("the name constraint upgrade preserves the session and provider conversatio
 	const name = "界".repeat(4096);
 	await expect(db.execute(sql`UPDATE sessions SET name = ${name} WHERE id = 'session'`)).rejects.toThrow();
 	expect(await migrate(db)).toBe(journal.entries.length - earlierEntries.length);
-	expect((await db.execute(sessionQuery)).rows).toEqual(originalSession.rows);
-	expect((await db.execute(runQuery)).rows).toEqual(originalRun.rows);
+	expect(project((await db.execute(sessionQuery)).rows, originalSession.rows)).toEqual(originalSession.rows);
+	expect(project((await db.execute(runQuery)).rows, originalRun.rows)).toEqual(originalRun.rows);
 	await db.execute(sql`UPDATE sessions SET name = ${name} WHERE id = 'session'`);
-	expect((await db.execute(sessionQuery)).rows).toEqual([{ ...originalSession.rows[0], name }]);
-	expect((await db.execute(runQuery)).rows).toEqual(originalRun.rows);
+	expect(project((await db.execute(sessionQuery)).rows, originalSession.rows)).toEqual([
+		{ ...originalSession.rows[0], name },
+	]);
+	expect(project((await db.execute(runQuery)).rows, originalRun.rows)).toEqual(originalRun.rows);
 	expect(await migrate(db)).toBe(0);
 }, 60_000);
