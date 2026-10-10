@@ -15,6 +15,7 @@ import { models } from "./models.ts";
 import { notes } from "./notes.ts";
 import { pages } from "./pages.ts";
 import { projects } from "./projects.ts";
+import { promptRewrite } from "./promptRewrite/index.ts";
 import { providers } from "./providers.ts";
 import { pullRequests } from "./pullRequests.ts";
 import { resourceComments } from "./resourceComments.ts";
@@ -47,6 +48,7 @@ export const contract = {
 	labels: oc.tag("labels").router(labels),
 	labelGroups: oc.tag("label groups").router(labelGroups),
 	projects: oc.tag("projects").router(projects),
+	promptRewrite: oc.tag("prompt rewrite").router(promptRewrite),
 	providers: oc.tag("providers").router(providers),
 	statuses: oc.tag("statuses").router(statuses),
 	tickets: oc.tag("tickets").router(tickets),

@@ -13,6 +13,7 @@ import { models } from "./models.ts";
 import { notes } from "./notes.ts";
 import { pages } from "./pages.ts";
 import { projects } from "./projects.ts";
+import { promptRewrite } from "./promptRewrite/index.ts";
 import { providers } from "./providers.ts";
 import { pullRequests } from "./pullRequests.ts";
 import { actors, brief, search, settings, timeline } from "./reads.ts";
@@ -46,6 +47,7 @@ export const router = os.router({
 	labels,
 	labelGroups,
 	projects,
+	promptRewrite,
 	providers,
 	statuses,
 	tickets,

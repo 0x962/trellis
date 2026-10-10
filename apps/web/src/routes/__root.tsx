@@ -1,6 +1,7 @@
 import { createRootRouteWithContext, Link, Outlet, redirect, useRouterState } from "@tanstack/react-router";
 import { EmptyState, Toaster } from "@trellis/ui";
 import { lazy, Suspense } from "react";
+import { RewriteHotkey } from "../features/promptRewrite/RewriteHotkey";
 import { NewSessionHost } from "../features/sessions/NewSessionHost";
 import { GlobalHotkeys } from "../features/shell/GlobalHotkeys";
 import { LinkCapture } from "../features/shell/LinkCapture";
@@ -87,6 +88,7 @@ function RootComponent() {
 			</div>
 			<div data-command-palette="" hidden />
 			<GlobalHotkeys />
+			<RewriteHotkey />
 			<LinkCapture />
 			<ShellOverlays />
 			<NewSessionHost />

@@ -396,3 +396,16 @@ The agent picker holds the harness, model, effort, and account. Automatic accoun
 The footer holds Add attachment and Start session. Paste and drop also add files.
 Escape and Close keep the draft and its files. Command-Enter or Control-Enter starts the session from any field.
 The pending request disables edits and Close. A failure keeps the draft and shows its details through `FailureState`.
+
+## Rewrite a prompt
+
+Select all text in a multiline field, then press L twice within 300 milliseconds.
+Control+A or Command+A selects the complete field.
+The shortcut covers textareas, ticket and document descriptions, the ticket composer, and the agent prompt template.
+A read-only field, terminal, or unregistered editor keeps its normal keys.
+One L, or L followed by another key, enters normal text.
+The rewrite uses the configured Vercel provider and the feature's text model.
+The instruction requires the model to preserve every requirement, constraint, identifier, number, and quoted value.
+A status toast reports progress. A successful replacement offers Undo and preserves the editor's undo history.
+A failed request retains the original text.
+An edit, focus change, document switch, or closed editor prevents a late result from replacing the field.

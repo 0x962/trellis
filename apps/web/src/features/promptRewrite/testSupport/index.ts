@@ -1,0 +1,1 @@
+export { rewriteTestBrowser } from "./testSupport";

@@ -1,6 +1,7 @@
 import { Markdown } from "@tiptap/markdown";
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
+import { useRewriteEditor } from "../../../../promptRewrite/useRewriteEditor";
 import { ListDash } from "./utils/listDash";
 
 export type DescriptionEditorProps = {
@@ -27,5 +28,6 @@ export function DescriptionEditor({ markdown, onChange, autofocus = true }: Desc
 			},
 		},
 	});
+	useRewriteEditor(editor, "composer");
 	return <EditorContent editor={editor} />;
 }
