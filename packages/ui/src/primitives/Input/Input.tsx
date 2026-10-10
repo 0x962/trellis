@@ -8,8 +8,8 @@ export type InputProps = Omit<ComponentProps<typeof BaseInput>, "id" | "classNam
 		className?: string;
 	};
 
-// A single-line text field, 32 px tall. The focus draws the accent border
-// and a soft ring outside it; the caret shows where the text goes.
+// The neutral focus border uses fg-faint so it stays distinct from
+// the surface in both themes. The caret marks the insertion point.
 export function Input({
 	label,
 	hideLabel = false,
@@ -36,7 +36,7 @@ export function Input({
 			<BaseInput
 				className={cx(
 					"h-8 pointer-coarse:h-11 w-full rounded-md border bg-surface px-2.5 text-sm text-fg placeholder:text-fg-faint outline-none transition duration-hover ease-out",
-					"focus-visible:border-accent focus-visible:ring-3 focus-visible:ring-accent-soft",
+					"focus-visible:border-fg-faint focus-visible:ring-3 focus-visible:ring-accent-soft",
 					"disabled:opacity-50 read-only:bg-bg aria-invalid:border-danger aria-invalid:focus-visible:border-danger",
 					// A field that holds a refused value often has the focus, because
 					// the screen puts it back there. Without this rule the focus
