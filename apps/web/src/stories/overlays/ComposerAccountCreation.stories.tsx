@@ -50,7 +50,10 @@ const createAccount =
 		await expect(form.getByRole("textbox", { name: "Account name" })).toHaveValue("New work");
 		await userEvent.click(form.getByRole("textbox", { name: "Account name" }));
 		if (shortcut) await userEvent.keyboard(shortcut);
-		else await userEvent.click(form.getByRole("button", { name: "Add account" }));
+		if (!shortcut || shortcut.startsWith("{Control")) {
+			await expect(createTicket).not.toHaveBeenCalled();
+			await userEvent.click(form.getByRole("button", { name: "Add account" }));
+		}
 		await waitFor(() => expect(page.queryByRole("dialog", { name: "Add agent account" })).not.toBeInTheDocument());
 		await expect(createTicket).not.toHaveBeenCalled();
 		await expect(page.getByRole("textbox", { name: "Title" })).toHaveValue("Build the component catalog");

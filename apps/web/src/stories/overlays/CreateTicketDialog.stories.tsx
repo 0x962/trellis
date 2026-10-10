@@ -220,11 +220,17 @@ export const NestedStatusKeepsDraft: Story = {
 		const page = within(canvasElement.ownerDocument.body);
 		for (const shortcut of ["{Meta>}{Enter}{/Meta}", "{Control>}{Enter}{/Control}"]) {
 			await userEvent.click(await page.findByRole("button", { name: /^Status:/ }));
-			await userEvent.type(await page.findByRole("combobox", { name: "Search statuses" }), "Release");
+			const search = await page.findByRole("combobox", { name: "Search statuses" });
+			await userEvent.clear(search);
+			await userEvent.type(search, "Release");
 			await userEvent.click(await page.findByRole("option", { name: 'Create status "Release"' }));
 			const dialog = await page.findByRole("dialog", { name: "Create status" });
 			await userEvent.click(within(dialog).getByRole("textbox", { name: "Status name" }));
 			await userEvent.keyboard(shortcut);
+			if (shortcut.startsWith("{Control")) {
+				await expect(nestedTicketCreate).not.toHaveBeenCalled();
+				await userEvent.click(within(dialog).getByRole("button", { name: "Create status" }));
+			}
 			await waitFor(() => expect(dialog).not.toBeInTheDocument());
 			await expect(nestedTicketCreate).not.toHaveBeenCalled();
 			await expect(await page.findByRole("button", { name: "Create" })).toBeVisible();
@@ -275,8 +281,10 @@ export const NestedTicketKeepsDraft: Story = {
 		await expect(await page.findByLabelText("Title")).toHaveValue("Build the component catalog");
 		child = await openChild();
 		await expect(child.getByLabelText("Title")).toHaveValue("New parent");
-		await expect(child.getByText("child.txt")).toBeVisible();
-		await userEvent.click(child.getByRole("button", { name: "Create" }));
+		await waitFor(() => expect(child.getByText("child.txt")).toBeVisible());
+		const create = child.getByRole("button", { name: "Create" });
+		await waitFor(() => expect(create).toBeEnabled());
+		await userEvent.click(create);
 		await waitFor(() => expect(relatedCreate).toHaveBeenCalledTimes(1));
 		await expect(await page.findByText("Sub-ticket of DEMO-9")).toBeVisible();
 		await expect(page.getByLabelText("Title")).toHaveValue("Build the component catalog");
