@@ -19,8 +19,6 @@ export type CardContentProps = {
 	// names its own.
 	showStatus?: boolean;
 	readOnly?: boolean;
-	compactLabels?: boolean;
-	interactive?: boolean;
 	lineChanges?: LineChangesValue | null;
 	lineChangesPending?: boolean;
 };
@@ -35,8 +33,6 @@ export function CardContent({
 	ticket,
 	showStatus = false,
 	readOnly = false,
-	compactLabels = false,
-	interactive = true,
 	lineChanges,
 	lineChangesPending = false,
 }: CardContentProps) {
@@ -74,7 +70,7 @@ export function CardContent({
 				{ticket.priority !== "none" && <PriorityIcon priority={ticket.priority} />}
 			</div>
 			<p className="line-clamp-3 text-base font-medium text-fg">{ticket.title}</p>
-			<LabelPills labels={ticket.labels} wrap={!compactLabels} />
+			<LabelPills labels={ticket.labels} wrap />
 			<div className="mt-auto flex min-h-4 min-w-0 items-center gap-1.5 text-xs text-fg-faint tabular">
 				{ticket.childCount > 0 && (
 					<span className="inline-flex items-center gap-1">
@@ -89,12 +85,10 @@ export function CardContent({
 					</span>
 				)}
 				{showStatus && <span className="truncate">{ticket.status.name}</span>}
-				{ticket.status.category === "review" && ticket.pr !== null && (
-					<ReviewStatusSummary reviews={reviews} interactive={interactive} />
-				)}
+				{ticket.status.category === "review" && ticket.pr !== null && <ReviewStatusSummary reviews={reviews} />}
 				<span className="ml-auto flex shrink-0 items-center gap-1.5 empty:hidden">
 					{showLineChanges && <LineChanges value={lineChanges} pending={lineChangesPending} />}
-					<ActorAvatar ticket={ticket} readOnly={readOnly} interactive={interactive} />
+					<ActorAvatar ticket={ticket} readOnly={readOnly} />
 				</span>
 			</div>
 		</>

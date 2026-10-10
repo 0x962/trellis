@@ -60,8 +60,5 @@
 	],
 	"patchedDependencies": {
 		"@xterm/addon-webgl@0.20.0-beta.297": "patches/@xterm%2Faddon-webgl@0.20.0-beta.297.patch"
-	},
-	"overrides": {
-		"@tiptap/extension-highlight": "3.31.3"
 	}
 }

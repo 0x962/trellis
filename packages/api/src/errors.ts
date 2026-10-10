@@ -19,11 +19,6 @@ const IssueSchema = z.looseObject({
 // An error without a payload declares `z.undefined()`, so `data` is typed
 // as absent instead of as an empty object.
 export const errors = {
-	EPIC_WHITEBOARD_VERSION_CONFLICT: {
-		status: 412,
-		message: "The whiteboard changed since the revision you sent. Reload it before you save.",
-		data: z.object({ revision: z.number().int().min(0) }),
-	},
 	SESSION_ATTENTION_CHANGED: {
 		status: 409,
 		message: "The session changed. Read it again before you continue.",

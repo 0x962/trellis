@@ -32,8 +32,9 @@ export type WaveEditing = {
 	// Sends the new name. It throws when the server refuses, so the name
 	// field stays open and prints the reason.
 	rename: (wave: WaveSummary, name: string) => Promise<void>;
-	// Closes the name field. Enter or Escape sets `focus` to "value", which
-	// returns focus to the first control in the wave header.
+	// Closes the name field. `focus` is "value" when the person pressed Enter
+	// or Escape, and the collapse button that holds the name takes the focus
+	// back.
 	endRename: (waveId: string, focus: InlineEditFocus) => void;
 	// Moves a wave one place: -1 is up, 1 is down.
 	move: (waveId: string, step: -1 | 1) => void;
@@ -58,16 +59,18 @@ const failTitle = (write: Write) => {
 	return `${write.wave.name} is not deleted.`;
 };
 
-// React can replace a moved wave header's DOM node. Its first control
-// receives focus so keyboard navigation continues from that wave.
+// The collapse button of a wave header takes the focus back after a move.
+// The header is a line of the virtual list, and a moved line loses the
+// focus when React moves its DOM node.
+// A wave that a move sends outside the view comes back into view, and a
+// header that stands at the top of the list keeps the list where it is.
 const focusHeader = (waveId: string) => {
-	const button = document.querySelector<HTMLElement>(
-		`[data-group="${waveId}"] button[aria-expanded], [data-group="${waveId}"] button`,
-	);
+	const button = document.querySelector<HTMLElement>(`[data-group="${waveId}"] button[aria-expanded]`);
 	if (button !== null) focusInView(button);
 };
 
-// Each wave write refetches `epics` queries so their views receive the result.
+// The wave writes of the epic page. Every write refetches the `epics`
+// queries, so the wave groups of the table follow.
 //
 // The rename stands apart from the mutation below. `InlineEdit` owns the name
 // field, so a refused rename must reach the field as a rejected promise. The

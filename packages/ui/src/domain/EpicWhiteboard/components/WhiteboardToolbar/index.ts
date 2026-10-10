@@ -1,1 +1,0 @@
-export { WhiteboardToolbar } from "./WhiteboardToolbar";

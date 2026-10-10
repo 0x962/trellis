@@ -270,48 +270,32 @@ A long name gives way and the identifier stays. The drag preview draws the same 
 
 ## Epic pages
 
-The Overview tab contains a tldraw whiteboard with every wave and ticket, including empty waves and completed tickets.
-The shared `EpicWhiteboard` owns the canvas, tools, ticket frames, and wave frames in `packages/ui`.
-The web feature supplies the existing `CardContent`, wave actions, and `pageSheetActions.openTicket`.
-A plain ticket tap opens the complete ticket sheet over the board. A drag changes the card position.
-Ticket cards show their status and assigned agent. Their actions remain in the ticket sheet.
-Escape cancels the canvas selection or tool. The ticket sheet retains its own Escape behavior.
-A freehand stroke stays a drawing, including when it crosses a ticket.
-The toolbar uses circular `IconButton` controls with `Tooltip` labels.
-Its tools include Ticket (T), Session (S), Wave from selection (W), Dependency (X), Text (Shift+T), and Sketch arrow (A).
-Select, Move canvas, Draw, Erase drawing, Undo, Redo, and Fit whiteboard retain their standard behavior.
-Ticket and Session capture the clicked page point before they open their canonical forms.
-A ticket outside a wave stays loose. A ticket inside a wave starts with that wave selected in its form.
-Wave from selection opens a name dialog. Confirm creates the wave and moves only its selected tickets in one transaction.
-The selected tickets and annotations keep their page positions. Escape closes the form without a wave mutation.
-Dependency connects the prerequisite to the ticket that waits for it. A drag or two clicks select these endpoints.
-Session disks use the canonical agent avatar and open the existing session sheet. Delete removes a standalone disk from the board alone.
-Blue arrows show unfinished dependencies between tickets in this epic. Sketch arrows remain notes.
-Dashed labeled arrows show source relationships. Shared PR nodes open the canonical PR sheet; sub-ticket links reuse existing ticket cards.
-Recorded subagent disks open a read-only output sheet. The sheet shows recorded fields and an action to open the source session.
-More outputs reads another bounded history page. The output control names incomplete source history.
-Source projections retain their positions across pending reads and updates. The board protects derived output nodes from record edits and deletion.
-Ticket and wave shapes refer to source records. The drawing tools cannot delete or duplicate those records.
-A wave moves its ticket cards together. A card drag preserves its wave membership.
-The host saves card positions and drawings with revision checks. Each device keeps its own camera position.
-A save conflict retains the local draft and stops further saves until the person reloads.
-The board retains its draft and save queue across tab changes and route changes.
-An unsaved draft asks for confirmation before the browser closes or reloads, including after a route change.
-The Resources tab contains the epic plan, documents, links, and files.
-
-The `Topbar` holds the `FilterBar`, Broadcast, Add, and the epic actions `Menu`.
-Filters mark tickets outside the filter with a dashed border and a text label. Every ticket keeps its board position.
-Broadcast selects agents across the epic, independent of these filters.
-The Add menu offers Ticket and Wave. Ticket opens the project `TicketPicker`.
-Wave adds `Wave <n>` and opens its `InlineEdit` name field on the board.
-The epic actions menu retains Copy as CLI, Copy link, Edit, and Delete.
-The selected wave uses `GroupHeader` with its ticket count and the shared wave controls in a fixed canvas panel.
-These controls retain their screen size when the canvas zooms. Select a wave frame to show its actions.
-An empty wave says "No tickets in this wave".
-Start wave opens the existing agent assignment dialog and retains its dependency tree and assignment checks.
-The wave menu offers New ticket in this wave, Rename, Move up, Move down, and Delete wave.
-Delete wave asks for confirmation when the wave holds tickets.
-The project archive banner stays above the tabs. An archived board permits navigation and prevents edits.
+The epic page shows its tickets in the full-width `TicketTable` of the project table view. It has no page-specific row and no row menu of its own.
+Its `Topbar` holds the `FilterBar` chips, the Display `IconButton`, a Broadcast `IconButton`, an Add menu, and the epic actions `Menu`.
+The Broadcast control opens the shared broadcast dialog with the epic name and its working and idle recipient counts.
+It selects agents across the epic, independent of the ticket filters.
+The Add menu uses a plus `IconButton` with the `Tooltip` Add. Its options are Ticket and Wave.
+Ticket opens the project `TicketPicker`. Wave creates a wave through the existing wave actions.
+The epic actions menu holds Copy as CLI, Copy link, Edit, and Delete.
+The share commands retain the current filters and the epic scope.
+Every wave of the epic draws a `GroupHeader`. A wave with no ticket shows one muted line, "No tickets in this wave.", and no Start wave.
+Start wave opens one surface with a dependency tree, status icons, and checkboxes.
+Ready, unassigned Todo tickets start checked. Waiting Todo tickets remain available for an explicit start.
+Each ticket appears under its first unfinished prerequisite in the wave. Its row names every unfinished prerequisite, including other waves.
+Assigned tickets and tickets outside Todo remain visible with disabled checkboxes.
+The compact agent picker beside Start holds the shared harness, model, and effort fields.
+Submission locks the selection and agent choice. Each accepted request updates its ticket immediately.
+A failed request shows its complete error. Retry sends only failed tickets with their original request identifiers and agent choice.
+The Wave option adds `Wave <n>` at the end and opens its name as a field in the header. The field is the `InlineEdit` of the in-place edit, and the collapse button of the header takes the focus back after Enter and after Escape.
+A wave header holds Add tickets to this wave (a list-plus `IconButton` with the `TicketPicker`) and a Wave actions `Menu`: New ticket in this wave, Rename, Move up, Move down, and Delete wave. The menu shows the keys F2, Alt+Shift+Up, and Alt+Shift+Down, which work on a focused header.
+Delete wave asks first only when the wave holds tickets. The dialog names the tickets that move to No wave and the open agent runs among them.
+A ticket row drags into another wave group or into No wave. An accent outline marks the group that takes the drop. The `w` key is the keyboard path: it opens the wave picker of the focused row or of the selection.
+An epic with no ticket and no wave shows an `EmptyState` with the same Add menu as the `Topbar`.
+The page fixes the `epic` filter. By default the table groups by wave.
+The page holds no current line, no progress bar and no legend.
+The `SectionHeader` Plan collapses the description through its Show or Hide `Button`. `uiStore` keeps its collapsed state under `<route key>#plan`.
+The plan and the resources take at most half of the page card, so the table keeps rows on screen.
+The page of an archived project shows the `ArchivedBanner` of the project routes at the top of the page card. The pending page draws the same `Topbar` with the `FilterBar`, so the bar keeps its shape when the epic arrives.
 A row of the epics list page prints the current wave after the epic name in muted text: `<name> · <i> of <n>`.
 The rows of the epics list page use the `rowHeights`, the hover band, the cell text sizes, the tabular numbers, and the trailing `Menu` slot width of the ticket table `Row`.
 

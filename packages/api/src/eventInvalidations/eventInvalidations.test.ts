@@ -133,20 +133,3 @@ test("pull request updates invalidate the saved review overview", () => {
 	expect(client.getQueryState(overview)?.isInvalidated).toBe(true);
 	client.clear();
 });
-
-test("whiteboard saves refresh board documents without ticket or epic metadata queries", () => {
-	const { client, applier, flush } = setup();
-	const board = generateOperationKey(["epics", "whiteboard"], { input: { epic: runId } });
-	const untouched = [
-		generateOperationKey(["epics", "get"], { input: { epic: runId } }),
-		generateOperationKey(["epics", "list"], { input: { project: "TRL" } }),
-		generateOperationKey(["tickets", "list"], {}),
-		generateOperationKey(["projects", "list"], {}),
-	];
-	for (const queryKey of [board, ...untouched]) client.setQueryData(queryKey, {});
-	applier.applyEvent({ type: "epic-whiteboard.changed", projectId: otherId, id: runId, revision: 2 });
-	flush();
-	expect(client.getQueryState(board)?.isInvalidated).toBe(true);
-	for (const queryKey of untouched) expect(client.getQueryState(queryKey)?.isInvalidated).toBe(false);
-	client.clear();
-});

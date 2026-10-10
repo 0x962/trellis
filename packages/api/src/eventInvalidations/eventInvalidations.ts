@@ -21,8 +21,6 @@ export function eventInvalidations(event: InvalidatingEvent): Matcher[] {
 			return [family("epics"), family("tickets"), family("projects", "list")];
 		case "epic-chatter.changed":
 			return [family("epicChatter")];
-		case "epic-whiteboard.changed":
-			return [family("epics", "whiteboard")];
 		case "pages.changed":
 			return [family("pages"), family("projects", "list"), family("search")];
 		case "providers.changed":

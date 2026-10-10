@@ -13,8 +13,6 @@ import { resolvePlacement } from "../placement.ts";
 // transaction creates the defaults and the ticket, so concurrent requests reuse them.
 export const createPlacement = async (ctx: ServiceCtx, tx: Tx, projectId: string, input: TicketCreateInput) => {
 	const empty = { epicId: null, epicRef: null, waveId: null, waveRef: null };
-	if (input.wave === null && input.epic === undefined)
-		throw invalidInput("epic", "Choose an epic for a ticket without a wave.");
 	if (input.wave !== undefined) return resolvePlacement(ctx, tx, projectId, empty, input);
 	let epicId: string;
 	if (input.epic !== undefined) {

@@ -1,4 +1,4 @@
-import { type Harness, HarnessSchema, type SessionDetail } from "@trellis/api";
+import { type Harness, HarnessSchema } from "@trellis/api";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
@@ -23,11 +23,8 @@ const empty = (): Draft => ({
 	requestId: crypto.randomUUID(),
 });
 
-type Options = { onCreated?: (session: SessionDetail) => void };
-type ComposerState = Draft & { open: boolean; openingId: number; options: Options; stayOnPage: boolean };
-
-export const useSessionComposerStore = create<ComposerState>()(
-	persist((): ComposerState => ({ ...empty(), open: false, openingId: 0, options: {}, stayOnPage: false }), {
+export const useSessionComposerStore = create<Draft & { open: boolean }>()(
+	persist((): Draft & { open: boolean } => ({ ...empty(), open: false }), {
 		name: "trellis-session-composer",
 		partialize: ({ project, name, prompt, harness, accountId, accountSelection, requestId }) => ({
 			project,
@@ -42,27 +39,13 @@ export const useSessionComposerStore = create<ComposerState>()(
 );
 
 export const sessionComposerActions = {
-	open: (project = "", options: Options = {}) =>
-		useSessionComposerStore.setState((state) => ({
+	open: (project = "") =>
+		useSessionComposerStore.setState({
 			open: true,
-			openingId: state.openingId + 1,
-			options,
-			stayOnPage: options.onCreated !== undefined,
 			project,
-			...(project === state.project ? {} : { requestId: crypto.randomUUID() }),
-		})),
-	close: () => useSessionComposerStore.setState({ open: false, options: {} }),
-	created: (openingId: number, session: SessionDetail) => {
-		const state = useSessionComposerStore.getState();
-		if (!state.open || state.openingId !== openingId) return false;
-		const onCreated = state.options.onCreated;
-		sessionComposerActions.clear();
-		onCreated?.(session);
-		return !state.stayOnPage;
-	},
-	clearOnCreated: () => {
-		useSessionComposerStore.setState({ options: {} });
-	},
+			...(project === useSessionComposerStore.getState().project ? {} : { requestId: crypto.randomUUID() }),
+		}),
+	close: () => useSessionComposerStore.setState({ open: false }),
 	change: (draft: Partial<Draft>) => useSessionComposerStore.setState({ ...draft, requestId: crypto.randomUUID() }),
 	selectAccount: (accountId: string) => sessionComposerActions.change({ accountId, accountSelection: "manual" }),
 	selectHarness: (harness: Harness) => {
@@ -87,7 +70,5 @@ export const sessionComposerActions = {
 			accountSelection: "automatic",
 			requestId: crypto.randomUUID(),
 			open: false,
-			options: {},
-			stayOnPage: false,
 		}),
 };

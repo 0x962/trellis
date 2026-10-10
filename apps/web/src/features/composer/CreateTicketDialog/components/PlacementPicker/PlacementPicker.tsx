@@ -29,7 +29,7 @@ export function PlacementPicker({
 				<ComposerProperty
 					icon={<Stack />}
 					glimmer={glimmer}
-					glimmerValue={placement.wave ?? undefined}
+					glimmerValue={placement.wave}
 					aria-label={`Epic and wave: ${placement.epicName}, ${placement.waveName}`}
 					disabled={disabled || !project}
 					aria-invalid={!placement.ready || undefined}
@@ -58,11 +58,11 @@ export function PlacementPicker({
 					) : (
 						<WavePicker
 							epic={placement.epic}
-							value={placement.wave ?? undefined}
-							allowNone={placement.allowLoose}
+							value={placement.wave}
+							allowNone={false}
 							onPick={(next) => onWave(next?.ref ?? null)}
 							trigger={
-								<ComposerProperty glimmer={glimmer} glimmerValue={placement.wave ?? undefined}>
+								<ComposerProperty glimmer={glimmer} glimmerValue={placement.wave}>
 									{placement.waveName}
 								</ComposerProperty>
 							}

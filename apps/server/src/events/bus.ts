@@ -39,7 +39,6 @@ const scopeOf = (event: TrellisEvent): Scope => {
 		case "statuses.changed":
 		case "labels.changed":
 		case "epic-chatter.changed":
-		case "epic-whiteboard.changed":
 		case "epics.changed":
 		case "pages.changed":
 		case "page-comments.changed":

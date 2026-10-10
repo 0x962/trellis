@@ -27,8 +27,6 @@ import {
 	AgentWorkspaceSummarySchema,
 	TicketMetricsSchema,
 } from "../schemas/agentRun.ts";
-import { AgentRunPullRequestSchema, AgentRunPullRequestsInputSchema } from "../schemas/agentRunPullRequests/index.ts";
-import { AgentSubagentPageSchema, AgentSubagentsInputSchema } from "../schemas/agentSubagents/index.ts";
 import { EpicRefInputSchema } from "../schemas/epic.ts";
 import { UlidSchema } from "../schemas/primitives.ts";
 import { AgentAnswerInputSchema, AgentSeenInputSchema } from "../schemas/sessionActivity.ts";
@@ -93,15 +91,6 @@ const sessionSchema = z.object({
 	result: z.object({ id: z.string(), text: z.string() }).nullable(),
 });
 export const agentRuns = {
-	subagents: base
-		.errors(pickErrors(["RUNNER_UNAVAILABLE"]))
-		.route({ method: "GET", path: "/agent-runs/subagents", summary: "Read recorded subagent outputs" })
-		.input(AgentSubagentsInputSchema)
-		.output(z.array(AgentSubagentPageSchema)),
-	pullRequests: base
-		.route({ method: "GET", path: "/agent-runs/pull-requests", summary: "Read pull requests linked by agents" })
-		.input(AgentRunPullRequestsInputSchema)
-		.output(z.array(AgentRunPullRequestSchema)),
 	activity: base
 		.route({ method: "GET", path: "/agent-runs/activity", summary: "Read activity for all agent terminals" })
 		.input(z.strictObject({}))

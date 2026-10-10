@@ -8,7 +8,6 @@ import {
 	WaveSummarySchema,
 	WaveUpdateInputSchema,
 } from "../schemas/wave.ts";
-import { WaveCreateWithTicketsInputSchema } from "../schemas/waveCreateWithTickets/index.ts";
 import { base } from "./base.ts";
 
 const write = pickErrors(["PROJECT_ARCHIVED", "DUPLICATE"]);
@@ -20,16 +19,6 @@ const write = pickErrors(["PROJECT_ARCHIVED", "DUPLICATE"]);
 // and `reorder` take the epic in the body, and `order` is a fixed segment
 // that the router matches before `{+wave}`.
 export const waves = {
-	createWithTickets: base
-		.errors(write)
-		.route({
-			method: "POST",
-			path: "/waves/with-tickets",
-			successStatus: 201,
-			summary: "Create a wave and move selected tickets into it",
-		})
-		.input(WaveCreateWithTicketsInputSchema)
-		.output(WaveSummarySchema),
 	create: base
 		.errors(write)
 		.route({

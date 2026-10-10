@@ -1,9 +1,5 @@
 import { call, os } from "./base.ts";
 export const agentRuns = os.agentRuns.router({
-	subagents: os.agentRuns.subagents.handler(({ context, input }) => call(context, "agentRuns.subagents", input)),
-	pullRequests: os.agentRuns.pullRequests.handler(({ context, input }) =>
-		call(context, "agentRuns.pullRequests", input),
-	),
 	broadcastRecipients: os.agentRuns.broadcastRecipients.handler(({ context, input }) =>
 		call(context, "agentRuns.broadcastRecipients", input),
 	),
