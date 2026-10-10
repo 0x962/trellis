@@ -299,6 +299,8 @@ The final transaction checks the selected references again.
 Classification creates no ticket, epic, or wave.
 
 Manual field choices and explicit page context constrain automatic selection.
+The New ticket button and keyboard command retain the current epic, including when a saved draft names another epic.
+Automatic selection excludes completed and canceled epics unless the request explicitly selects that epic or one of its waves.
 The composer starts without an existing wave unless the caller or the saved draft selects one.
 Automatic wave and priority changes use one standard text glimmer sweep and respect reduced motion.
 The saved draft identifies automatic fields so later edits can update them after the dialog reopens.
