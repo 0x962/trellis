@@ -1312,13 +1312,13 @@ are no triggers. Every rule is a constraint or a service function that takes
 
 | table | columns and constraints |
 |---|---|
-| projects | id PK, key (NOT NULL, UNIQUE, CHECK regex), slug (NOT NULL, UNIQUE, CHECK slug regex, not `board` or `settings`), name (nonempty), description, directory, ticket_template, ticket_counter, position, color (CHECK set), archived_at, created_at, updated_at. Partial UNIQUE (color) WHERE archived_at IS NULL. |
+| projects | id PK, key (NOT NULL, UNIQUE, CHECK regex), slug (NOT NULL, UNIQUE, CHECK slug regex, not `board` or `settings`), name (nonempty), description, directory, ticket_template, ticket_counter, position, color (CHECK set), archived_at, default_host_id (FK hosts), created_at, updated_at. Partial UNIQUE (color) WHERE archived_at IS NULL. Index (default_host_id). |
 | repos | id PK, project_id (CASCADE), owner, repo (both CHECK lowercase). UNIQUE (project_id, owner, repo). |
 | statuses | id PK, project_id (CASCADE), name (nonempty), description, slug, category (CHECK set), color, position, is_default, created_at, updated_at. Hash equality exclusion constraints on project-scoped name and slug. Partial UNIQUE (project_id) WHERE is_default. |
 | label_groups | id PK, project_id (CASCADE), name, created_at, updated_at. Hash exclusion on ARRAY[project_id, lower(name)]. CHECK name trimmed, nonempty, no `,`, no `/`, and not `none`. |
 | labels | id PK, project_id (CASCADE), group_id (FK label_groups CASCADE, NULL for a label with no group), name, color (CHECK set), description (default `''`), created_at, updated_at. Hash exclusions on ARRAY[group_id, lower(name)] WHERE group_id IS NOT NULL and ARRAY[project_id, lower(name)] WHERE group_id IS NULL. The same name CHECK as label_groups. Index (project_id). |
 | ticket_labels | ticket_id (CASCADE), label_id (CASCADE), created_at. PK (ticket_id, label_id). Index (label_id). |
-| tickets | id PK, project_id (FK projects RESTRICT), number (CHECK > 0), title (CHECK trimmed, 1 to 500), description, priority (CHECK set), status_id (FK statuses RESTRICT), parent_id, epic_id (FK epics SET NULL), wave_id (FK waves SET NULL; CHECK `tickets_wave_needs_epic`: a row with a wave has an epic), position double, version, started_at, completed_at, search tsvector GENERATED (title A, description B), created_at, updated_at. UNIQUE (project_id, number) and (id, project_id). FK (parent_id, project_id) RESTRICT, so a parent ticket sits in the project of its child. Indexes (project_id, status_id, position), (status_id, position, id, project_id), (parent_id), (epic_id), (wave_id), partial (project_id, updated_at DESC) WHERE completed_at IS NULL, partial (project_id, completed_at DESC) WHERE completed_at IS NOT NULL, GIN (search), GIN (title gin_trgm_ops). |
+| tickets | id PK, project_id (FK projects RESTRICT), number (CHECK > 0), title (CHECK trimmed, 1 to 500), description, priority (CHECK set), status_id (FK statuses RESTRICT), parent_id, epic_id (FK epics SET NULL), wave_id (FK waves SET NULL; CHECK `tickets_wave_needs_epic`: a row with a wave has an epic), position double, version, started_at, completed_at, host_id (FK hosts), search tsvector GENERATED (title A, description B), created_at, updated_at. UNIQUE (project_id, number) and (id, project_id). FK (parent_id, project_id) RESTRICT, so a parent ticket sits in the project of its child. Indexes (project_id, status_id, position), (status_id, position, id, project_id), (parent_id), (epic_id), (wave_id), (host_id), partial (project_id, updated_at DESC) WHERE completed_at IS NULL, partial (project_id, completed_at DESC) WHERE completed_at IS NOT NULL, GIN (search), GIN (title gin_trgm_ops). |
 | epics | id PK, project_id (CASCADE), slug (CHECK slug regex), name (CHECK trimmed, nonempty), description text, canceled_at (nullable), actor_name, actor_kind, created_at, updated_at. FK to actors. Hash equality exclusion on (project_id || / || slug). Index (project_id). Cancellation takes precedence over completion from ticket counts. |
 | waves | id PK, epic_id (CASCADE), slug (CHECK slug regex), name (CHECK trimmed, nonempty), position integer (CHECK >= 0), created_at, updated_at. Hash equality exclusion on (epic_id || / || slug). Index (epic_id, position). The state of a wave is never stored. |
 | comments | id PK, ticket_id (CASCADE), body (1 to 200000), parent_id, resolved_at, actor_name, actor_kind, search tsvector GENERATED (body C), created_at, updated_at. No code reads or writes the table. It keeps the rows that ticket comments stored. |
@@ -1332,11 +1332,34 @@ are no triggers. Every rule is a constraint or a service function that takes
 | flows | id PK, slug (UNIQUE, CHECK slug regex), name (CHECK nonblank), description, briefing, harness (jsonb, NULL means claude), version (CHECK > 0), created_at, updated_at. |
 | flow_nodes | id PK, flow_id (CASCADE), parent_id, kind (CHECK agent, gate, human, group, or loop), title, instruction, review_area (optional frontend or backend, gate without a harness only), parallel (boolean, group only), minutes (optional positive integer, group only), harness (jsonb, agent, gate, or loop only; NULL takes the flow's), max_rounds (positive integer, CHECK `(kind = 'loop') = (max_rounds IS NOT NULL)`), x and y (CHECK finite), width and height (optional, CHECK finite and >= 40). UNIQUE (id, flow_id). FK (parent_id, flow_id) CASCADE, so a group and the nodes inside it stay in one flow. Index (flow_id). |
 | flow_edges | id PK, flow_id (CASCADE), from_node_id, to_node_id, branch (CHECK out, yes, or no). FK (from_node_id, flow_id) and FK (to_node_id, flow_id) to flow_nodes CASCADE. UNIQUE (from_node_id, branch, to_node_id). CHECK `from_node_id <> to_node_id`. Indexes (flow_id) and (to_node_id). |
-| harness_accounts | id PK, name, harness, profile_path, is_default, archived_at, created_at, updated_at. Partial UNIQUE (harness, profile_path) for current accounts. Partial UNIQUE (harness) for current default accounts. |
+| harness_accounts | id PK, name, harness, profile_path, is_default, archived_at, host_id (FK hosts, default `local_host_id()`), created_at, updated_at. Partial UNIQUE (host_id, harness, profile_path) for current accounts. Partial UNIQUE (harness) for current default accounts. Index (host_id). |
 | providers | id PK, name (CHECK trimmed, nonempty), kind (CHECK `vercel-ai-gateway` or `openai-compatible`), base_url (CHECK nonempty), api_key (CHECK nonempty), enabled, created_at, updated_at. Hash equality exclusion on lower(name). |
 | provider_models | provider_id (FK providers CASCADE), model_id (CHECK nonempty, no space or control character). Hash equality exclusion on the length-prefixed provider ID and model ID. Index (provider_id). |
-| agent_runs | id PK, name, account_id (FK harness_accounts), runtime (default `native`), harness jsonb, kind (CHECK agent, flow, or session), instruction, project_id (SET NULL), project_key, ticket_id (SET NULL), ticket_identifier, closed_at, workspace_id, terminal_id, url, error, session_id, session_lost (default false), created_at, updated_at. Partial UNIQUE (ticket_id) WHERE `kind = 'agent'` and `closed_at IS NULL`. Index (created_at). |
+| agent_runs | id PK, name, account_id (FK harness_accounts), runtime (default `native`), harness jsonb, kind (CHECK agent, flow, or session), instruction, project_id (SET NULL), project_key, ticket_id (SET NULL), ticket_identifier, closed_at, workspace_id, terminal_id, url, error, session_id, session_lost (default false), host_id (FK hosts, default `local_host_id()`), created_at, updated_at. Partial UNIQUE (ticket_id) WHERE `kind = 'agent'` and `closed_at IS NULL`. Indexes (created_at) and (host_id). |
 | sessions | id PK, name (CHECK trimmed, nonempty), name_state (CHECK temporary, requested, or set), directory, harness jsonb, run_id (UNIQUE, FK agent_runs), archived_at, created_at, updated_at. The run has the kind `session`, an optional project, and no ticket. |
+| hosts | id PK, name (CHECK trimmed, nonempty), kind (CHECK local or ssh), local (CHECK `local = (kind = 'local')`), endpoint jsonb, enrolled_identity, host_key_fingerprint, os, arch, state (CHECK active, retired, or revoked), retired_at, revoked_at, revision (CHECK >= 1), created_at, updated_at. Partial UNIQUE (local) WHERE local. |
+| host_observations | host_id PK (FK hosts CASCADE), observed_at, result (CHECK reachable, unreachable, identity_mismatch, or incompatible), observed_identity, protocol, capabilities jsonb, detail. |
+| workspace_control | id PK, controller_owner_epoch (CHECK >= 1), default_host_id (FK hosts), singleton (UNIQUE, CHECK true), created_at, updated_at. One row. |
+| project_host_paths | project_id (FK projects CASCADE), host_id (FK hosts), directory (CHECK nonempty), created_at, updated_at. PK (project_id, host_id). Index (host_id). |
+
+### Hosts
+
+A host is a machine that runs agents. `hosts.id` is the durable identity. A
+rename changes the name and never the id. `agent_runs`, `agent_execution_attempts`,
+`flow_executions`, and `harness_accounts` hold a NOT NULL `host_id`.
+`tickets.host_id` and `projects.default_host_id` are nullable placement
+preferences. Every foreign key to `hosts` is NO ACTION, except
+`host_observations`, which cascades. The delete of a host that a row names fails.
+A retired host keeps its row.
+
+Exactly one host has `local = true`. The SQL function `local_host_id()` returns
+its id. That function is the column default of each NOT NULL `host_id`. A
+write path that names no host therefore binds the row to the local host. Migration
+`0152_hosts` inserts the local host and the one `workspace_control` row. It
+binds every existing row to the local host and copies each nonempty
+`projects.directory` into `project_host_paths`.
+`apps/server/src/db/tables/hosts/README.md` holds the details and the ER
+diagram.
 
 The `id` column of `activity` is the cursor and the sort key of every activity
 feed. A description row carries `meta.deltaChars` and no text. A status row

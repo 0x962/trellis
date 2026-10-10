@@ -1,7 +1,18 @@
 import { sql } from "drizzle-orm";
-import { boolean, check, index, integer, pgTable, text, unique, uniqueIndex } from "drizzle-orm/pg-core";
+import {
+	type AnyPgColumn,
+	boolean,
+	check,
+	index,
+	integer,
+	pgTable,
+	text,
+	unique,
+	uniqueIndex,
+} from "drizzle-orm/pg-core";
 import { checkIn, PROJECT_COLORS, STATUS_CATEGORIES } from "../enums.ts";
 import { at } from "./actors.ts";
+import { hosts } from "./hosts/index.ts";
 
 // Every project stands on its own. `key` is the prefix of every ticket
 // identifier of the project, and `ticket_counter` is the last number it
@@ -27,6 +38,9 @@ export const projects = pgTable(
 		position: integer().notNull().default(0),
 		color: text(),
 		archivedAt: at("archived_at"),
+		// The host a run of this project takes when its ticket names none.
+		// NULL means the workspace default.
+		defaultHostId: text("default_host_id").references((): AnyPgColumn => hosts.id),
 		createdAt: at("created_at").notNull(),
 		updatedAt: at("updated_at").notNull(),
 	},
@@ -39,6 +53,7 @@ export const projects = pgTable(
 		check("projects_name_check", sql`length(${t.name}) >= 1`),
 		checkIn(t.color, PROJECT_COLORS),
 		uniqueIndex("projects_color_idx").on(t.color).where(sql`${t.archivedAt} IS NULL`),
+		index("projects_default_host_id_idx").on(t.defaultHostId),
 	],
 );
 
