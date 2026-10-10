@@ -42,8 +42,8 @@ export async function scriptedRuntime(reply: ScriptedReply): Promise<ScriptedRun
 				const { code, message } = error as { code?: string; message: string };
 				response = JSON.stringify({ id: request.id, error: { code: code ?? "SCRIPTED_ERROR", message } });
 			}
-			// The reply arrives in two chunks, so a client that joins chunks
-			// before the newline is proven by every test.
+			// The reply leaves in two chunks. A client that reads the whole
+			// reply joins the chunks before the newline.
 			socket.write(response.slice(0, 10));
 			setImmediate(() => socket.end(`${response.slice(10)}\n`));
 		});

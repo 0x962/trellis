@@ -1,4 +1,5 @@
 import type { AccountHarness } from "@trellis/api";
+import type { LaunchSpec } from "@trellis/runtime-protocol";
 import type { ExecutionHost, HostBinding } from "@trellis/runtime-protocol/execution";
 import type { HarnessDescriptor, HarnessStartInput } from "../../../agents/harnessHost/types.ts";
 import type { nativeWorkspace } from "../../../agents/native/workspace.ts";
@@ -20,10 +21,11 @@ import { localPrepare } from "./components/localPrepare.ts";
 // the controller that holds it. Every operation that takes a target checks
 // the target against this binding before any socket or file system work.
 //
-// The host keeps the agent environment of today: the login environment of
-// the host, the account profile of the run and the six attempt values go
-// into the launch on this side of the contract. A contract value carries
-// only the attempt values.
+// The process of an agent receives the login environment of the host, the
+// account profile of the run and the six attempt values. The host merges the
+// first two on this side of the contract, under `prepare` and
+// `launch.start`. A contract input carries the attempt values at most, and a
+// descriptor or spec that leaves the host has no environment.
 
 export type LocalPrepareInput = HarnessStartInput & {
 	token: string;
@@ -33,9 +35,12 @@ export type LocalPrepareInput = HarnessStartInput & {
 	// account launches on the machine-wide default login of its harness.
 	account: { harness: AccountHarness; profilePath: string } | null;
 };
+// The prepared launch record as it leaves the host: the record on disk
+// without the environment of its spec.
+export type LocalDescriptor = Omit<HarnessDescriptor, "spec"> & { spec: Omit<LaunchSpec, "env"> };
 export type LocalPrepare = {
 	input: LocalPrepareInput;
-	descriptor: HarnessDescriptor;
+	descriptor: LocalDescriptor;
 	workspace: Parameters<typeof nativeWorkspace>[1];
 };
 export type LocalExecutionHost = ExecutionHost<LocalPrepare>;

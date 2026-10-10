@@ -23,8 +23,9 @@ Read the saved runtime state before a repeat mutation.
 - `HostBindingSchema` is the `hostId`, `controlId`, and `controllerOwnerEpoch` one host instance serves.
 - `assertTarget(binding, target)` throws `TargetMismatch` (code `EXECUTION_TARGET_MISMATCH`) when one of the three fields differs.
 - `ExecutionHost<Prepare>` groups the operations: `health`, `prepare`, `launch`, `observe`, `input`, `stop`, `files`, `transcript`, and `terminal`. Every operation on one attempt takes the target first. `Prepare` names the input and the record of `prepare.descriptor` and the run record of `prepare.workspace`.
-- `LaunchOutcome` is a `LaunchReceipt` or a `LaunchUnknown`. `startLaunch` maps the `RUNTIME_TIMEOUT` and the "connection closed" failures of the client to `LaunchUnknown` and lets every other error propagate.
+- `ContractLaunchSpec` is a `LaunchSpec` whose `env` is an `AttemptEnvironment` at most. `PreparedLaunch` is a record whose spec has no `env`. `redactLaunchSpec` removes the `env` of a spec. No contract value carries the login environment of a host.
+- `LaunchOutcome` is a `LaunchReceipt` or a `LaunchUnknown`. `runLaunch` maps the `RUNTIME_TIMEOUT` and the "connection closed" failures of the client to `LaunchUnknown` and lets every other error propagate. `startLaunch` adds the check that the id of the spec equals the attempt id of the target.
 - `AttemptEnvironmentSchema` is the strict set of six `TRELLIS_*` values a contract carries.
 - `readAllOutput` pages one stream of a session to its end.
 
-`@trellis/runtime-protocol/execution/contract-fixture` holds `executionHostContract(make)`, which registers the seven contract cases as `bun:test` cases, `scriptedRuntime(reply)`, a runtime stand-in on a Unix socket, and `clientExecutionHost`, the smallest host over one `RuntimeClient`.
+`@trellis/runtime-protocol/execution/contract-fixture` holds `executionHostContract(make)`, which registers the seven contract cases as `bun:test` cases, `scriptedRuntime(reply)`, a runtime stand-in on a Unix socket, and `clientExecutionHost`, the smallest host over one `RuntimeClient`. Every subject gives its host `FIXTURE_AMBIENT` as the login environment; it holds a bearer and the `PATH` of the test process, and case 7 asserts that no contract value echoes either.

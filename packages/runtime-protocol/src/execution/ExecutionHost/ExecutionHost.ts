@@ -13,6 +13,7 @@ import type {
 	RuntimeStream,
 } from "../../index.ts";
 import type { terminalChannel } from "../../terminalChannel";
+import type { ContractLaunchSpec } from "../ContractLaunchSpec";
 import type { ExecutionTarget } from "../ExecutionTarget";
 import type { HostBinding } from "../HostBinding";
 import type { LaunchOutcome } from "../LaunchOutcome";
@@ -46,6 +47,10 @@ export type CustomLaunchInput = {
 // generator, a channel or a path throws it. The methods that take no target
 // act on the whole host.
 //
+// No value that crosses this interface carries the login environment of the
+// host: a launch input holds the attempt environment at most, and a spec or
+// record that comes back has no environment at all.
+//
 // Input bytes cross this interface as bytes. `transcript.output` returns the
 // runtime answer verbatim, with base64 `data` and byte offsets, so a caller
 // keeps offsets byte-exact across hosts.
@@ -59,15 +64,28 @@ export interface ExecutionHost<Prepare extends ExecutionPrepare = ExecutionPrepa
 			target: ExecutionTarget,
 			input: { run: Prepare["workspace"]; directory: string },
 		): Promise<{ workspaceId: string }>;
+		// The id of the input must equal `target.attemptId`.
 		descriptor(target: ExecutionTarget, input: Prepare["input"]): Promise<Prepare["descriptor"]>;
-		custom(target: ExecutionTarget, input: CustomLaunchInput): Promise<LaunchSpec>;
+		// Writes the launch record of the attempt and returns its spec without
+		// the environment. `launch.startPrepared` starts it.
+		custom(target: ExecutionTarget, input: CustomLaunchInput): Promise<Omit<LaunchSpec, "env">>;
 	};
 	launch: {
-		// `spec.id` must equal `target.attemptId`.
-		start(target: ExecutionTarget, spec: LaunchSpec): Promise<LaunchOutcome>;
+		// `spec.id` must equal `target.attemptId`. The host merges its login
+		// environment under `spec.env` before the runtime starts the process.
+		start(target: ExecutionTarget, spec: ContractLaunchSpec): Promise<LaunchOutcome>;
 		// Starts the prepared launch record of the attempt. A record that the
 		// runtime already holds is not started a second time.
 		startPrepared(target: ExecutionTarget, timeoutMs?: number): Promise<LaunchOutcome>;
+		// Starts the prepared launch of `input` and waits until the harness
+		// confirms its provider session and the first message. A resume waits
+		// for the named provider session. The receipt holds the confirmed
+		// process status.
+		confirmed(
+			target: ExecutionTarget,
+			input: Prepare["input"],
+			mode: { kind: "start" } | { kind: "resume"; sessionId: string },
+		): Promise<LaunchOutcome>;
 	};
 	observe: {
 		inspect(target: ExecutionTarget): Promise<RuntimeProcessStatus>;
@@ -92,6 +110,19 @@ export interface ExecutionHost<Prepare extends ExecutionPrepare = ExecutionPrepa
 		receipt(target: ExecutionTarget, messageId: string): Promise<RuntimeMessageState>;
 		awaitReceipt(target: ExecutionTarget, messageId: string, timeoutMs: number): Promise<RuntimeProcessStatus>;
 		resize(target: ExecutionTarget, cols: number, rows: number): Promise<null>;
+		// One message in the framing of the harness of the attempt. The answer
+		// is the process status after the harness accepted the text.
+		send(
+			target: ExecutionTarget,
+			messageId: string,
+			text: string,
+			expected?: RuntimeExpectedTurn,
+		): Promise<RuntimeProcessStatus>;
+		// One message that waits in the input queue until the current turn ends.
+		sendAtTurnBoundary(target: ExecutionTarget, messageId: string, text: string): Promise<RuntimeProcessStatus>;
+		// Stops the current turn of the harness. With `waitForIdle`, the answer
+		// is the status once the harness is idle again.
+		interrupt(target: ExecutionTarget, options?: { waitForIdle?: boolean }): Promise<RuntimeProcessStatus>;
 	};
 	stop: {
 		stop(target: ExecutionTarget): Promise<RuntimeSession>;

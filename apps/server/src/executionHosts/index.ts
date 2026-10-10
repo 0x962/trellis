@@ -2,6 +2,7 @@ export { createExecutionHosts, type ExecutionHosts } from "./executionHosts.ts";
 export { localAttemptEnvironment } from "./local/LocalAttemptEnvironment";
 export {
 	createLocalExecutionHost,
+	type LocalDescriptor,
 	type LocalExecutionHost,
 	type LocalExecutionHostInput,
 	type LocalPrepare,

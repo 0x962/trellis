@@ -7,6 +7,7 @@ import {
 } from "../../../../services/agentRuns/attemptCapture.ts";
 import type { LocalExecutionHost, LocalHostDeps } from "../LocalExecutionHost.ts";
 import { readLocalDescriptor } from "./readLocalDescriptor.ts";
+import { redactDescriptor } from "./redactDescriptor.ts";
 
 export const localFiles = (deps: LocalHostDeps): Pick<LocalExecutionHost, "files" | "transcript"> => {
 	const client = () => deps.connection.client();
@@ -14,7 +15,7 @@ export const localFiles = (deps: LocalHostDeps): Pick<LocalExecutionHost, "files
 		files: {
 			async descriptor(target) {
 				assertTarget(deps.binding, target);
-				return readLocalDescriptor(deps.home, target.attemptId);
+				return redactDescriptor(await readLocalDescriptor(deps.home, target.attemptId));
 			},
 			capturePath(target) {
 				assertTarget(deps.binding, target);

@@ -4,21 +4,36 @@ import type { RuntimeClient } from "../../client.ts";
 import type { LaunchSpec, RuntimeProcessStatus } from "../../index.ts";
 import type { AttemptEnvironment } from "../AttemptEnvironment";
 import { assertTarget } from "../assertTarget";
+import type { ContractLaunchSpec } from "../ContractLaunchSpec";
 import type { ExecutionHost } from "../ExecutionHost";
 import type { ExecutionTarget } from "../ExecutionTarget";
 import type { HostBinding } from "../HostBinding";
+import type { LaunchOutcome } from "../LaunchOutcome";
+import { LaunchSpecMismatch } from "../LaunchSpecMismatch";
 import type { PreparedLaunch } from "../PreparedLaunch";
 import { readAllOutput } from "../readAllOutput";
+import { redactLaunchSpec } from "../redactLaunchSpec";
 import { startLaunch } from "../startLaunch";
 
-export type ClientExecutionHostInput = { client: RuntimeClient; binding: HostBinding; home: string; url: string };
+export type ClientExecutionHostInput = {
+	client: RuntimeClient;
+	binding: HostBinding;
+	home: string;
+	url: string;
+	// The login environment of the host. It goes under the attempt
+	// environment of every launch and never into a contract value.
+	env: () => Promise<Record<string, string | undefined>>;
+};
+
+const defined = (env: Record<string, string | undefined>) =>
+	Object.fromEntries(Object.entries(env).filter((entry): entry is [string, string] => entry[1] !== undefined));
 
 // The smallest ExecutionHost: one RuntimeClient and a directory tree under
 // `home` with the layout of a Trellis data home. `prepare.descriptor` takes a
-// LaunchSpec and records it with the JSON of the spec as its fingerprint.
-// The contract test runs this host over a scripted runtime, so a defect in
-// the contract fixture shows without a server.
-export function clientExecutionHost({ client, binding, home, url }: ClientExecutionHostInput): ExecutionHost {
+// ContractLaunchSpec and records the full spec with the JSON of the input as
+// its fingerprint. The contract test runs this host over a scripted runtime,
+// so a defect in the contract fixture shows without a server.
+export function clientExecutionHost({ client, binding, home, url, env }: ClientExecutionHostInput): ExecutionHost {
 	const descriptorPath = (target: ExecutionTarget) => join(home, "harness-attempts", target.attemptId, "launch.json");
 	const capturePath = (target: ExecutionTarget) => join(home, "agents", target.runId, `output-${target.attemptId}.txt`);
 	const attemptEnvironment = (target: ExecutionTarget, token: string): AttemptEnvironment => ({
@@ -29,14 +44,30 @@ export function clientExecutionHost({ client, binding, home, url }: ClientExecut
 		TRELLIS_RUNTIME_HOME: join(home, "runtime"),
 		TRELLIS_ATTEMPT_TOKEN: token,
 	});
-	const readDescriptor = async (target: ExecutionTarget): Promise<PreparedLaunch> =>
+	const fullSpec = async (spec: ContractLaunchSpec): Promise<LaunchSpec> => ({
+		...spec,
+		env: { ...defined(await env()), ...spec.env },
+	});
+	const readRecord = async (target: ExecutionTarget): Promise<{ spec: LaunchSpec; fingerprint: string }> =>
 		JSON.parse(await readFile(descriptorPath(target), "utf8"));
+	const redact = ({ spec, fingerprint }: { spec: LaunchSpec; fingerprint: string }): PreparedLaunch => ({
+		spec: redactLaunchSpec(spec),
+		fingerprint,
+	});
+	const writeRecord = async (target: ExecutionTarget, spec: LaunchSpec, fingerprint: string) => {
+		await mkdir(dirname(descriptorPath(target)), { recursive: true });
+		await writeFile(descriptorPath(target), JSON.stringify({ spec, fingerprint }));
+		return redact({ spec, fingerprint });
+	};
 	const descriptorFingerprint = (target: ExecutionTarget) =>
-		readDescriptor(target).then(
+		readRecord(target).then(
 			(record) => record.fingerprint,
 			() => null,
 		);
+	const start = (target: ExecutionTarget, spec: LaunchSpec, fingerprint: () => Promise<string | null>) =>
+		startLaunch((full) => client.start(full), target, spec, fingerprint);
 	const base64 = (data: Uint8Array) => Buffer.from(data).toString("base64");
+	const frame = (messageId: string, text: string) => Buffer.from(`trellis-message:${messageId}\n${text}`);
 	const waitFor = async (
 		target: ExecutionTarget,
 		matches: (session: RuntimeProcessStatus) => boolean,
@@ -58,15 +89,13 @@ export function clientExecutionHost({ client, binding, home, url }: ClientExecut
 			},
 			async descriptor(target, input) {
 				assertTarget(binding, target);
-				const spec = input as LaunchSpec;
-				const record: PreparedLaunch = { spec, fingerprint: JSON.stringify(spec) };
-				await mkdir(dirname(descriptorPath(target)), { recursive: true });
-				await writeFile(descriptorPath(target), JSON.stringify(record));
-				return record;
+				const spec = input as ContractLaunchSpec;
+				if (spec.id !== target.attemptId) throw new LaunchSpecMismatch(target.attemptId, spec.id);
+				return writeRecord(target, await fullSpec(spec), JSON.stringify(spec));
 			},
 			async custom(target, input) {
 				assertTarget(binding, target);
-				return {
+				const spec: ContractLaunchSpec = {
 					id: target.attemptId,
 					command: "/bin/sh",
 					args: ["-c", input.command],
@@ -75,19 +104,31 @@ export function clientExecutionHost({ client, binding, home, url }: ClientExecut
 					mode: "stdio",
 					timeoutMs: input.timeoutMs,
 				};
+				return (await writeRecord(target, await fullSpec(spec), JSON.stringify(spec))).spec;
 			},
 		},
 		launch: {
 			async start(target, spec) {
 				assertTarget(binding, target);
-				return startLaunch(client, target, spec, () => descriptorFingerprint(target));
+				return start(target, await fullSpec(spec), () => descriptorFingerprint(target));
 			},
 			async startPrepared(target, timeoutMs) {
 				assertTarget(binding, target);
-				const { spec } = await readDescriptor(target);
-				return startLaunch(client, target, timeoutMs === undefined ? spec : { ...spec, timeoutMs }, () =>
-					descriptorFingerprint(target),
-				);
+				const { spec, fingerprint } = await readRecord(target);
+				return start(target, timeoutMs === undefined ? spec : { ...spec, timeoutMs }, async () => fingerprint);
+			},
+			async confirmed(target, input, mode): Promise<LaunchOutcome> {
+				assertTarget(binding, target);
+				const spec = input as ContractLaunchSpec;
+				if (spec.id !== target.attemptId) throw new LaunchSpecMismatch(target.attemptId, spec.id);
+				const outcome = await start(target, await fullSpec(spec), () => descriptorFingerprint(target));
+				if (outcome.kind === "unknown") return outcome;
+				const session = await client.inspect(target.attemptId);
+				if (mode.kind === "resume" && session.agent?.sessionId !== mode.sessionId)
+					throw new Error(
+						`Attempt ${target.attemptId} resumed ${session.agent?.sessionId}, expected ${mode.sessionId}`,
+					);
+				return { ...outcome, session };
 			},
 		},
 		observe: {
@@ -138,6 +179,21 @@ export function clientExecutionHost({ client, binding, home, url }: ClientExecut
 				assertTarget(binding, target);
 				return client.resize(target.attemptId, cols, rows);
 			},
+			async send(target, messageId, text, expected) {
+				assertTarget(binding, target);
+				await client.deliver(target.attemptId, messageId, base64(frame(messageId, text)), expected);
+				return client.inspect(target.attemptId);
+			},
+			async sendAtTurnBoundary(target, messageId, text) {
+				assertTarget(binding, target);
+				await client.queueInput(target.attemptId, messageId, base64(frame(messageId, text)));
+				return client.inspect(target.attemptId);
+			},
+			async interrupt(target) {
+				assertTarget(binding, target);
+				await client.input(target.attemptId, base64(Buffer.from("\u0003")));
+				return client.inspect(target.attemptId);
+			},
 		},
 		stop: {
 			async stop(target) {
@@ -149,7 +205,7 @@ export function clientExecutionHost({ client, binding, home, url }: ClientExecut
 		files: {
 			async descriptor(target) {
 				assertTarget(binding, target);
-				return readDescriptor(target);
+				return redact(await readRecord(target));
 			},
 			capturePath(target) {
 				assertTarget(binding, target);

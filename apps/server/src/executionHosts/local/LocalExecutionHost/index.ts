@@ -1,5 +1,6 @@
 export {
 	createLocalExecutionHost,
+	type LocalDescriptor,
 	type LocalExecutionHost,
 	type LocalExecutionHostInput,
 	type LocalPrepare,

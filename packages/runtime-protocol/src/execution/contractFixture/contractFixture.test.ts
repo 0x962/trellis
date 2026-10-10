@@ -9,9 +9,10 @@ import {
 	type RuntimeProcessStatus,
 	type RuntimeRequest,
 } from "../../index.ts";
+import type { ContractLaunchSpec } from "../ContractLaunchSpec";
 import type { ExecutionTarget } from "../ExecutionTarget";
 import { clientExecutionHost } from "./clientExecutionHost.ts";
-import { executionHostContract } from "./contractFixture.ts";
+import { executionHostContract, FIXTURE_AMBIENT } from "./contractFixture.ts";
 import { scriptedRuntime } from "./scriptedRuntime.ts";
 
 type Message = { hash: string; status: "written" | "unknown"; acknowledged: boolean };
@@ -180,10 +181,23 @@ executionHostContract(async () => {
 	const cat = new CatRuntime(runtime.socketPath);
 	const binding = { hostId: target.hostId, controlId: target.controlId, controllerOwnerEpoch: 1 };
 	return {
-		host: clientExecutionHost({ client: runtime.client, binding, home, url: "http://127.0.0.1:1" }),
+		host: clientExecutionHost({
+			client: runtime.client,
+			binding,
+			home,
+			url: "http://127.0.0.1:1",
+			env: async () => FIXTURE_AMBIENT,
+		}),
 		client: runtime.client,
 		target,
 		cwd: home,
+		descriptorInput: {
+			id: target.attemptId,
+			command: "/bin/cat",
+			args: [],
+			cwd: home,
+			mode: "stdio",
+		} satisfies ContractLaunchSpec,
 		requests: () => runtime.requests.length,
 		close: async () => {
 			await runtime.close();

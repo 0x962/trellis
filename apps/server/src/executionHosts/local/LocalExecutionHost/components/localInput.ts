@@ -1,4 +1,5 @@
 import { assertTarget } from "@trellis/runtime-protocol/execution";
+import { nativeHost } from "../../../../agents/native/harnessHost.ts";
 import { waitForReceipt } from "../../../../services/agentRuns/waitForReceipt.ts";
 import type { LocalExecutionHost, LocalHostDeps } from "../LocalExecutionHost.ts";
 
@@ -8,6 +9,9 @@ const base64 = (data: Uint8Array) => Buffer.from(data).toString("base64");
 
 export const localInput = (deps: LocalHostDeps): Pick<LocalExecutionHost, "input"> => {
 	const client = () => deps.connection.client();
+	// The HarnessHost reads the launch record of the attempt to frame a message
+	// for its harness. The environment of the host plays no part in a send.
+	const harness = () => nativeHost(deps.home, undefined, client(), deps.log);
 	return {
 		input: {
 			async raw(target, data, userInput, expected) {
@@ -33,6 +37,18 @@ export const localInput = (deps: LocalHostDeps): Pick<LocalExecutionHost, "input
 			async resize(target, cols, rows) {
 				assertTarget(deps.binding, target);
 				return client().resize(target.attemptId, cols, rows);
+			},
+			async send(target, messageId, text, expected) {
+				assertTarget(deps.binding, target);
+				return harness().send(target.attemptId, text, messageId, expected);
+			},
+			async sendAtTurnBoundary(target, messageId, text) {
+				assertTarget(deps.binding, target);
+				return harness().sendAtTurnBoundary(target.attemptId, text, messageId);
+			},
+			async interrupt(target, options) {
+				assertTarget(deps.binding, target);
+				return harness().interrupt(target.attemptId, options);
 			},
 		},
 	};

@@ -1,6 +1,9 @@
 import { join } from "node:path";
-import { assertTarget, startLaunch } from "@trellis/runtime-protocol/execution";
+import type { LaunchSpec, RuntimeSession } from "@trellis/runtime-protocol";
+import { assertTarget, runLaunch, startLaunch } from "@trellis/runtime-protocol/execution";
+import { definedEnvironment } from "../../../../executionEnvironment/executionEnvironment.ts";
 import type { LocalExecutionHost, LocalHostDeps } from "../LocalExecutionHost.ts";
+import { prepareHost } from "./prepareHost.ts";
 import { readLocalDescriptor } from "./readLocalDescriptor.ts";
 
 export const localLaunch = (deps: LocalHostDeps): Pick<LocalExecutionHost, "launch"> => {
@@ -15,7 +18,15 @@ export const localLaunch = (deps: LocalHostDeps): Pick<LocalExecutionHost, "laun
 			async start(target, spec) {
 				assertTarget(deps.binding, target);
 				const client = await deps.connection.ensure();
-				return startLaunch(client, target, spec, () => descriptorFingerprint(target.attemptId));
+				// The login environment of the host goes under the attempt
+				// environment of the spec, so a caller cannot replace a value of it.
+				const full: LaunchSpec = { ...spec, env: { ...definedEnvironment(await deps.env()), ...spec.env } };
+				return startLaunch(
+					(launch) => client.start(launch),
+					target,
+					full,
+					() => descriptorFingerprint(target.attemptId),
+				);
 			},
 			async startPrepared(target, timeoutMs) {
 				assertTarget(deps.binding, target);
@@ -30,7 +41,26 @@ export const localLaunch = (deps: LocalHostDeps): Pick<LocalExecutionHost, "laun
 				if (session !== undefined)
 					return { kind: "receipt", target, session, descriptorFingerprint: descriptor.fingerprint };
 				const spec = timeoutMs === undefined ? descriptor.spec : { ...descriptor.spec, timeoutMs };
-				return startLaunch(client, target, spec, async () => descriptor.fingerprint);
+				return startLaunch(
+					(launch) => client.start(launch),
+					target,
+					spec,
+					async () => descriptor.fingerprint,
+				);
+			},
+			async confirmed(target, input, mode) {
+				assertTarget(deps.binding, target);
+				await deps.connection.ensure();
+				const { host, launch } = await prepareHost(deps, target, input);
+				// The launch runs through the HarnessHost, which prepares the record
+				// again, starts the process and waits for the confirmation of the
+				// harness. The spec it starts is the spec of that record.
+				const confirm = async (): Promise<RuntimeSession> =>
+					(mode.kind === "start"
+						? await host.start(launch)
+						: await host.resume({ ...launch, sessionId: mode.sessionId })
+					).process;
+				return runLaunch(target, confirm, () => descriptorFingerprint(target.attemptId));
 			},
 		},
 	};
