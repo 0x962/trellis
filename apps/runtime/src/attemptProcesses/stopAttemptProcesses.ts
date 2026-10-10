@@ -1,9 +1,9 @@
-import { load } from "koffi";
+import { platform } from "../platform/index.ts";
 import { processIdentity } from "../processIdentity";
 import { stopProcessTree } from "../stopProcessTree.ts";
 import { attemptProcesses } from "./attemptProcesses.ts";
 
-const sessionOf = load(null).func("int getsid(int pid)");
+const { sessionOf } = platform;
 
 export async function stopAttemptProcesses(home: string, id: string) {
 	const deadline = Date.now() + 5000;

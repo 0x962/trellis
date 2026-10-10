@@ -1,7 +1,7 @@
 import { constants } from "node:os";
 import { errno, load } from "koffi";
-import { processIdentity } from "../processIdentity";
 import { environmentFromArgs } from "./environmentFromArgs.ts";
+import { processIdentity } from "./processIdentity.ts";
 
 const library = load(null);
 const sysctl = library.func(

@@ -57,7 +57,21 @@ Each launch creates an OS session. The launch PID identifies that session while 
 
 The runtime reports `exited` only after those sessions contain no live processes. A failed identity query, refused signal, or two-second cleanup deadline records `unknown`. An unknown cleanup prevents a successful shutdown response. Recorded PIDs from another daemon instance never authorize signals.
 
-This runtime is not a security sandbox. A descendant that calls `setsid(2)` and loses its parent before cleanup observes it can survive. Such a process requires separate inspection. The runtime does not claim containment of arbitrary programs.
+This runtime is not a security sandbox. On macOS, a descendant that calls `setsid(2)` and loses its parent before cleanup observes it can survive. Such a process requires separate inspection. The runtime does not claim containment of arbitrary programs.
+
+The process code of each host is in `src/platform/`. `src/platform/platform.ts` loads the macOS or the Linux implementation for the current host.
+
+## Linux
+
+The runtime supports Ubuntu 24.04 with glibc on x86_64 and arm64. A Linux launch requires a cgroup v2 subtree that is delegated to the runtime user, for example a systemd unit with `Delegate=yes`. Without that subtree, the launch fails with an error that starts with `Linux agent launch requires a delegated cgroup v2 subtree`.
+
+Each launch starts `/bin/sh`. The shell creates a new cgroup `trellis-attempts/<home tag>/launch-<UUID>` below the runtime cgroup, moves itself into it, and then runs the agent with the same PID. The home tag is the first 16 hexadecimal digits of the SHA-256 hash of the resolved runtime home path. If the launch directory exists, the launch fails with exit code 125. Every descendant of the agent starts in that cgroup. A descendant stays in the cgroup after `setsid(2)` and after the exit of its parent.
+
+`stop` writes `cgroup.kill` to the cgroup of the launch and to the launch cgroup of each live process in the OS session. The runtime reports `exited` after `cgroup.events` shows `populated 0` and the OS session has no live process. Then it removes the cgroup. A session with live processes outside every launch cgroup fails the stop at once. A process that moves itself to another cgroup it can write, such as a new systemd user scope, and stays in the OS session keeps the stop `unknown` after two seconds.
+
+A Linux process identity is `linux:<boot ID>:<PID>:<start ticks>`. The boot ID comes from `/proc/sys/kernel/random/boot_id`, and the start ticks come from `/proc/<pid>/stat`. A reboot changes the identity. PID reuse changes the identity only when the start tick differs. A macOS identity is `<PID>:<start seconds>:<start microseconds>`.
+
+An agent continues to run after a runtime restart. At start, the new runtime adopts the launch cgroup of each recovered leader whose identity matches its record. Then it stops and removes every other `launch-*` cgroup below its own home tag, and it writes one `linux-launch-sweep` JSON line for each to standard error, with the PIDs it held. The runtime start waits for the sweep, and a sweep error stops the start. A cgroup that stays populated is logged and kept. A stop also finds the launch cgroup of a live process in `/proc/<pid>/cgroup`. Two runtimes in one cgroup have different homes, so neither sweep touches the launches of the other runtime. `.github/workflows/linux-process-lifecycle.yml` runs the real process cases on both architectures.
 
 ## Output and lifetime
 
