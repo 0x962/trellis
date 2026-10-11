@@ -8,9 +8,14 @@
 	"exports": {
 		".": "./src/index.ts",
 		"./client": "./src/client.ts",
+		"./execution": "./src/execution/index.ts",
+		"./execution/contract-fixture": "./src/execution/contractFixture/index.ts",
 		"./terminal-wire": "./src/terminalWire/index.ts"
 	},
 	"scripts": {
 		"typecheck": "tsc --noEmit -p tsconfig.json"
+	},
+	"dependencies": {
+		"zod": "4.5.4"
 	}
 }

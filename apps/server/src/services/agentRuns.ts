@@ -1,5 +1,6 @@
 export { activityRuns, recordObservedActivity } from "./agentRuns/activity.ts";
 export { listUnresolvedAttempts } from "./agentRuns/agentRuns.ts";
+export { attemptCapturePath, attemptStopped, writeAttemptCapture } from "./agentRuns/attemptCapture.ts";
 export { prepareSend as send } from "./agentRuns/communication.ts";
 export { readRuntimeSessionsRequired as deliveryProcesses } from "./agentRuns/liveState.ts";
 export {
@@ -7,4 +8,5 @@ export {
 	type RequestSessionNameInput,
 	requestSessionName,
 } from "./agentRuns/sessionNameAgent";
+export { waitForReceipt } from "./agentRuns/waitForReceipt.ts";
 export { assertWatchable, deliveryTarget, watchableAgent, watchableAgents } from "./agentRuns/watchable";

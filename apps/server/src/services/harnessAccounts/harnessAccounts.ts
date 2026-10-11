@@ -13,6 +13,9 @@ import { presentAccount } from "./presentation.ts";
 import { provisionProfile, removeManagedProfile } from "./profiles.ts";
 import { type AccountRow, accountColumns, getAccount } from "./queries.ts";
 
+export { readHostDefault } from "./hostDefault.ts";
+export { profileEnvironment } from "./profiles.ts";
+
 const requirePerson = (ctx: IoCtx) => {
 	if (ctx.actor.kind !== "human") throw invalidInput("actor", "Only a person can manage accounts.");
 };
