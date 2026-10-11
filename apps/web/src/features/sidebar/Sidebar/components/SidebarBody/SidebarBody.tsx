@@ -59,7 +59,13 @@ export function SidebarBody({ collapsed = false, onCollapse }: SidebarBodyProps)
 
 	return (
 		<>
-			<div data-sidebar-toolbar="" className={`mb-1 flex h-13 shrink-0 items-center${collapsed ? "" : " justify-end"}`}>
+			<div data-sidebar-toolbar="" className="flex shrink-0 items-center justify-between">
+				{!collapsed && (
+					<div className="sidebar-brand">
+						<span aria-hidden="true" className="sidebar-brand-mark" />
+						<span className="sidebar-brand-name">trellis</span>
+					</div>
+				)}
 				{onCollapse && (
 					<Tooltip
 						side="right"
@@ -111,7 +117,11 @@ export function SidebarBody({ collapsed = false, onCollapse }: SidebarBodyProps)
 			    a display utility draws in the utilities layer, which wins. So the
 			    rail keeps `display: flex` and shows the whole list while
 			    `collapsed` is true, unless the class stays off. */}
-			<div hidden={collapsed} className={cx("mt-3 min-h-0 flex-1 flex-col overflow-y-auto pb-2", !collapsed && "flex")}>
+			<div
+				data-sidebar-scroll=""
+				hidden={collapsed}
+				className={cx("min-h-0 flex-1 flex-col overflow-y-auto pb-3", !collapsed && "flex")}
+			>
 				{/* `shrink-0` keeps each list at its own height. A flex column
 				    squeezes them to fit, and then the region never scrolls. */}
 				<div className="shrink-0">
@@ -133,7 +143,7 @@ export function SidebarBody({ collapsed = false, onCollapse }: SidebarBodyProps)
 						</Tooltip>
 					</div>
 					<SessionList />
-					<div className="sidebar-section mt-3">
+					<div data-sidebar-projects-section="" className="sidebar-section">
 						<h2>Projects</h2>
 						<Tooltip content="New project">
 							<IconButton

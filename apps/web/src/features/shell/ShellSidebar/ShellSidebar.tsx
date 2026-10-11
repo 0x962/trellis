@@ -1,3 +1,4 @@
+import { SidebarSimple } from "@phosphor-icons/react";
 import { Link } from "@tanstack/react-router";
 import { AgentsMenu } from "../../agents/AgentsMenu";
 import { navRows } from "../../navRows";
@@ -8,15 +9,22 @@ export function ShellSidebar() {
 		<aside
 			aria-label="Sidebar"
 			aria-busy="true"
-			className="relative flex h-full w-60 shrink-0 flex-col gap-0.5 bg-pane px-2 pb-2 text-sm max-md:hidden"
+			className="sidebar-shell relative flex h-full w-60 shrink-0 flex-col gap-0.5 border-r px-3 pb-2 max-md:hidden"
 		>
-			{/* SidebarBody puts its collapse button in a row of this height. */}
-			<div className="mb-1 h-13 shrink-0" />
+			<div data-sidebar-toolbar="" className="flex shrink-0 items-center justify-between">
+				<div className="sidebar-brand">
+					<span aria-hidden="true" className="sidebar-brand-mark" />
+					<span className="sidebar-brand-name">trellis</span>
+				</div>
+				<span aria-hidden="true" className="inline-flex size-7 items-center justify-center text-fg-muted">
+					<SidebarSimple className="size-3.5" />
+				</span>
+			</div>
 			{navRows.map((row) => (
 				<Link
 					key={row.to}
 					to={row.to}
-					className="flex h-8 items-center gap-2 rounded-md px-2 text-fg-muted transition-colors duration-hover ease-out hover:bg-elevated hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2"
+					className="sidebar-row gap-2 px-2 focus-visible:outline-2 focus-visible:-outline-offset-2"
 				>
 					<span aria-hidden="true" className="inline-flex size-4 shrink-0 *:size-full">
 						{row.icon}
@@ -25,8 +33,22 @@ export function ShellSidebar() {
 				</Link>
 			))}
 			<AgentsMenu />
-			<div className="flex h-7 items-center pt-3 pb-1 pl-2 text-xs font-medium tracking-[0.04em] text-fg-faint uppercase">
-				Projects
+			<div data-sidebar-scroll="" className="min-h-0 flex-1 overflow-hidden">
+				<div className="sidebar-section">
+					<span>Sessions</span>
+				</div>
+				<div className="flex flex-col gap-4 px-2 py-1" aria-hidden="true">
+					<span className="sidebar-skeleton-row w-34" />
+					<span className="sidebar-skeleton-row w-42" />
+					<span className="sidebar-skeleton-row w-27" />
+				</div>
+				<div data-sidebar-projects-section="" className="sidebar-section">
+					<span>Projects</span>
+				</div>
+				<div className="flex flex-col gap-4 px-2 py-1" aria-hidden="true">
+					<span className="sidebar-skeleton-row w-34" />
+					<span className="sidebar-skeleton-row w-42" />
+				</div>
 			</div>
 		</aside>
 	);

@@ -1,0 +1,63 @@
+{
+  "reference": "pr-reference-study-r3.html",
+  "reference_sha256": "f16b9e296aab2d536cdc114eb89c174a4591ae0a5c23065de58a837635fc759f",
+  "mark": "approved-r3-mark.svg is the exact inline SVG extracted from the approved r3 HTML. Do not substitute an older proposal mark.",
+  "font_weights": {
+    "instrument-0.ttf": {
+      "family": "Instrument Sans",
+      "weight": 400
+    },
+    "instrument-1.ttf": {
+      "family": "Instrument Sans",
+      "weight": 500
+    },
+    "instrument-2.ttf": {
+      "family": "Instrument Sans",
+      "weight": 600
+    },
+    "plex-0.ttf": {
+      "family": "IBM Plex Mono",
+      "weight": 400
+    },
+    "plex-1.ttf": {
+      "family": "IBM Plex Mono",
+      "weight": 500
+    }
+  },
+  "font_license": "SIL Open Font License 1.1; preserve the bundled family license files.",
+  "first_wave": "Instrument Sans and the mark apply to scoped sidebar roles. IBM Plex Mono is part of the approved reference, not authorization to change all code and numeric text in the first sidebar wave.",
+  "files": [
+    {
+      "file": "instrument-2.ttf",
+      "sha256": "5e39a358a65a72b6b74b56b384bbe17a61d8899d33cc255d49112e6522e3df0d"
+    },
+    {
+      "file": "instrument-0.ttf",
+      "sha256": "01689ad055025ff1891607b077513c9389f73360d471dcffa036e326af179b00"
+    },
+    {
+      "file": "instrument-1.ttf",
+      "sha256": "a7bcb84cb01f6e33eecdd2cbff3f97ff1674c0e8e37c6921b6cd717b8c854d98"
+    },
+    {
+      "file": "plex-0.ttf",
+      "sha256": "a7fdc993f9f0387caedba4e42521136fa97e4c0837ae6239bf0413ccf8af00c2"
+    },
+    {
+      "file": "plex-1.ttf",
+      "sha256": "4fc14a73ca53ba9d32fd759ae1ca1a3133326035d0dd337862b3ee1633cc156e"
+    },
+    {
+      "file": "Instrument-Sans-OFL.txt",
+      "sha256": "9e27a72ed30eb49a08678f6a5d6ed98ec7ba5368f541637ee0683ec9134ef966"
+    },
+    {
+      "file": "IBM-Plex-Mono-OFL.txt",
+      "sha256": "7e6b2818edbd8f6a01ae80641cc8f16a51080d08fb4e532be3a0b6f74adb07da"
+    },
+    {
+      "file": "approved-r3-mark.svg",
+      "sha256": "fd97adaf974a6ba5753a00f9c2c9ad38aebae2e09005518cf7c47df408992fdc"
+    }
+  ]
+}
