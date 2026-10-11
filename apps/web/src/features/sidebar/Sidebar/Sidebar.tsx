@@ -30,7 +30,7 @@ export function Sidebar() {
 				className={cx(
 					"sidebar-shell relative flex h-full shrink-0 flex-col gap-0.5 overflow-hidden border-r pb-2 max-md:hidden",
 					"transition-[width] duration-peek ease-in-out motion-reduce:transition-none",
-					collapsed ? "w-12 px-2" : "w-60 px-3",
+					collapsed ? "w-12 px-2 pointer-coarse:px-0.5" : "w-60 px-3",
 				)}
 			>
 				<SidebarBody collapsed={collapsed} onCollapse={uiActions.toggleSidebar} />

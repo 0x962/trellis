@@ -12,7 +12,9 @@ export type PreparedStory = {
 const preparedStories = new WeakMap<AbortSignal, Promise<PreparedStory>>();
 
 const createPreparedStory = async (signal: AbortSignal, parameters: StoryParameters): Promise<PreparedStory> => {
-	resetStoryState(parameters.actor);
+	resetStoryState(parameters.actor, {
+		preserveNavigationPreferences: parameters.preserveNavigationPreferences,
+	});
 	const app = createStoryApp(parameters);
 	const router = createStoryRouter(app, parameters, StoryContent);
 	signal.addEventListener(

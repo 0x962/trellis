@@ -9,7 +9,7 @@ import { Topbar } from "../../../features/shell/Topbar";
 import { MachinePressureContext } from "../../../features/sidebar/MachinePressure/MachinePressureProvider";
 import { Sidebar } from "../../../features/sidebar/Sidebar";
 import { usePageTabsStore } from "../../../stores/pageTabsStore";
-import { uiActions } from "../../../stores/uiStore";
+import { uiActions, useUiStore } from "../../../stores/uiStore";
 import { failure, pending, project, timestamp } from "../../pages/fixtures/project";
 import { projectResponses } from "../../pages/fixtures/responses";
 import { navigationFixtures } from "./navigationFixtures";
@@ -54,6 +54,7 @@ function Navigation({ machineAlert = false }: { machineAlert?: boolean }) {
 }
 
 const seedTabs = () => {
+	useUiStore.setState({ sidebarCollapsed: false, mobileSidebarOpen: false, expandedProjects: {} });
 	usePageTabsStore.setState({
 		tabs: [
 			{ id: "search", url: "/search", title: "Search", pinned: true, backHistory: [], forwardHistory: [] },
@@ -122,6 +123,10 @@ export const Expanded: Story = {
 };
 export const NestedRouteFocus: Story = {
 	play: async ({ canvasElement }) => {
+		await waitFor(() => {
+			expect(canvasElement.querySelector('a[href="/p/ATL/epics"]')).toBeInTheDocument();
+			expect(canvasElement.querySelector('a[href="/sessions/project/ATL"]')).toBeInTheDocument();
+		});
 		const epics = canvasElement.querySelector<HTMLAnchorElement>('a[href="/p/ATL/epics"]')!;
 		const sessions = canvasElement.querySelector<HTMLAnchorElement>('a[href="/sessions/project/ATL"]')!;
 		sessions.focus();
@@ -160,12 +165,30 @@ export const GitHubWarning: Story = {
 	},
 };
 export const MachineAlert: Story = { args: { machineAlert: true } };
-export const Empty: Story = { parameters: { trellis: { responses: { "projects.list": [], "sessions.list": [] } } } };
+export const Empty: Story = {
+	parameters: { trellis: { responses: { "projects.list": [], "sessions.list": [] } } },
+	play: async ({ canvasElement }) => {
+		const canvas = within(canvasElement);
+		await expect(await canvas.findByRole("navigation", { name: "Sessions" })).not.toHaveAttribute("aria-busy");
+		await expect(await canvas.findByRole("navigation", { name: "Projects" })).not.toHaveAttribute("aria-busy");
+	},
+};
 export const Loading: Story = {
 	parameters: { trellis: { responses: { "projects.list": pending, "sessions.list": pending } } },
+	play: async ({ canvasElement }) => {
+		const canvas = within(canvasElement);
+		await expect(await canvas.findByRole("navigation", { name: "Sessions" })).toHaveAttribute("aria-busy", "true");
+		await expect(await canvas.findByRole("navigation", { name: "Projects" })).toHaveAttribute("aria-busy", "true");
+	},
 };
 export const FailedRequest: Story = {
 	parameters: { trellis: { responses: { "projects.list": failure, "sessions.list": failure } } },
+	play: async ({ canvasElement }) => {
+		const canvas = within(canvasElement);
+		await expect(await canvas.findAllByRole("button", { name: "Retry" })).toHaveLength(2);
+		await expect(await canvas.findByRole("navigation", { name: "Sessions" })).not.toHaveAttribute("aria-busy");
+		await expect(await canvas.findByRole("navigation", { name: "Projects" })).not.toHaveAttribute("aria-busy");
+	},
 };
 export const ShellLoading: Story = { render: () => <ShellFrame /> };
 export const Narrow: Story = { globals: { viewport: { value: "phone", isRotated: false } } };
@@ -175,6 +198,16 @@ export const MobileSidebar: Story = {
 	globals: { viewport: { value: "phone", isRotated: false } },
 	beforeEach: () => {
 		uiActions.setMobileSidebarOpen(true);
+	},
+};
+export const MobileDismissal: Story = {
+	globals: { viewport: { value: "phone", isRotated: false } },
+	play: async ({ canvasElement }) => {
+		const open = await within(canvasElement).findByRole("button", { name: "Open the sidebar" });
+		await userEvent.click(open);
+		const close = await within(document.body).findByRole("button", { name: "Close sidebar" });
+		await userEvent.click(close);
+		await waitFor(() => expect(open).toHaveFocus());
 	},
 };
 export const ManyProjects: Story = {

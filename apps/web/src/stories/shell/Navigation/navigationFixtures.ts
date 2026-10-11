@@ -1,6 +1,8 @@
+import type { AgentActivity, AgentRun, SessionDetail } from "@trellis/api";
 import type { MachinePressureMachineView } from "@trellis/ui";
 import { id, project, timestamp } from "../../pages/fixtures/project";
 import { run, session } from "../../pages/fixtures/session";
+import { terminalSession } from "../../pages/fixtures/sessionStates";
 
 const atlas = {
 	...project,
@@ -53,35 +55,80 @@ const runningObservation = (turnId: string) => ({
 	turnId,
 });
 
-const sessionActivity = {
-	sessionId: reviewSessions[1]!.id,
-	run: {
-		...run,
-		id: id(601),
-		name: reviewSessions[1]!.name,
-		projectId: null,
-		projectKey: "",
-		state: "running" as const,
-		processStatus: "running" as const,
-		terminalId: "storybook-attempt",
-		observation: runningObservation("storybook-turn"),
-	},
-};
-
-const projectActivity = {
-	sessionId: null,
-	run: {
-		...run,
-		id: id(602),
-		name: "Review Atlas flow labels",
+const projectSession = (index: number, name: string, state: "running" | "needs-input"): SessionDetail => {
+	const detail = terminalSession(state);
+	const sessionId = id(520 + index);
+	const runId = id(620 + index);
+	return {
+		...detail,
+		id: sessionId,
+		name,
 		projectId: atlas.id,
 		projectKey: atlas.key,
-		state: "running" as const,
-		processStatus: "running" as const,
-		terminalId: "storybook-project-attempt",
-		observation: runningObservation("storybook-project-turn"),
-	},
+		runId,
+		run: {
+			...detail.run,
+			id: runId,
+			name,
+			projectId: atlas.id,
+			projectKey: atlas.key,
+			sessionId,
+			observation: state === "running" ? runningObservation(`storybook-project-turn-${index}`) : detail.run.observation,
+		},
+	};
 };
+
+const projectSessions = [
+	projectSession(0, "Review Atlas flow labels", "running"),
+	projectSession(1, "Choose the Atlas release view", "needs-input"),
+];
+
+const projectActivities: AgentActivity[] = projectSessions.map((detail) => ({
+	sessionId: detail.id,
+	run: detail.run,
+}));
+
+const sessionActivity = (index: number, activityRun: AgentRun): AgentActivity => ({
+	sessionId: reviewSessions[index]!.id,
+	run: {
+		...activityRun,
+		id: id(610 + index),
+		name: reviewSessions[index]!.name,
+		projectId: null,
+		projectKey: "",
+		sessionId: reviewSessions[index]!.id,
+	},
+});
+
+const statusActivities: AgentActivity[] = [
+	sessionActivity(0, { ...run, state: "starting", processStatus: null }),
+	sessionActivity(1, terminalSession("running").run),
+	sessionActivity(2, terminalSession("needs-input").run),
+	sessionActivity(3, {
+		...run,
+		kind: "agent",
+		ticketId: id(710),
+		ticketIdentifier: "ATL-10",
+		ticketTitle: "Keep the saved session available",
+		ticketStatusCategory: "started",
+		assigned: true,
+		state: "stopped",
+		processStatus: "exited",
+	}),
+	sessionActivity(4, {
+		...run,
+		kind: "agent",
+		ticketId: id(711),
+		ticketIdentifier: "ATL-11",
+		ticketTitle: "Verify page tabs and Back",
+		ticketStatusCategory: "done",
+		assigned: true,
+		state: "stopped",
+		processStatus: "exited",
+	}),
+	sessionActivity(5, { ...run, state: "failed", error: "The synthetic start failed." }),
+	sessionActivity(6, terminalSession("unavailable").run),
+];
 
 const pressureMachine: MachinePressureMachineView = {
 	id: "storybook-host",
@@ -109,6 +156,7 @@ export const navigationFixtures = {
 	atlas,
 	reviewProjects,
 	reviewSessions,
-	activities: [sessionActivity, projectActivity],
+	projectSessions,
+	activities: [...statusActivities, ...projectActivities],
 	pressureMachine,
 };

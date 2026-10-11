@@ -1,4 +1,4 @@
-import { Plus, SidebarSimple } from "@phosphor-icons/react";
+import { Plus, SidebarSimple, X } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { cx, IconButton, Kbd, Tooltip } from "@trellis/ui";
@@ -29,6 +29,9 @@ export type SidebarBodyProps = {
 	// The collapse button of the desktop sidebar. The phone sheet has its
 	// own way to close, so it passes nothing and shows no button.
 	onCollapse?: () => void;
+	// The phone sheet supplies its dismissal action. The desktop sidebar has
+	// the collapse action instead.
+	onClose?: () => void;
 };
 
 // The sidebar holds the optional collapse button, the fixed destinations, the
@@ -43,9 +46,10 @@ export type SidebarBodyProps = {
 // The highlight follows the page the outlet shows. A navigation changes the
 // URL at once but keeps the old page until the new one loads, so the
 // highlight moves when the page does.
-export function SidebarBody({ collapsed = false, onCollapse }: SidebarBodyProps) {
+export function SidebarBody({ collapsed = false, onCollapse, onClose }: SidebarBodyProps) {
 	const { live, orpc } = useApp();
-	const menuLinks = useQuery(orpc.settings.get.queryOptions({ select: (settings) => settings.menuLinks })).data;
+	const menuLinksQuery = useQuery(orpc.settings.get.queryOptions({ select: (settings) => settings.menuLinks }));
+	const menuLinks = menuLinksQuery.data;
 	const status = useLiveStatus(live);
 	const navigate = useNavigate();
 	const pathname = useRouterState({ select: (state) => (state.resolvedLocation ?? state.location).pathname });
@@ -76,19 +80,32 @@ export function SidebarBody({ collapsed = false, onCollapse }: SidebarBodyProps)
 							</span>
 						}
 					>
-						{/* The circle centres on the row icons below it. A coarse
-						    pointer draws it at 44 px, and the negative margin keeps
-						    all of it inside the 48 px rail, which clips its overflow. */}
+						{/* The circle centres on the row icons below it. Its 44 px
+						    coarse target stays inside the 48 px rail. */}
 						<IconButton
 							label={toggleLabel}
 							icon={<SidebarSimple />}
-							className="ml-0.5 pointer-coarse:-ml-1.5"
+							className="ml-0.5 pointer-coarse:ml-0"
 							onClick={onCollapse}
 						/>
 					</Tooltip>
 				)}
+				{onClose && (
+					<Tooltip content="Close sidebar">
+						<IconButton
+							label="Close sidebar"
+							icon={<X />}
+							className="max-md:size-11 max-md:before:inset-0"
+							onClick={onClose}
+						/>
+					</Tooltip>
+				)}
 			</div>
-			<nav aria-label="Workspace" className="flex flex-col gap-0.5">
+			<nav
+				aria-label="Workspace"
+				aria-busy={menuLinksQuery.data === undefined && menuLinksQuery.failureCount === 0 ? true : undefined}
+				className="flex flex-col gap-0.5"
+			>
 				{navRows.map((row) => (
 					<NavRow
 						key={row.to}

@@ -27,7 +27,7 @@
 	--sidebar-border: #d9dedc;
 	--sidebar-fg: #17201d;
 	--sidebar-muted: #58625e;
-	--sidebar-faint: #707a76;
+	--sidebar-faint: #58625e;
 	--sidebar-hover: #e8ecea;
 	--sidebar-selected: #dce4e1;
 	--sidebar-selected-fg: #111815;
@@ -127,13 +127,16 @@
 	@apply w-10 gap-1 pointer-coarse:w-15;
 }
 
+/* A group title: one step larger and heavier than the rows
+   under it. */
 @utility sidebar-section {
-	@apply flex h-8 pointer-coarse:h-11 items-center justify-between pl-2 pr-1;
+	@apply flex h-8 pointer-coarse:h-11 items-center justify-between pl-2 pr-1 text-base font-semibold text-fg;
 }
 
+/* The selected row takes a fill one step darker than the hover fill
+   (`bg-elevated`), so a hover never looks like a selection. */
 @utility sidebar-selected {
-	background: var(--sidebar-selected);
-	color: var(--sidebar-selected-fg);
+	@apply bg-control-active text-fg;
 }
 
 /* The height, the gap and the padding of a row on the sessions page. The row
@@ -178,6 +181,7 @@
 	font-weight: 400;
 	line-height: 19.5px;
 	color: var(--sidebar-muted);
+	@apply max-md:h-11 max-md:min-h-11 pointer-coarse:h-11 pointer-coarse:min-h-11;
 }
 
 .sidebar-shell .sidebar-row:hover {
@@ -210,6 +214,7 @@
 	font-size: 11px;
 	font-weight: 400;
 	line-height: 16px;
+	@apply max-md:h-11 max-md:min-h-11 pointer-coarse:h-11 pointer-coarse:min-h-11;
 }
 
 .sidebar-shell [data-sidebar-scroll] {
@@ -226,6 +231,7 @@
 }
 
 .sidebar-shell .sidebar-rail-row {
+	@apply pointer-coarse:size-11;
 	border-radius: 4px;
 	color: var(--sidebar-muted);
 }
@@ -239,6 +245,7 @@
 	width: 32px;
 	padding-inline: 0;
 	justify-content: center;
+	@apply pointer-coarse:w-11;
 }
 
 .sidebar-shell[data-collapsed] .sidebar-leading {
@@ -250,26 +257,29 @@
 	display: none;
 }
 
-.sidebar-skeleton-row {
+.sidebar-shell .sidebar-shell-skeleton > div {
 	height: 9px;
 	border-radius: 2px;
 	background: var(--sidebar-border);
 }
 
-@media (max-width: 767px) {
-	.sidebar-shell .sidebar-row,
-	.sidebar-shell .sidebar-section {
-		height: 44px;
-		min-height: 44px;
-	}
+.sidebar-shell [data-sidebar-scroll] {
+	@apply max-md:mt-2;
+}
 
-	.sidebar-shell [data-sidebar-scroll] {
-		margin-top: 8px;
-	}
+.sidebar-shell [data-sidebar-projects-section] {
+	@apply max-md:mt-3;
+}
 
-	.sidebar-shell [data-sidebar-projects-section] {
-		margin-top: 12px;
-	}
+.sidebar-shell [data-project-page] .dot-metal {
+	background: var(--sidebar-mark);
+	background-image: none;
+	border-color: var(--sidebar-mark);
+	box-shadow: none;
+}
+
+.sidebar-shell [data-project-page] .dot-metal::before {
+	content: none;
 }
 
 .sidebar-project-tree > li:nth-child(2n) {

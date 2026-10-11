@@ -31,7 +31,7 @@ export function MobileSidebar() {
 			className="sidebar-shell gap-0.5 border-r px-3 pt-0 pb-2"
 		>
 			<div className="flex h-full flex-col gap-0.5">
-				<SidebarBody />
+				<SidebarBody onClose={() => uiActions.setMobileSidebarOpen(false)} />
 			</div>
 		</Sheet>
 	);

@@ -2,9 +2,12 @@ import { createMemoryHistory, createRootRouteWithContext, createRoute, createRou
 import type { ReactNode } from "react";
 import type { AppContext } from "../../../lib/appContext";
 import { parseSearchString, stringifySearchObject } from "../../../lib/searchParams";
+import { createAppRouter } from "../../../router";
 import type { StoryParameters } from "../types";
 
 export const createStoryRouter = (context: AppContext, parameters: StoryParameters, render: () => ReactNode) => {
+	const history = createMemoryHistory({ initialEntries: [parameters.path ?? "/"] });
+	if (parameters.generatedRouter) return createAppRouter(context, history);
 	const root = createRootRouteWithContext<AppContext>()();
 	const path = parameters.routePath ?? "/$";
 	if (parameters.route) {
@@ -27,7 +30,7 @@ export const createStoryRouter = (context: AppContext, parameters: StoryParamete
 	return createRouter({
 		routeTree: root.addChildren([route]),
 		context,
-		history: createMemoryHistory({ initialEntries: [parameters.path ?? "/"] }),
+		history,
 		parseSearch: parseSearchString,
 		stringifySearch: stringifySearchObject,
 		defaultPreload: false,

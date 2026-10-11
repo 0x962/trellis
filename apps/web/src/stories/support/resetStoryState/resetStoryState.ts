@@ -13,12 +13,16 @@ import { actorStorageKey, setActorName } from "../../../lib/actor";
 import { usePageSheetStore } from "../../../stores/pageSheetStore";
 import { usePageTabsStore } from "../../../stores/pageTabsStore";
 import { useProjectMoreStore } from "../../../stores/projectMoreStore";
-import { useUiStore } from "../../../stores/uiStore";
+import { uiStorageKey, useUiStore } from "../../../stores/uiStore";
 
-export const resetStoryState = (actor: string | null = "Storybook") => {
+export const resetStoryState = (
+	actor: string | null = "Storybook",
+	{ preserveNavigationPreferences = false }: { preserveNavigationPreferences?: boolean } = {},
+) => {
 	toast.dismiss();
 	for (const storage of [localStorage, sessionStorage]) {
 		for (const key of Object.keys(storage)) {
+			if (preserveNavigationPreferences && key === uiStorageKey) continue;
 			if (key.startsWith("trellis")) storage.removeItem(key);
 		}
 	}
@@ -27,7 +31,7 @@ export const resetStoryState = (actor: string | null = "Storybook") => {
 	usePageSheetStore.setState(usePageSheetStore.getInitialState(), true);
 	usePageTabsStore.setState(usePageTabsStore.getInitialState(), true);
 	useProjectMoreStore.setState(useProjectMoreStore.getInitialState(), true);
-	useUiStore.setState(useUiStore.getInitialState(), true);
+	if (!preserveNavigationPreferences) useUiStore.setState(useUiStore.getInitialState(), true);
 	useRecentChoices.setState(useRecentChoices.getInitialState(), true);
 	useBroadcastStore.setState(useBroadcastStore.getInitialState(), true);
 	useCommandStore.setState(useCommandStore.getInitialState(), true);

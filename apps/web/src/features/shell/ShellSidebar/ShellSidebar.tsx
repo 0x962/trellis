@@ -1,5 +1,6 @@
 import { SidebarSimple } from "@phosphor-icons/react";
 import { Link } from "@tanstack/react-router";
+import { Skeleton } from "@trellis/ui";
 import { AgentsMenu } from "../../agents/AgentsMenu";
 import { navRows } from "../../navRows";
 
@@ -37,18 +38,11 @@ export function ShellSidebar() {
 				<div className="sidebar-section">
 					<span>Sessions</span>
 				</div>
-				<div className="flex flex-col gap-4 px-2 py-1" aria-hidden="true">
-					<span className="sidebar-skeleton-row w-34" />
-					<span className="sidebar-skeleton-row w-42" />
-					<span className="sidebar-skeleton-row w-27" />
-				</div>
+				<Skeleton lines={3} width="w-34" className="sidebar-shell-skeleton gap-4 px-2 py-1" />
 				<div data-sidebar-projects-section="" className="sidebar-section">
 					<span>Projects</span>
 				</div>
-				<div className="flex flex-col gap-4 px-2 py-1" aria-hidden="true">
-					<span className="sidebar-skeleton-row w-34" />
-					<span className="sidebar-skeleton-row w-42" />
-				</div>
+				<Skeleton lines={2} width="w-34" className="sidebar-shell-skeleton gap-4 px-2 py-1" />
 			</div>
 		</aside>
 	);
