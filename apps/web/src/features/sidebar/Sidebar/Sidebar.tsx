@@ -28,9 +28,9 @@ export function Sidebar() {
 				aria-label="Sidebar"
 				data-collapsed={collapsed || undefined}
 				className={cx(
-					"relative flex h-full shrink-0 flex-col gap-0.5 overflow-hidden bg-pane pb-2 text-sm max-md:hidden",
+					"sidebar-shell relative flex h-full shrink-0 flex-col gap-0.5 overflow-hidden border-r pb-2 max-md:hidden",
 					"transition-[width] duration-peek ease-in-out motion-reduce:transition-none",
-					collapsed ? "w-12 px-2" : "w-60 px-2",
+					collapsed ? "w-12 px-2 pointer-coarse:px-0.5" : "w-60 px-3",
 				)}
 			>
 				<SidebarBody collapsed={collapsed} onCollapse={uiActions.toggleSidebar} />

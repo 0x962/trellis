@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useRouterState } from "@tanstack/react-router";
-import { Button } from "@trellis/ui";
+import { Button, Skeleton } from "@trellis/ui";
 import { useApp } from "../../../lib/appContext";
 import { useSessionStatuses } from "../../agents/useSessionStatuses";
 import { SessionRow } from "../components/SessionRow";
@@ -14,7 +14,8 @@ export function SessionList() {
 	const pathname = useRouterState({ select: (state) => (state.resolvedLocation ?? state.location).pathname });
 	if (data === undefined)
 		return (
-			<nav aria-label="Sessions" data-session-list="">
+			<nav aria-label="Sessions" aria-busy={failureCount === 0 ? true : undefined} data-session-list="">
+				{failureCount === 0 && <Skeleton lines={3} width="w-32" className="sidebar-shell-skeleton px-2 py-2.5" />}
 				{failureCount > 0 && (
 					<div role="status" className="flex h-8 items-center justify-between gap-2 pl-2 text-sm text-fg-muted">
 						<span className="truncate">Could not load sessions</span>

@@ -1,3 +1,109 @@
+@font-face {
+	font-family: "Trellis Sidebar Instrument";
+	font-style: normal;
+	font-weight: 400;
+	font-display: swap;
+	src: url("./sidebar-assets/instrument-0.ttf") format("truetype");
+}
+
+@font-face {
+	font-family: "Trellis Sidebar Instrument";
+	font-style: normal;
+	font-weight: 500;
+	font-display: swap;
+	src: url("./sidebar-assets/instrument-1.ttf") format("truetype");
+}
+
+@font-face {
+	font-family: "Trellis Sidebar Instrument";
+	font-style: normal;
+	font-weight: 600;
+	font-display: swap;
+	src: url("./sidebar-assets/instrument-2.ttf") format("truetype");
+}
+
+.sidebar-shell {
+	--sidebar-ground: #f4f6f5;
+	--sidebar-border: #d9dedc;
+	--sidebar-fg: #17201d;
+	--sidebar-muted: #58625e;
+	--sidebar-faint: #58625e;
+	--sidebar-hover: #e8ecea;
+	--sidebar-selected: #dce4e1;
+	--sidebar-selected-fg: #111815;
+	--sidebar-focus: #39776a;
+	--sidebar-mark: #39776a;
+	font-family: "Trellis Sidebar Instrument", var(--sans);
+	font-size: 13px;
+	font-weight: 400;
+	line-height: 19.5px;
+	color: var(--sidebar-muted);
+	background: var(--sidebar-ground);
+	border-color: var(--sidebar-border);
+}
+
+@media (prefers-color-scheme: dark) {
+	:root:not([data-theme="light"]) .sidebar-shell {
+		--sidebar-ground: #101214;
+		--sidebar-border: #2a2e32;
+		--sidebar-fg: #edf0f1;
+		--sidebar-muted: #a5adb3;
+		--sidebar-faint: #98a4ac;
+		--sidebar-hover: #1b2024;
+		--sidebar-selected: #262a2e;
+		--sidebar-selected-fg: #edf0f1;
+		--sidebar-focus: #9ccbc0;
+		--sidebar-mark: #9ccbc0;
+	}
+}
+
+:root[data-theme="dark"] .sidebar-shell {
+	--sidebar-ground: #101214;
+	--sidebar-border: #2a2e32;
+	--sidebar-fg: #edf0f1;
+	--sidebar-muted: #a5adb3;
+	--sidebar-faint: #98a4ac;
+	--sidebar-hover: #1b2024;
+	--sidebar-selected: #262a2e;
+	--sidebar-selected-fg: #edf0f1;
+	--sidebar-focus: #9ccbc0;
+	--sidebar-mark: #9ccbc0;
+}
+
+.sidebar-shell [data-sidebar-toolbar] {
+	height: 64px;
+	margin-bottom: 0;
+}
+
+.sidebar-brand {
+	display: flex;
+	min-width: 0;
+	align-items: center;
+	gap: 10px;
+	padding-inline: 10px;
+	color: var(--sidebar-fg);
+}
+
+.sidebar-brand-mark {
+	width: 23px;
+	height: 26px;
+	flex: none;
+	background: var(--sidebar-mark);
+	-webkit-mask:
+		url("data:image/svg+xml,%3Csvg viewBox='0 0 32 32' fill='black' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M5 7h5v20H5zM14 3h5v26h-5zM23 5h5v20h-5zM2 16 30 0v6L2 22zM2 26 30 10v6L2 32z'/%3E%3C/svg%3E")
+		center / contain no-repeat;
+	mask:
+		url("data:image/svg+xml,%3Csvg viewBox='0 0 32 32' fill='black' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M5 7h5v20H5zM14 3h5v26h-5zM23 5h5v20h-5zM2 16 30 0v6L2 22zM2 26 30 10v6L2 32z'/%3E%3C/svg%3E")
+		center / contain no-repeat;
+}
+
+.sidebar-brand-name {
+	font-size: 22px;
+	font-weight: 600;
+	line-height: 33px;
+	letter-spacing: -0.9px;
+}
+
 @utility sidebar-leading {
 	@apply flex w-4 shrink-0 items-center justify-center mr-1.5;
 }
@@ -64,6 +170,116 @@
 /* The rail a collapsed sidebar leaves behind: one icon per row, centred. */
 @utility sidebar-rail-row {
 	@apply flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-fg-muted transition-colors duration-hover ease-out hover:bg-elevated hover:text-fg focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent pointer-coarse:h-11 pointer-coarse:w-11;
+}
+
+.sidebar-shell .sidebar-row {
+	height: 34px;
+	min-height: 34px;
+	border-radius: 4px;
+	font-family: "Trellis Sidebar Instrument", var(--sans);
+	font-size: 13px;
+	font-weight: 400;
+	line-height: 19.5px;
+	color: var(--sidebar-muted);
+	@apply max-md:h-11 max-md:min-h-11 pointer-coarse:h-11 pointer-coarse:min-h-11;
+}
+
+.sidebar-shell .sidebar-row:hover {
+	background: var(--sidebar-hover);
+	color: var(--sidebar-fg);
+}
+
+.sidebar-shell .sidebar-selected,
+.sidebar-shell .sidebar-selected:hover {
+	background: var(--sidebar-selected);
+	color: var(--sidebar-selected-fg);
+}
+
+.sidebar-shell .sidebar-row:focus-visible,
+.sidebar-shell .sidebar-rail-row:focus-visible {
+	outline-color: var(--sidebar-focus);
+}
+
+.sidebar-shell .sidebar-leading {
+	color: var(--sidebar-faint);
+}
+
+.sidebar-shell .sidebar-trailing {
+	color: var(--sidebar-faint);
+}
+
+.sidebar-shell .sidebar-section {
+	height: 34px;
+	color: var(--sidebar-faint);
+	font-size: 11px;
+	font-weight: 400;
+	line-height: 16px;
+	@apply max-md:h-11 max-md:min-h-11 pointer-coarse:h-11 pointer-coarse:min-h-11;
+}
+
+.sidebar-shell [data-sidebar-scroll] {
+	margin-top: 16px;
+	scrollbar-color: var(--sidebar-border) transparent;
+}
+
+.sidebar-shell [data-sidebar-projects-section] {
+	margin-top: 17px;
+}
+
+.sidebar-shell [data-sidebar-actor-footer] {
+	color: var(--sidebar-fg);
+}
+
+.sidebar-shell .sidebar-rail-row {
+	@apply pointer-coarse:size-11;
+	border-radius: 4px;
+	color: var(--sidebar-muted);
+}
+
+.sidebar-shell .sidebar-rail-row:hover {
+	background: var(--sidebar-hover);
+	color: var(--sidebar-fg);
+}
+
+.sidebar-shell[data-collapsed] .sidebar-row {
+	width: 32px;
+	padding-inline: 0;
+	justify-content: center;
+	@apply pointer-coarse:w-11;
+}
+
+.sidebar-shell[data-collapsed] .sidebar-leading {
+	margin-right: 0;
+}
+
+.sidebar-shell[data-collapsed] .sidebar-label,
+.sidebar-shell[data-collapsed] .sidebar-trailing {
+	display: none;
+}
+
+.sidebar-shell .sidebar-shell-skeleton > div {
+	height: 9px;
+	border-radius: 2px;
+	background: var(--sidebar-border);
+}
+
+.sidebar-shell [data-sidebar-scroll] {
+	@apply max-md:mt-2;
+}
+
+.sidebar-shell [data-sidebar-projects-section] {
+	@apply max-md:mt-3;
+}
+
+.sidebar-shell [data-project-page] .dot-metal {
+	background: var(--sidebar-mark);
+	background-image: none;
+	border-color: var(--sidebar-mark);
+	box-shadow: none;
+}
+
+.sidebar-shell [data-project-page] .dot-metal::before {
+	content: none;
 }
 
 .sidebar-project-tree > li:nth-child(2n) {

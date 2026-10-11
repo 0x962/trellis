@@ -28,10 +28,10 @@ export function MobileSidebar() {
 			width={280}
 			motion="popover"
 			bare
-			className="gap-0.5 bg-pane px-2 py-2.5 text-sm"
+			className="sidebar-shell gap-0.5 border-r px-3 pt-0 pb-2"
 		>
 			<div className="flex h-full flex-col gap-0.5">
-				<SidebarBody />
+				<SidebarBody onClose={() => uiActions.setMobileSidebarOpen(false)} />
 			</div>
 		</Sheet>
 	);

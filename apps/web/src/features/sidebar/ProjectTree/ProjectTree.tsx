@@ -30,7 +30,7 @@ export function ProjectTree() {
 	// Retry click starts a new fetch, so the placeholder rows come back.
 	if (data === undefined)
 		return (
-			<nav aria-label="Projects" data-project-tree="">
+			<nav aria-label="Projects" aria-busy={projects.failureCount === 0 ? true : undefined} data-project-tree="">
 				<ProjectListStatus
 					failed={projects.failureCount > 0}
 					onRetry={() => void retrySidebarProjects(queryClient, orpc)}

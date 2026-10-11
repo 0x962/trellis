@@ -9,12 +9,14 @@ import { Topbar } from "../../../features/shell/Topbar";
 import { MachinePressureContext } from "../../../features/sidebar/MachinePressure/MachinePressureProvider";
 import { Sidebar } from "../../../features/sidebar/Sidebar";
 import { usePageTabsStore } from "../../../stores/pageTabsStore";
-import { uiActions } from "../../../stores/uiStore";
-import { failure, pending, project } from "../../pages/fixtures/project";
+import { uiActions, useUiStore } from "../../../stores/uiStore";
+import { failure, pending, project, timestamp } from "../../pages/fixtures/project";
 import { projectResponses } from "../../pages/fixtures/responses";
-import { session } from "../../pages/fixtures/session";
+import { navigationFixtures } from "./navigationFixtures";
 
-function Navigation() {
+const { atlas, reviewProjects, reviewSessions, activities, pressureMachine } = navigationFixtures;
+
+function Navigation({ machineAlert = false }: { machineAlert?: boolean }) {
 	useEffect(() => {
 		const title = document.title;
 		document.title = "Navigation · trellis";
@@ -24,20 +26,26 @@ function Navigation() {
 	}, []);
 	return (
 		<div className="flex h-full bg-bg text-fg">
-			<MachinePressureContext.Provider value={{ machines: [], machinesWithAlerts: [], setDetailsOpen: () => {} }}>
+			<MachinePressureContext.Provider
+				value={{
+					machines: machineAlert ? [pressureMachine] : [],
+					machinesWithAlerts: machineAlert ? [pressureMachine] : [],
+					setDetailsOpen: () => {},
+				}}
+			>
 				<Sidebar />
 			</MachinePressureContext.Provider>
 			<div className="relative flex min-w-0 flex-1 flex-col">
 				<PageTabsHost />
 				<main className="page-inset flex min-h-0 min-w-0 flex-1 flex-col bg-pane">
 					<Topbar>
-						<PageTitle parent="Trellis workspace" title="Navigation" />
+						<PageTitle parent="Atlas" title="Flow state labels" />
 					</Topbar>
 					<EmptyState
 						variant="page"
 						className="page-card"
-						title="Explore the workspace"
-						description="Use the sidebar and tabs to inspect navigation controls."
+						title="Flow state labels"
+						description="Review the current flow labels and their source evidence."
 					/>
 				</main>
 			</div>
@@ -46,14 +54,21 @@ function Navigation() {
 }
 
 const seedTabs = () => {
+	useUiStore.setState({ sidebarCollapsed: false, mobileSidebarOpen: false, expandedProjects: {} });
 	usePageTabsStore.setState({
 		tabs: [
 			{ id: "search", url: "/search", title: "Search", pinned: true, backHistory: [], forwardHistory: [] },
-			{ id: "project", url: "/p/DEMO", title: "Trellis workspace", backHistory: [], forwardHistory: [] },
-			{ id: "epics", url: "/p/DEMO/epics", title: "Epics", groupId: "work", backHistory: [], forwardHistory: [] },
+			{
+				id: "project",
+				url: "/p/ATL/epics/flow-state-labels",
+				title: "Flow state labels",
+				backHistory: [],
+				forwardHistory: [],
+			},
+			{ id: "epics", url: "/p/ATL/epics", title: "Epics", groupId: "work", backHistory: [], forwardHistory: [] },
 			{
 				id: "reviews",
-				url: "/p/DEMO/diffs",
+				url: "/p/ATL/diffs",
 				title: "Pull requests",
 				groupId: "work",
 				backHistory: [],
@@ -72,13 +87,24 @@ const meta = {
 	beforeEach: seedTabs,
 	parameters: {
 		trellis: {
-			path: "/p/DEMO",
+			path: "/p/ATL/epics/flow-state-labels",
 			responses: {
 				...projectResponses,
-				"sessions.list": [{ ...session, projectId: null, projectKey: null }],
-				"agentRuns.activity": [],
-				"settings.get": { menuLinks: [] },
-				"system.gh": { ok: true, login: "storybook", error: null },
+				"projects.get": atlas,
+				"projects.list": reviewProjects,
+				"sessions.list": reviewSessions,
+				"agentRuns.activity": activities,
+				"settings.get": {
+					menuLinks: [
+						{
+							id: "engineering-docs",
+							label: "Engineering docs",
+							url: "https://example.test/docs",
+							icon: "BookOpen",
+						},
+					],
+				},
+				"system.gh": { ok: true, user: "storybook", reason: null, message: null, checkedAt: timestamp },
 				"settings.set": (input: unknown) => input,
 			},
 		},
@@ -95,6 +121,25 @@ export const Expanded: Story = {
 		);
 	},
 };
+export const NestedRouteFocus: Story = {
+	play: async ({ canvasElement }) => {
+		await waitFor(() => {
+			expect(canvasElement.querySelector('a[href="/p/ATL/epics"]')).toBeInTheDocument();
+			expect(canvasElement.querySelector('a[href="/sessions/project/ATL"]')).toBeInTheDocument();
+		});
+		const epics = canvasElement.querySelector<HTMLAnchorElement>('a[href="/p/ATL/epics"]')!;
+		const sessions = canvasElement.querySelector<HTMLAnchorElement>('a[href="/sessions/project/ATL"]')!;
+		sessions.focus();
+		await expect(sessions).toHaveFocus();
+		await expect(epics).toHaveAttribute("aria-current", "page");
+	},
+};
+export const GlobalReview: Story = {
+	parameters: { trellis: { path: "/reviews/example/trellis/42" } },
+	play: async ({ canvasElement }) => {
+		await expect(canvasElement.querySelector(".sidebar-selected")).not.toBeInTheDocument();
+	},
+};
 export const Collapsed: Story = {
 	beforeEach: () => {
 		uiActions.setSidebarCollapsed(true);
@@ -104,19 +149,65 @@ export const Connecting: Story = { parameters: { trellis: { liveStatus: "connect
 export const Reconnecting: Story = { parameters: { trellis: { liveStatus: "reconnecting" } } };
 export const Restarting: Story = { parameters: { trellis: { liveStatus: "restarting" } } };
 export const Offline: Story = { parameters: { trellis: { liveStatus: "down" } } };
-export const Empty: Story = { parameters: { trellis: { responses: { "projects.list": [], "sessions.list": [] } } } };
+export const GitHubWarning: Story = {
+	parameters: {
+		trellis: {
+			responses: {
+				"system.gh": {
+					ok: false,
+					user: null,
+					reason: "unauthenticated",
+					message: "Sign in to GitHub.",
+					checkedAt: timestamp,
+				},
+			},
+		},
+	},
+};
+export const MachineAlert: Story = { args: { machineAlert: true } };
+export const Empty: Story = {
+	parameters: { trellis: { responses: { "projects.list": [], "sessions.list": [] } } },
+	play: async ({ canvasElement }) => {
+		const canvas = within(canvasElement);
+		await expect(await canvas.findByRole("navigation", { name: "Sessions" })).not.toHaveAttribute("aria-busy");
+		await expect(await canvas.findByRole("navigation", { name: "Projects" })).not.toHaveAttribute("aria-busy");
+	},
+};
 export const Loading: Story = {
 	parameters: { trellis: { responses: { "projects.list": pending, "sessions.list": pending } } },
+	play: async ({ canvasElement }) => {
+		const canvas = within(canvasElement);
+		await expect(await canvas.findByRole("navigation", { name: "Sessions" })).toHaveAttribute("aria-busy", "true");
+		await expect(await canvas.findByRole("navigation", { name: "Projects" })).toHaveAttribute("aria-busy", "true");
+	},
 };
 export const FailedRequest: Story = {
 	parameters: { trellis: { responses: { "projects.list": failure, "sessions.list": failure } } },
+	play: async ({ canvasElement }) => {
+		const canvas = within(canvasElement);
+		await expect(await canvas.findAllByRole("button", { name: "Retry" })).toHaveLength(2);
+		await expect(await canvas.findByRole("navigation", { name: "Sessions" })).not.toHaveAttribute("aria-busy");
+		await expect(await canvas.findByRole("navigation", { name: "Projects" })).not.toHaveAttribute("aria-busy");
+	},
 };
 export const ShellLoading: Story = { render: () => <ShellFrame /> };
 export const Narrow: Story = { globals: { viewport: { value: "phone", isRotated: false } } };
+export const Narrow320: Story = { globals: { viewport: { value: "narrow", isRotated: false } } };
+export const Tablet768: Story = { globals: { viewport: { value: "tablet", isRotated: false } } };
 export const MobileSidebar: Story = {
 	globals: { viewport: { value: "phone", isRotated: false } },
 	beforeEach: () => {
 		uiActions.setMobileSidebarOpen(true);
+	},
+};
+export const MobileDismissal: Story = {
+	globals: { viewport: { value: "phone", isRotated: false } },
+	play: async ({ canvasElement }) => {
+		const open = await within(canvasElement).findByRole("button", { name: "Open the sidebar" });
+		await userEvent.click(open);
+		const close = await within(document.body).findByRole("button", { name: "Close sidebar" });
+		await userEvent.click(close);
+		await waitFor(() => expect(open).toHaveFocus());
 	},
 };
 export const ManyProjects: Story = {
@@ -127,7 +218,12 @@ export const ManyProjects: Story = {
 					...project,
 					id: `project-${index}`,
 					key: `P${index}`,
-					name: `Project ${index + 1}`,
+					name:
+						index % 5 === 0
+							? "Client libraries with duplicate release names"
+							: index % 3 === 0
+								? "Release review"
+								: `Project ${index + 1}`,
 					position: index,
 				})),
 			},

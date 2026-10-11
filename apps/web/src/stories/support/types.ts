@@ -6,6 +6,8 @@ export type StoryResponse = unknown | ((input: unknown, signal?: AbortSignal) =>
 export type StoryParameters = {
 	responses?: Record<string, StoryResponse>;
 	path?: string;
+	generatedRouter?: boolean;
+	preserveNavigationPreferences?: boolean;
 	routePath?: string;
 	route?: AnyRoute;
 	loadRoute?: boolean;
