@@ -1,6 +1,6 @@
 import { assertTarget } from "@trellis/runtime-protocol/execution";
 import { nativeHost } from "../../../../agents/native/harnessHost.ts";
-import { waitForReceipt } from "../../../../services/agentRuns/waitForReceipt.ts";
+import { waitForReceipt } from "../../../../services/agentRuns.ts";
 import type { LocalExecutionHost, LocalHostDeps } from "../LocalExecutionHost.ts";
 
 // The runtime takes input bytes as base64 text. The encoding stays inside

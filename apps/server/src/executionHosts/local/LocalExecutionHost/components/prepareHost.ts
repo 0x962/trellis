@@ -2,8 +2,7 @@ import type { AccountHarness } from "@trellis/api";
 import { type ExecutionTarget, LaunchSpecMismatch } from "@trellis/runtime-protocol/execution";
 import type { HarnessStartInput } from "../../../../agents/harnessHost/types.ts";
 import { nativeHost } from "../../../../agents/native/harnessHost.ts";
-import { readHostDefault } from "../../../../services/harnessAccounts/hostDefault.ts";
-import { profileEnvironment } from "../../../../services/harnessAccounts/profiles.ts";
+import { profileEnvironment, readHostDefault } from "../../../../services/harnessAccounts/harnessAccounts.ts";
 import { localAttemptEnvironment } from "../../LocalAttemptEnvironment";
 import type { LocalHostDeps, LocalPrepareInput } from "../LocalExecutionHost.ts";
 

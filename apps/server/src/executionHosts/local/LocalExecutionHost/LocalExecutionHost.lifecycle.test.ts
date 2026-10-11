@@ -7,8 +7,8 @@ import { type ExecutionTarget, fingerprintDigest } from "@trellis/runtime-protoc
 import { FIXTURE_AMBIENT, FIXTURE_BEARER, scriptedRuntime } from "@trellis/runtime-protocol/execution/contract-fixture";
 import { HarnessHost } from "../../../agents/harnessHost/harnessHost.ts";
 import type { HarnessDescriptor } from "../../../agents/harnessHost/types.ts";
-import { attemptCapturePath } from "../../../services/agentRuns/attemptCapture.ts";
 import { pauseRestartFixture } from "../../../services/agentRuns/pauseRestartFixture/pauseRestartFixture.ts";
+import { attemptCapturePath } from "../../../services/agentRuns.ts";
 import { createLocalExecutionHost, type LocalDescriptor, type LocalPrepareInput } from "./LocalExecutionHost.ts";
 
 const at = new Date("2026-10-01T12:00:00Z");

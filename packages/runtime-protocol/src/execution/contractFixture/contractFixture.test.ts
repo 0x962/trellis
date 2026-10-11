@@ -1,5 +1,6 @@
+import { expect, test } from "bun:test";
 import { createHash } from "node:crypto";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -212,4 +213,38 @@ executionHostContract(async () => {
 			await rm(home, { recursive: true, force: true });
 		},
 	};
+});
+
+test("launch.start rejects when the descriptor file of the attempt holds invalid JSON", async () => {
+	const home = await mkdtemp(join(tmpdir(), "trellis-contract-"));
+	const runtime = await scriptedRuntime((request) => cat.reply(request));
+	const cat = new CatRuntime(runtime.socketPath);
+	const broken: ExecutionTarget = { ...target, attemptId: "01BROKEN" };
+	await mkdir(join(home, "harness-attempts", broken.attemptId), { recursive: true });
+	await writeFile(join(home, "harness-attempts", broken.attemptId, "launch.json"), "{");
+	const host = clientExecutionHost({
+		client: runtime.client,
+		binding: { hostId: target.hostId, controlId: target.controlId, controllerOwnerEpoch: 1 },
+		home,
+		url: "http://127.0.0.1:1",
+		env: async () => FIXTURE_AMBIENT,
+	});
+	const spec: ContractLaunchSpec = {
+		id: broken.attemptId,
+		command: "/bin/cat",
+		args: [],
+		cwd: home,
+		mode: "stdio",
+		env: {
+			TRELLIS_URL: "http://127.0.0.1:1",
+			TRELLIS_ACTOR: `agent:${broken.runId}`,
+			TRELLIS_RUN_ID: broken.runId,
+			TRELLIS_ATTEMPT_ID: broken.attemptId,
+			TRELLIS_RUNTIME_HOME: `${home}/runtime`,
+			TRELLIS_ATTEMPT_TOKEN: FIXTURE_TOKEN,
+		},
+	};
+	await expect(host.launch.start(broken, spec)).rejects.toBeInstanceOf(SyntaxError);
+	await runtime.close();
+	await rm(home, { recursive: true, force: true });
 });

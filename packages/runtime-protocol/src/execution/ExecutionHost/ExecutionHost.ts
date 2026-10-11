@@ -74,8 +74,8 @@ export interface ExecutionHost<Prepare extends ExecutionPrepare = ExecutionPrepa
 		// `spec.id` must equal `target.attemptId`. The host merges its login
 		// environment under `spec.env` before the runtime starts the process.
 		start(target: ExecutionTarget, spec: ContractLaunchSpec): Promise<LaunchOutcome>;
-		// Starts the prepared launch record of the attempt. A record that the
-		// runtime already holds is not started a second time.
+		// Starts the prepared launch record of the attempt. For an attempt the
+		// runtime already holds, the receipt carries the existing session.
 		startPrepared(target: ExecutionTarget, timeoutMs?: number): Promise<LaunchOutcome>;
 		// Starts the prepared launch of `input` and waits until the harness
 		// confirms its provider session and the first message. A resume waits

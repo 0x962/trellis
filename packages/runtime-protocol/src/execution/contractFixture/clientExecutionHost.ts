@@ -65,10 +65,15 @@ export function clientExecutionHost({ client, binding, home, url, env }: ClientE
 		await writeFile(descriptorPath(target), JSON.stringify({ spec, fingerprint }));
 		return redact({ spec, fingerprint });
 	};
+	// An attempt without a record has a null digest. A record that exists and
+	// does not parse makes the launch reject.
 	const descriptorDigest = (target: ExecutionTarget) =>
 		readRecord(target).then(
 			(record) => digest(record.fingerprint),
-			() => null,
+			(error: NodeJS.ErrnoException) => {
+				if (error.code === "ENOENT") return null;
+				throw error;
+			},
 		);
 	const start = (target: ExecutionTarget, spec: LaunchSpec, digest: () => Promise<string | null>) =>
 		startLaunch((full) => client.start(full), target, spec, digest);

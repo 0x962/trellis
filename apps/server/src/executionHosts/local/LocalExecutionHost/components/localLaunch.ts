@@ -39,8 +39,7 @@ export const localLaunch = (deps: LocalHostDeps): Pick<LocalExecutionHost, "laun
 				const client = await deps.connection.ensure();
 				const descriptor = await readLocalDescriptor(deps.home, target.attemptId);
 				const answer = await client.list({ ids: [target.attemptId] });
-				// A short answer says nothing about this attempt. A start on an
-				// attempt that already runs would launch the command a second time.
+				// An incomplete list cannot establish whether this attempt exists.
 				if (!answer.complete)
 					throw new Error(`The execution service did not answer whether attempt ${target.attemptId} exists`);
 				const [session] = answer.sessions;

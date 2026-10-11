@@ -1,10 +1,6 @@
 import { assertTarget, readAllOutput } from "@trellis/runtime-protocol/execution";
 import { agentWorkspace } from "../../../../agents/native/workspace.ts";
-import {
-	attemptCapturePath,
-	attemptStopped,
-	writeAttemptCapture,
-} from "../../../../services/agentRuns/attemptCapture.ts";
+import { attemptCapturePath, attemptStopped, writeAttemptCapture } from "../../../../services/agentRuns.ts";
 import type { LocalExecutionHost, LocalHostDeps } from "../LocalExecutionHost.ts";
 import { readLocalDescriptor } from "./readLocalDescriptor.ts";
 import { redactDescriptor } from "./redactDescriptor.ts";
